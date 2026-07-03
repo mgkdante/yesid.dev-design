@@ -11,10 +11,8 @@ node_modules/
 .env.*
 !.env.example
 
-# per-machine workflow pointers (AGENTS.local.md is COMMITTED in this repo;
-# other *.local.md stay per-machine)
+# per-machine workflow pointers (AGENTS.local.md carries real Notion UUIDs)
 *.local.md
-!AGENTS.local.md
 
 # bun binary lockfile (text bun.lock is committed)
 bun.lockb
