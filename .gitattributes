@@ -1,0 +1,22 @@
+# slice-18k #111 — enforce LF for tokens-generated docs across all platforms.
+# Prevents CRLF/LF parity test failures on Windows checkouts where core.autocrlf
+# rewrites generated *.md content but the in-memory generator emits LF-only.
+*.md text eol=lf
+*.css text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.svelte text eol=lf
+*.json text eol=lf
+.githooks/* text eol=lf
+
+# Binary assets: never touch
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary

@@ -1,0 +1,24 @@
+# deps + build output
+node_modules/
+**/.svelte-kit/
+**/build/
+**/dist/
+**/.turbo/
+**/.vitest/
+
+# env — example stays
+.env
+.env.*
+!.env.example
+
+# per-machine workflow pointers (AGENTS.local.md is COMMITTED in this repo;
+# other *.local.md stay per-machine)
+*.local.md
+!AGENTS.local.md
+
+# bun binary lockfile (text bun.lock is committed)
+bun.lockb
+
+# worktrees + figma scratch
+.worktrees/
+.tmp.*.json

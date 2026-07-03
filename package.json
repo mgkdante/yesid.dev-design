@@ -1,0 +1,25 @@
+{
+	"name": "yesid-dev-design",
+	"private": true,
+	"type": "module",
+	"description": "yesid.dev brand foundation — tokens, motion, gates, gallery. Parity anchor: yesid.dev @ 2bdb611d91749dc437c07586cb82129eabe9dfec.",
+	"packageManager": "bun@1.3.11",
+	"engines": {
+		"bun": ">=1.3.0",
+		"node": ">=22.0.0"
+	},
+	"workspaces": ["apps/*", "packages/*"],
+	"scripts": {
+		"build": "turbo run build",
+		"test": "turbo run test",
+		"check": "turbo run check",
+		"dev": "turbo run dev",
+		"tokens:build": "bun run --cwd packages/tokens build",
+		"tokens:lint": "bun run --cwd packages/tokens lint:design-md",
+		"ci:tokens": "bun run tokens:build && git diff --exit-code apps/gallery/src/lib/styles/tokens.css apps/gallery/src/app.css packages/motion/src/tokens.ts DESIGN.md",
+		"setup:hooks": "git config core.hooksPath .githooks"
+	},
+	"devDependencies": {
+		"turbo": "^2.5.0"
+	}
+}
