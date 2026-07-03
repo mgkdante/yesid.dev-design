@@ -48,6 +48,21 @@ No GitHub/npm yet → a `file:` dep on a sibling repo would break transit CI. **
 ## D10 — Constraints honored
 No yesid.dev writes/git-touch. No transit apps/db changes. No GitHub/npm without operator approval. Composed patterns (TocNav/TocPill/CollapsibleSection/persisted) NOT extracted. Notion subtree as sibling of Transit root (per directive; placement flagged for operator confirmation, movable).
 
+---
+
+# P5.3a DECISIONS — v0.3.0 (design-repo bump, transit override absorption)
+
+Slice `P5.3a · foundation` · branch `slice/p5.3a-foundation`. First of the P5.3 reconciliation bumps flagged in D8: shrinks transit's `DECLARED_OVERRIDES` register 6 → 2 by promoting two divergences into the shared base, and ships the tap-feedback consumer snippet the two-tier tap-press system always assumed.
+
+## D11 — v0.3.0 scope (four items, frozen)
+1. **Glow-shadow basis absorbed.** `shadow.glow-{sm,md,lg}` in the base already ride `color-mix(… var(--glow) …)` (present since v0.1.0; `color.brand.glow` exists in the base). Transit's register carried the `--primary` variants only because transit *predated* `color.brand.glow`. v0.3.0 is the tag at which transit takes the base value: transit adopts `--glow` in its own `tools/tokens/tokens.json` and DELETES the three `shadow.glow-*` register entries. No base token value changed — this bump is the sanctioned adoption point.
+2. **`space.page-x` absorbed.** Base `page-x` = `clamp(1.5rem, 4vw, 5rem)` (unchanged since v0.1.0). Transit's tighter `1rem` mobile-gutter override is retired: transit takes `1.5rem` min and DELETES the `space.page-x` register entry.
+3. **tap-feedback consumer snippet (NET-NEW artifact).** `packages/motion/tap-feedback.css` — the Layer 1 CSS baseline (`.tap-press` / `.tap-feedback`) that pairs with the `pressBounce` action (Layer 2) and that `policy.ts` has always named in the SAFE-ALWAYS tier, but which shipped as CSS nowhere. It is a COPY-PASTE block, NOT an import/export: `@yesid/motion` ships pure actions and zero app-conditional CSS (a package cannot know a consumer's Tailwind version or layer order). Values verbatim from the gallery's inherited yesid slice-19 CSS; the gallery now cites this file as the canonical source and dogfoods it. `@yesid/motion` version 0.1.0 → 0.3.0 (tracks the tag; tokens stays 0.2.0 — no token value moved — gates stays 0.1.0).
+4. **Result: transit's register shrinks 6 → 2**, keeping ONLY `text.heading` (headings sized up one step for data-page scanability) and `text.micro` (`0.75rem` floor for dense chart annotations) — genuine transit-owned divergences, NOT reconciliation candidates for this bump.
+
+## D12 — Why the base is unchanged and this is still a bump
+The glow-shadow and page-x base values already matched what transit is adopting — so v0.3.0 changes NO shared token value. The bump's job is (a) to be the deliberate, tagged adoption point transit's cascade requires (design-sync re-run at v0.3.0 → reviewable diff), and (b) to ship item 3, the genuinely new snippet. Transit then, on ITS side (out of scope here): re-runs `design-sync --tag v0.3.0`, bumps `PINNED_TAG`, takes `--glow` + `1.5rem` in its tokens.json, deletes 4 register entries, regenerates tokens, pastes tap-feedback.css into its app.css hand region (replacing its own inherited copy). Base stays the tag yesid.dev can still adopt AT.
+
 ## Risk register
 - Monthly spend limit killed 2 recon subagents → implementation may have to run in the main loop (done for recon D/E already). Try workflows; fall back solo on spend-limit errors.
 - push-to-figma count pin moves 133→180 at v0.2.0 (dataviz adds 47 moded color variables) — update pin WITH changelog comment (house pattern).
