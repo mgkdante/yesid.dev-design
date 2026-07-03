@@ -71,8 +71,12 @@ describe('push-to-figma', () => {
     // consolidation-vibe-style-fixes adds 4: shadow/cta + shadow/cta-hover
     // (hero CTA shadow folded into tokens) and z/overlay + z/ripple (modal and
     // ripple z-index tiers above nav).
+    // yesid.dev-design v0.2.0 adds 23: the dataviz scale reconciled from
+    // transit (status 5, occupancy 5, severity 3, heatmap 10 — per-mode pairs
+    // that merge to one moded color/dataviz-* variable each). 133 was the
+    // v0.1.0 parity-anchor count (yesid.dev @ 2bdb611d).
     const vars = runScript();
-    expect(vars.length).toBe(133);
+    expect(vars.length).toBe(156);
   });
 
   it('theme re-pins of brand names merge as modes of one variable (no duplicates)', () => {

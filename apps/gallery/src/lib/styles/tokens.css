@@ -145,6 +145,29 @@
   --grid-block-marker: color-mix(in srgb, var(--accent) 4%, transparent);
   --grid-glow: color-mix(in srgb, var(--primary) 5%, transparent);
   --edge-highlight: color-mix(in srgb, var(--foreground) 5%, transparent);
+  --dataviz-status-early: #4aa3d4;
+  --dataviz-status-on-time: #28c840;
+  --dataviz-status-late: #ffb627;
+  --dataviz-status-severe: #ff5f57;
+  --dataviz-status-unknown: #8a8a8a;
+  --dataviz-occupancy-empty: #5b4a7a;
+  --dataviz-occupancy-many-seats: #7a5fb0;
+  --dataviz-occupancy-few-seats: #9a78d6;
+  --dataviz-occupancy-standing: #b794f0;
+  --dataviz-occupancy-full: #d0b3ff;
+  --dataviz-severity-critical: #ff5f57;
+  --dataviz-severity-high: #ff9f43;
+  --dataviz-severity-watch: #f4c430;
+  --dataviz-heatmap-0: #1f3a2b;
+  --dataviz-heatmap-1: #3a6b42;
+  --dataviz-heatmap-2: #d9b54a;
+  --dataviz-heatmap-3: #e07a2f;
+  --dataviz-heatmap-4: #d23f33;
+  --dataviz-heatmap-nodata: #36322e;
+  --dataviz-heatmap-tier-0: #FFD8A0;
+  --dataviz-heatmap-tier-1: #F59E3D;
+  --dataviz-heatmap-tier-2: #E2540A;
+  --dataviz-heatmap-tier-3: #9A2A02;
 
   /* Paired tokens (shadcn-compatible) */
   --card-foreground: var(--foreground);
@@ -189,6 +212,29 @@
   --grid-block-marker: color-mix(in srgb, var(--accent-text) 6%, transparent);
   --grid-glow: transparent;
   --edge-highlight: rgba(255, 255, 255, 0.6);
+  --dataviz-status-early: #1f6f9c;
+  --dataviz-status-on-time: #1f7a33;
+  --dataviz-status-late: #9a6a00;
+  --dataviz-status-severe: #c62828;
+  --dataviz-status-unknown: #6b6b6b;
+  --dataviz-occupancy-empty: #c9b8e8;
+  --dataviz-occupancy-many-seats: #a888d8;
+  --dataviz-occupancy-few-seats: #8a63c8;
+  --dataviz-occupancy-standing: #6f44b0;
+  --dataviz-occupancy-full: #532a8e;
+  --dataviz-severity-critical: #c62828;
+  --dataviz-severity-high: #b35a00;
+  --dataviz-severity-watch: #8a6d00;
+  --dataviz-heatmap-0: #cfe6c9;
+  --dataviz-heatmap-1: #93c389;
+  --dataviz-heatmap-2: #e6c264;
+  --dataviz-heatmap-3: #dd9347;
+  --dataviz-heatmap-4: #c2402f;
+  --dataviz-heatmap-nodata: #d6d0c4;
+  --dataviz-heatmap-tier-0: #F4AA4A;
+  --dataviz-heatmap-tier-1: #E06A12;
+  --dataviz-heatmap-tier-2: #B83C04;
+  --dataviz-heatmap-tier-3: #7E2503;
 
   /* Paired tokens (shadcn-compatible) */
   --card-foreground: var(--foreground);
@@ -234,6 +280,29 @@
     --grid-block-marker: color-mix(in srgb, var(--accent) 4%, transparent);
     --grid-glow: color-mix(in srgb, var(--primary) 5%, transparent);
     --edge-highlight: color-mix(in srgb, var(--foreground) 5%, transparent);
+    --dataviz-status-early: #4aa3d4;
+    --dataviz-status-on-time: #28c840;
+    --dataviz-status-late: #ffb627;
+    --dataviz-status-severe: #ff5f57;
+    --dataviz-status-unknown: #8a8a8a;
+    --dataviz-occupancy-empty: #5b4a7a;
+    --dataviz-occupancy-many-seats: #7a5fb0;
+    --dataviz-occupancy-few-seats: #9a78d6;
+    --dataviz-occupancy-standing: #b794f0;
+    --dataviz-occupancy-full: #d0b3ff;
+    --dataviz-severity-critical: #ff5f57;
+    --dataviz-severity-high: #ff9f43;
+    --dataviz-severity-watch: #f4c430;
+    --dataviz-heatmap-0: #1f3a2b;
+    --dataviz-heatmap-1: #3a6b42;
+    --dataviz-heatmap-2: #d9b54a;
+    --dataviz-heatmap-3: #e07a2f;
+    --dataviz-heatmap-4: #d23f33;
+    --dataviz-heatmap-nodata: #36322e;
+    --dataviz-heatmap-tier-0: #FFD8A0;
+    --dataviz-heatmap-tier-1: #F59E3D;
+    --dataviz-heatmap-tier-2: #E2540A;
+    --dataviz-heatmap-tier-3: #9A2A02;
 
     /* Paired tokens (shadcn-compatible) */
     --card-foreground: var(--foreground);
@@ -280,6 +349,29 @@
     --grid-block-marker: color-mix(in srgb, var(--accent-text) 6%, transparent);
     --grid-glow: transparent;
     --edge-highlight: rgba(255, 255, 255, 0.6);
+    --dataviz-status-early: #1f6f9c;
+    --dataviz-status-on-time: #1f7a33;
+    --dataviz-status-late: #9a6a00;
+    --dataviz-status-severe: #c62828;
+    --dataviz-status-unknown: #6b6b6b;
+    --dataviz-occupancy-empty: #c9b8e8;
+    --dataviz-occupancy-many-seats: #a888d8;
+    --dataviz-occupancy-few-seats: #8a63c8;
+    --dataviz-occupancy-standing: #6f44b0;
+    --dataviz-occupancy-full: #532a8e;
+    --dataviz-severity-critical: #c62828;
+    --dataviz-severity-high: #b35a00;
+    --dataviz-severity-watch: #8a6d00;
+    --dataviz-heatmap-0: #cfe6c9;
+    --dataviz-heatmap-1: #93c389;
+    --dataviz-heatmap-2: #e6c264;
+    --dataviz-heatmap-3: #dd9347;
+    --dataviz-heatmap-4: #c2402f;
+    --dataviz-heatmap-nodata: #d6d0c4;
+    --dataviz-heatmap-tier-0: #F4AA4A;
+    --dataviz-heatmap-tier-1: #E06A12;
+    --dataviz-heatmap-tier-2: #B83C04;
+    --dataviz-heatmap-tier-3: #7E2503;
 
     /* Paired tokens (shadcn-compatible) */
     --card-foreground: var(--foreground);
