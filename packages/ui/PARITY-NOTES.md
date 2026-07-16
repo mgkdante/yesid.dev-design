@@ -1,4 +1,4 @@
-# @yesid/ui wave-1 parity notes
+# @yesid/ui parity notes (waves 1 and 2)
 
 Transit is the package baseline for wave 1. Its current primitive behavior and classes were ported as-is, with only package import-path changes. Differences found in yesid.dev were recorded here; no yesid.dev behavior was merged into the package and no consumer conditional was added.
 
@@ -241,3 +241,148 @@ Transit also has consumer-level guards outside the package test suite that remai
 - `apps/web/src/lib/components/shared/CollapsibleSection.test.ts`
 
 Passing package tests alone does not prove either consumer has zero visual change. Each consumer adoption needs its own source guards, build, and browser comparison after import replacement.
+
+## Wave 2: brand components
+
+Transit remains the package default. Wave 2 compares these current consumer sources:
+
+- Transit: `transit/apps/web/src/lib/components/brand/` plus `shared/TocBadge.svelte` and `shared/TerminalCursor.svelte`
+- yesid.dev: `yesid.dev/apps/web/src/lib/components/brand/` plus `shared/TocBadge.svelte` and `shared/TerminalCursor.svelte`
+
+No component imports either app's locale, copy, icon, or motion modules. Consumer copy stays in consumer code, and the app-local `scrollChain` action remains Tier 2.
+
+### Brand adoption matrix
+
+| Component | Package baseline | yesid.dev zero-change configuration | Verdict / remaining consumer work |
+| --- | --- | --- | --- |
+| BlueprintShell | Transit nested SVG text is normalized to `var(--font-mono)` | Pass `normalizeTextFont={false}` | Ported with a parity prop; retarget yesid.dev's lexical `.30`/`.50` source guard to numeric semantics |
+| ChevronToggle | Implementations are behaviorally identical | Defaults or the same existing props | Ported identical; both direction classes intentionally use the same 90-degree open rotation |
+| SectionLabel | Implementations are visually identical | Defaults or the same existing props | Ported identical; centered class order differs only lexically and equivalent label CSS is now component-owned |
+| StopLabel | Transit optional label/heading superset, `prefix="ARRÊT"` | Pass the app-owned localized prefix, for example `prefix={STOP_WORD[locale]}` | Ported with a parity prop; no locale context or `cornerMeta.copy.ts` enters the package |
+| MetroStation | Transit self-contained roundel | Pass a `roundel` snippet that renders yesid.dev's local Badge | Ported with a parity snippet; the package does not encode a consumer-specific Badge switch |
+| StickyPanel | Transit card surface, card shadow, native sticky scrolling | Keep a local compatibility wrapper for `surface-3`, no shadow, and app-local `scrollChain` | Contradictory styling/behavior; package is Transit, with explicit wrapper work rather than a forced shared variant |
+| TocBadge | Shared branching and icon registry; number is pinned to the consumers' effective `0.75rem` | No prop difference | Ported identical; the ten-shape icon renderer is private implementation detail, not a ninth public component |
+| TerminalCursor | Transit rem geometry, `accent-text`, component-local keyframe | Keep a local CSS wrapper if fixed px geometry and theme-selected accent semantics must remain source-exact | Contradictory source styling but identical at the consumers' current 16px root/current palettes; package is Transit |
+
+### BlueprintShell
+
+The DOM, snippets, labels, crosshairs, opacity behavior, and root hooks match. Transit alone adds a nested SVG `<text>` rule because its assemblies name a font face the app does not register exactly. `normalizeTextFont` defaults to `true`; yesid.dev passes `false` to retain its current presentation-attribute behavior.
+
+yesid.dev's `style-regressions.test.ts` currently regex-locks the source spellings `0.30` and `0.50`. Transit spells the computed-equivalent values `0.3` and `0.5`; adoption must retarget that guard to this package and compare numeric CSS meaning instead of string formatting.
+
+### ChevronToggle and SectionLabel
+
+ChevronToggle has the same props, SVG path, classes, transition tokens, and reduced-motion cutoff in both apps. Its `right` and `down` marker classes currently share the same open transform; wave 2 does not redesign that quirk.
+
+SectionLabel has the same variants and effective classes. Transit emits `block text-center`; yesid.dev emits `text-center block`. The package keeps Transit order. The shared `.label-section`, `.label-station`, and `.label-metric` rules are internalized so a third consumer does not need either app's global stylesheet. Section tracking uses `var(--tracking-eyebrow, 0.1em)`: Transit resolves its token and yesid.dev receives its current literal value through the fallback. Existing consumer-global duplicates compute the same and can be removed during adoption.
+
+### StopLabel
+
+Transit supplies the useful superset: optional `label`, separator omission for the label-less form, and `as="div|h1|h2|h3"`. The package adds only the app-neutral `prefix` prop, defaulting to Transit's `ARRÊT`.
+
+yesid.dev keeps its exhaustive `STOP` / `ARRÊT` / `PARADA` map and locale lookup app-side, then passes the selected string. `cornerMeta.copy.ts` remains app-side too; none of its locale types or copy tables are imported by `@yesid/ui`. Each consumer continues to resolve `--text-micro` through its own tokens.
+
+### MetroStation
+
+The pulse, delay, rail, ties, geometry, and reduced-motion behavior match. The roundel DOM does not: Transit owns a self-contained span, while yesid.dev renders its local Badge with `data-slot="badge"` and its Badge typography/border contract.
+
+The package therefore accepts an optional `roundel` snippet receiving the zero-padded station number. Omitted means the Transit span. A yesid.dev compatibility adapter supplies its existing Badge:
+
+```svelte
+{#snippet yesidRoundel(stationNo)}
+	<Badge
+		variant="number"
+		class="station-number-badge"
+		style="background-color: var(--signage-bg); color: var(--signage-text);"
+		aria-hidden="true"
+	>{stationNo}</Badge>
+{/snippet}
+
+<MetroStation index={3} roundel={yesidRoundel} />
+```
+
+This preserves both DOM contracts without an app check or a yesid-named package variant.
+
+The fixed `2rem` / `0.8125rem` selector is scoped to `[data-slot='badge'].station-number-badge`. It therefore sizes the supplied Badge exactly as yesid.dev does without overriding the Transit default's token-driven `font-size: var(--text-caption)`.
+
+### StickyPanel
+
+The conflict is intentional and is not a package variant. Transit uses `var(--card)` plus `var(--shadow-card)` and pure CSS scrolling. yesid.dev uses `var(--surface-3)`, no shadow, and its Lenis-aware `scrollChain`, which remains app-local under the Tier-2/rule-of-three boundary.
+
+A yesid.dev compatibility wrapper passes a local class for the surface override and uses StickyPanel's bindable element ref to attach `scrollChain` app-side. No `scrollChain` import belongs in `@yesid/ui`; it remains a Tier-2 action in yesid.dev. This is the exact adapter:
+
+```svelte
+<script lang="ts">
+	import { StickyPanel, type StickyPanelProps } from '@yesid/ui/brand';
+	import { scrollChain } from '$lib/motion/actions/scrollChain.js';
+
+	type Props = Omit<StickyPanelProps, 'class' | 'ref'>;
+
+	let { children, top = '6rem', ...rest }: Props = $props();
+	let panel = $state<HTMLDivElement | null>(null);
+
+	$effect(() => {
+		if (!panel) return;
+		const lifecycle = scrollChain(panel);
+		return () => lifecycle?.destroy?.();
+	});
+</script>
+
+<StickyPanel bind:ref={panel} class="yesid-sticky-panel" {top} {children} {...rest} />
+
+<style>
+	:global(.yesid-sticky-panel.yesid-sticky-panel.yesid-sticky-panel) {
+		background: var(--surface-3);
+		box-shadow: none;
+	}
+</style>
+```
+
+The repeated class raises specificity above the package's scoped `.panel` rule without `!important`. The parity fixture renders this structure, proves the action receives the bound panel, and proves `destroy()` runs on unmount.
+
+### TocBadge
+
+The two consumer implementations are mechanically equivalent. The package owns only the narrow `TocBadgeSpec` union and keeps the identical ten-shape SectionIcon renderer private. It does not pull either app's broader `toc.ts` helpers into the package.
+
+One dependency-level parity fix is required: Transit resolves Badge's `text-micro` to `0.75rem`, while yesid.dev's Badge uses literal `text-[0.75rem]`; the gallery/yesid token named `text-micro` is `0.6875rem`. TocBadge therefore applies literal `text-[0.75rem]` to its number Badge so all three current renderings remain 12px without changing the wave-1 Badge contract.
+
+### TerminalCursor
+
+Transit is self-contained: rem geometry, `accent-text`, a local `terminal-blink` keyframe, and a reduced-motion cutoff. yesid.dev uses equivalent 8px/14px/4px geometry at a 16px root, app-global `blink`, dark `accent`, and light `accent-text`. The current palettes compute to the same visible color, but the source contracts diverge under root scaling or future palette changes.
+
+Wave 2 keeps Transit as-is and exposes standard class/HTML-attribute forwarding. yesid.dev retains fixed-pixel and theme-selected semantics with this exact local adapter:
+
+```svelte
+<script lang="ts">
+	import { TerminalCursor } from '@yesid/ui/brand';
+</script>
+
+<TerminalCursor class="yesid-terminal-cursor" />
+
+<style>
+	:global(.yesid-terminal-cursor.yesid-terminal-cursor.yesid-terminal-cursor) {
+		width: 8px;
+		height: 14px;
+		margin-left: 4px;
+		background: var(--accent);
+	}
+
+	:global([data-theme='light'] .yesid-terminal-cursor.yesid-terminal-cursor.yesid-terminal-cursor),
+	:global(.theme-light .yesid-terminal-cursor.yesid-terminal-cursor.yesid-terminal-cursor) {
+		background: var(--accent-text);
+	}
+</style>
+```
+
+The package's blink timing and reduced-motion behavior are already visually equal. The wrapper fixture locks the conflicting geometry and dark/light colors without adding DOM.
+
+### Brand test and adoption checklist
+
+Transit co-located tests are preserved with import-path edits only for StopLabel and TocBadge. The private icon renderer carries its existing Transit DOM test as dependency coverage. Package parity tests cite current yesid.dev source lines for BlueprintShell, StopLabel, MetroStation, StickyPanel, TocBadge, and TerminalCursor. Test-only yesid.dev wrapper fixtures prove StickyPanel action setup/cleanup and the exact StickyPanel/TerminalCursor CSS conflicts.
+
+Consumer adoption still needs these app-side changes and proofs:
+
+- Retarget direct local-source assertions, including yesid.dev BlueprintShell/MetroStation guards and Transit ChevronToggle's CollapsibleSection source guard.
+- Keep yesid.dev locale tests around the app-owned StopLabel prefix adapter.
+- Keep yesid.dev `scrollChain` behavior tests against the app action; the package fixture covers adapter setup/cleanup, while the app test remains responsible for wheel-boundary behavior.
+- Run each consumer's full tests/check/build plus dark/light/reduced-motion browser comparison after import replacement. Package and gallery verification alone do not prove a future cascade.

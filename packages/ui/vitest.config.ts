@@ -8,5 +8,6 @@ export default defineConfig({
 		environment: 'happy-dom',
 		globals: true,
 		pool: 'threads',
+		setupFiles: ['./src/vitest.setup.ts'],
 	},
 });

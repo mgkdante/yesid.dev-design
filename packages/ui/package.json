@@ -5,8 +5,9 @@
   "type": "module",
   "description": "Source-shipped yesid brand UI primitives, ported byte-faithful from Transit with consumer-configurable class vocabulary.",
   "exports": {
-    ".": "./src/index.ts",
-    "./cn": "./src/cn/index.ts",
+		".": "./src/index.ts",
+		"./brand": "./src/brand/index.ts",
+		"./cn": "./src/cn/index.ts",
     "./badge": "./src/primitives/badge/index.ts",
     "./button": "./src/primitives/button/index.ts",
     "./card": "./src/primitives/card/index.ts",

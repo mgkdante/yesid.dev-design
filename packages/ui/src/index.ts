@@ -11,3 +11,5 @@ export {
 	type WithoutChildrenOrChild,
 	type WithElementRef,
 } from './cn/index.js';
+
+export * from './brand/index.js';

@@ -3,6 +3,16 @@
 	import { boop, magnetic, cursorGlow, pressBounce } from '@yesid/motion/actions';
 	import { duration, ease } from '@yesid/motion/tokens';
 	import { Badge } from '@yesid/ui/badge';
+	import {
+		BlueprintShell,
+		ChevronToggle,
+		MetroStation,
+		SectionLabel,
+		StickyPanel,
+		StopLabel,
+		TerminalCursor,
+		TocBadge,
+	} from '@yesid/ui/brand';
 	import { Button } from '@yesid/ui/button';
 	import * as Card from '@yesid/ui/card';
 	import * as Tabs from '@yesid/ui/tabs';
@@ -39,11 +49,45 @@
 	const radii = leaves(tree.radius as TokenGroup);
 	const spaces = leaves(tree.space as TokenGroup);
 	let galleryTogglePressed = $state(false);
+	let brandChevronOpen = $state(false);
+	const blueprintLabels: [string, string, string] = ['GRID 02', 'AXIS 17', 'REV P5.4'];
 </script>
 
 <svelte:head>
 	<title>yesid.dev-design — brand gallery</title>
 </svelte:head>
+
+{#snippet blueprintHero()}
+	<svg class="size-full" viewBox="0 0 320 140" preserveAspectRatio="none" aria-hidden="true">
+		<path d="M20 112L92 30l58 54 62-62 88 90" fill="none" stroke="currentColor" />
+		<circle cx="92" cy="30" r="12" fill="none" stroke="currentColor" />
+		<text x="112" y="48" fill="currentColor" font-family="JetBrains Mono" font-size="10">
+			YSD-02
+		</text>
+	</svg>
+{/snippet}
+
+{#snippet blueprintDetails()}
+	<svg
+		class="edge-detail top-[18%] right-[8%] h-20 w-28"
+		viewBox="0 0 112 80"
+		aria-hidden="true"
+	>
+		<rect x="8" y="8" width="96" height="64" fill="none" stroke="currentColor" />
+		<path d="M8 40h96M56 8v64" fill="none" stroke="currentColor" />
+	</svg>
+{/snippet}
+
+	{#snippet yesidRoundel(stationNo: string)}
+		<Badge
+			variant="number"
+			class="station-number-badge"
+		style="background-color: var(--signage-bg); color: var(--signage-text);"
+		aria-hidden="true"
+	>
+		{stationNo}
+	</Badge>
+{/snippet}
 
 <h1 class="font-heading text-display font-bold">Brand gallery</h1>
 <p class="mt-2 max-w-prose text-body text-muted-foreground">
@@ -109,6 +153,145 @@
 					<Tabs.Content value="overview" class="pt-4">Package-owned defaults.</Tabs.Content>
 					<Tabs.Content value="details" class="pt-4">Caller classes still compose.</Tabs.Content>
 				</Tabs.Root>
+			</Card.Content>
+		</Card.Root>
+	</div>
+</section>
+
+<section class="mt-10">
+	<h2 class="font-heading text-title font-semibold">Brand components</h2>
+	<p class="mt-1 text-small text-muted-foreground">
+		Wave 2 rendered from <code class="font-mono text-mono">@yesid/ui/brand</code>. Paired
+		demos show the explicit consumer configuration where current sources differ.
+	</p>
+
+	<div class="mt-4 grid gap-4 lg:grid-cols-2">
+		<Card.Root class="overflow-hidden lg:col-span-2">
+			<Card.Header>
+				<Card.Title>BlueprintShell</Card.Title>
+				<Card.Description>Transit font normalization and yesid.dev legacy SVG text.</Card.Description>
+			</Card.Header>
+			<Card.Content class="grid gap-3 md:grid-cols-2">
+				<div>
+					<SectionLabel text="TRANSIT DEFAULT" variant="metric" />
+					<div class="relative mt-2 h-40 overflow-hidden rounded-md border border-border bg-muted">
+						<BlueprintShell
+							hero={blueprintHero}
+							details={blueprintDetails}
+							labels={blueprintLabels}
+						/>
+					</div>
+				</div>
+				<div>
+					<SectionLabel text="YESID.DEV · NORMALIZATION OFF" variant="metric" />
+					<div class="relative mt-2 h-40 overflow-hidden rounded-md border border-border bg-muted">
+						<BlueprintShell
+							hero={blueprintHero}
+							details={blueprintDetails}
+							labels={blueprintLabels}
+							normalizeTextFont={false}
+						/>
+					</div>
+				</div>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>ChevronToggle + SectionLabel</Card.Title>
+				<Card.Description>Identical consumer contracts.</Card.Description>
+			</Card.Header>
+			<Card.Content class="space-y-4">
+				<button
+					type="button"
+					class="tap-press flex items-center gap-2 rounded-md border border-border px-3 py-2 text-small"
+					aria-expanded={brandChevronOpen}
+					onclick={() => (brandChevronOpen = !brandChevronOpen)}
+				>
+					<ChevronToggle open={brandChevronOpen} />
+					{brandChevronOpen ? 'Collapse' : 'Expand'}
+				</button>
+				<div class="grid gap-2">
+					<SectionLabel text="SECTION LABEL" />
+					<SectionLabel text="STATION LABEL" variant="station" />
+					<SectionLabel text="METRIC LABEL" variant="metric" />
+				</div>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>StopLabel</Card.Title>
+				<Card.Description>Copy is supplied by the app, never inferred from it.</Card.Description>
+			</Card.Header>
+			<Card.Content class="grid gap-4">
+				<div>
+					<SectionLabel text="TRANSIT DEFAULT" variant="metric" />
+					<StopLabel class="mt-2" stop="52001" label="Berri" />
+				</div>
+				<div>
+					<SectionLabel text="YESID.DEV ENGLISH" variant="metric" />
+					<StopLabel class="mt-2" stop="03" label="STACK" prefix="STOP" />
+				</div>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>MetroStation</Card.Title>
+				<Card.Description>Self-contained Transit roundel or consumer-supplied Badge snippet.</Card.Description>
+			</Card.Header>
+			<Card.Content class="grid grid-cols-2 gap-6 text-center">
+				<div class="flex flex-col items-center gap-2">
+					<SectionLabel text="TRANSIT" variant="metric" />
+					<MetroStation index={3} showLine class="h-24" />
+				</div>
+				<div class="flex flex-col items-center gap-2">
+					<SectionLabel text="YESID.DEV BADGE" variant="metric" />
+					<MetroStation index={3} showLine roundel={yesidRoundel} class="h-24" />
+				</div>
+			</Card.Content>
+		</Card.Root>
+
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>StickyPanel</Card.Title>
+					<Card.Description>
+						Transit baseline beside the yesid.dev visual surface configuration. Executable
+						scrollChain wrapper wiring is covered in the package parity fixture.
+					</Card.Description>
+			</Card.Header>
+			<Card.Content class="grid gap-3 sm:grid-cols-2">
+				<StickyPanel top="1rem">
+					<SectionLabel text="TRANSIT CARD" variant="metric" />
+					<p class="mt-2 text-small">Card surface · card shadow · native sticky scroll.</p>
+				</StickyPanel>
+					<StickyPanel top="1rem" class="gallery-sticky-yesid">
+						<SectionLabel text="YESID.DEV SURFACE" variant="metric" />
+						<p class="mt-2 text-small">
+							Surface 3 · no shadow · visual preview; scrollChain remains app-side.
+						</p>
+				</StickyPanel>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>TocBadge + TerminalCursor</Card.Title>
+				<Card.Description>Shared TOC marks and self-contained terminal blink.</Card.Description>
+			</Card.Header>
+			<Card.Content class="grid gap-5">
+				<div class="flex items-center gap-4">
+					<TocBadge badge={{ kind: 'number', value: 3 }} />
+					<TocBadge badge={{ kind: 'icon', name: 'chart' }} />
+					<span class="text-small text-muted-foreground">number · icon</span>
+				</div>
+				<div class="grid gap-3 sm:grid-cols-2">
+					<p class="font-mono text-mono">TRANSIT READY<TerminalCursor /></p>
+					<p class="font-mono text-mono">
+						YESID READY<TerminalCursor class="gallery-terminal-yesid" />
+					</p>
+				</div>
 			</Card.Content>
 		</Card.Root>
 	</div>
