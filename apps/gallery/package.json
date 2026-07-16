@@ -14,7 +14,8 @@
 	},
 	"dependencies": {
 		"@yesid/motion": "workspace:*",
-		"@yesid/tokens": "workspace:*"
+		"@yesid/tokens": "workspace:*",
+		"@yesid/ui": "workspace:*"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^3.0.8",

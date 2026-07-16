@@ -2,6 +2,11 @@
 	import tokens from '@yesid/tokens/tokens.json';
 	import { boop, magnetic, cursorGlow, pressBounce } from '@yesid/motion/actions';
 	import { duration, ease } from '@yesid/motion/tokens';
+	import { Badge } from '@yesid/ui/badge';
+	import { Button } from '@yesid/ui/button';
+	import * as Card from '@yesid/ui/card';
+	import * as Tabs from '@yesid/ui/tabs';
+	import { Toggle } from '@yesid/ui/toggle';
 
 	type TokenLeaf = { $value: unknown; $type?: string; $description?: string };
 	type TokenGroup = Record<string, unknown>;
@@ -33,6 +38,7 @@
 	const textScale = leaves(tree.text as TokenGroup);
 	const radii = leaves(tree.radius as TokenGroup);
 	const spaces = leaves(tree.space as TokenGroup);
+	let galleryTogglePressed = $state(false);
 </script>
 
 <svelte:head>
@@ -66,6 +72,45 @@
 				<p class="text-caption text-muted-foreground">{t.value}</p>
 			</div>
 		{/each}
+	</div>
+</section>
+
+<section class="mt-10">
+	<h2 class="font-heading text-title font-semibold">UI primitives</h2>
+	<p class="mt-1 text-small text-muted-foreground">
+		Rendered from <code class="font-mono text-mono">@yesid/ui</code> as a third consumer.
+	</p>
+	<div class="mt-4 grid gap-4 lg:grid-cols-2">
+		<Card.Root interactive>
+			<Card.Header>
+				<Card.Title>Composable brand controls</Card.Title>
+				<Card.Description>Shared geometry, tokens, and interaction behavior.</Card.Description>
+			</Card.Header>
+			<Card.Content class="flex flex-wrap items-center gap-3">
+				<Button size="cta-sm">Primary action</Button>
+				<Badge variant="tag">Ready</Badge>
+				<Toggle bind:pressed={galleryTogglePressed} variant="outline">
+					{galleryTogglePressed ? 'Pinned' : 'Pin'}
+				</Toggle>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Tabs</Card.Title>
+				<Card.Description>bits-ui behavior with the shared visual contract.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<Tabs.Root value="overview">
+					<Tabs.List variant="line">
+						<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+						<Tabs.Trigger value="details">Details</Tabs.Trigger>
+					</Tabs.List>
+					<Tabs.Content value="overview" class="pt-4">Package-owned defaults.</Tabs.Content>
+					<Tabs.Content value="details" class="pt-4">Caller classes still compose.</Tabs.Content>
+				</Tabs.Root>
+			</Card.Content>
+		</Card.Root>
 	</div>
 </section>
 
