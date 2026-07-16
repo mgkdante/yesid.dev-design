@@ -88,3 +88,10 @@ bun run setup:hooks         # enable .githooks (generated-files guard)
   (`apps/web/vendor/design/` + manifest; see transit's `tools/design-sync.ts`).
 - **yesid.dev** — adopts later via the FLIP-THE-SWITCH handoff
   ([FLIP-THE-SWITCH.md](FLIP-THE-SWITCH.md)) at the parity tag, zero visual change.
+
+## AI-accelerated, human-owned
+
+This repo is built with AI assistance under strict human direction — every
+architectural and brand decision is the author's. The full operating model
+(adversarial review in both directions, machine-enforced brand doctrine) is
+documented in [docs/AI-WORKFLOW.md](docs/AI-WORKFLOW.md).
