@@ -89,3 +89,15 @@ Transit remains the reference implementation. Adding public remote-fetch mode to
 **Consequences.** New products can adopt without credentials. CI can verify a snapshot offline after adoption. The repository tag and manifest become the distribution receipt. Consumers still own the small integration seams around token output paths, application CSS, localized copy, and product-specific gate configuration.
 
 **Deferred option.** npm publishing can be added later as an optional layer. It does not replace exact pins, deliberate bump reviews, or the one-direction flow law.
+
+---
+
+# U1 DECISIONS - package boundaries
+
+## D14 - Prospective lockstep package versions begin at v0.7.0
+
+**Status:** accepted.
+
+**Decision.** This narrows D9 prospectively only. Beginning with `v0.7.0`, the root manifest's canonical version and the manifest versions for `@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, and `@yesid/ui` move in lockstep. The private `@yesid/gallery` app is excluded. Historical package-version skew and the annotated tags `v0.1.0` through `v0.6.0` remain immutable; D11 remains accurate historical evidence of the intentionally skewed `v0.3.0` package versions.
+
+**Consequence.** Future releases update the root and all four vendorable package manifests together. This decision does not create or move a tag, rewrite release history, or change package runtime behavior.

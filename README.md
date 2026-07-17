@@ -23,6 +23,11 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
   after it.
 - Later brand changes bump PAST the parity tag (`v0.2.0` adds the dataviz
   scale; beautification-era changes go higher). The parity tag never moves.
+- **Prospective lockstep starts at `v0.7.0`.** The root manifest is canonical
+  for `@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, and `@yesid/ui`; all
+  four package versions move together from this release onward. Historical
+  package-version skew and annotated tags `v0.1.0` through `v0.6.0` remain
+  immutable. The private `@yesid/gallery` app is excluded from lockstep.
 - **Consumers pin exact versions.** A cascade is a deliberate bump-PR in the
   consumer (re-run its design-sync against the new tag, review the diff) —
   never an implicit float.
