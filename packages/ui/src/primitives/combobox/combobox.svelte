@@ -18,6 +18,8 @@
   glyph-tagged), searchable text, and copy.
 -->
 <script lang="ts" module>
+	import { Combobox as ComboboxPrimitive } from 'bits-ui';
+
 	/** One selectable option in the combobox. */
 	export interface ComboboxOption {
 		/** The stable id set on `value` when picked. */
@@ -32,11 +34,25 @@
 		readonly search: string;
 	}
 
-	export interface ComboboxProps {
+	type ComboboxBehaviorProps = Pick<
+		ComboboxPrimitive.RootProps,
+		| 'disabled'
+		| 'required'
+		| 'name'
+		| 'open'
+		| 'onOpenChange'
+		| 'onOpenChangeComplete'
+		| 'loop'
+		| 'scrollAlignment'
+	>;
+
+	export interface ComboboxProps extends ComboboxBehaviorProps {
 		/** The full option catalogue (unfiltered). */
 		options: readonly ComboboxOption[];
 		/** The selected option id, or null when none is chosen (bindable). */
-		value: string | null;
+		value?: string | null;
+		/** Called once when this component commits a new nullable selection. */
+		onValueChange?: (value: string | null) => void;
 		/** Accessible label for the combobox input. */
 		label: string;
 		/** Input placeholder. */
@@ -59,6 +75,15 @@
 	let {
 		options,
 		value = $bindable(null),
+		open = $bindable(false),
+		disabled,
+		required,
+		name,
+		onValueChange,
+		onOpenChange,
+		onOpenChangeComplete,
+		loop,
+		scrollAlignment,
 		label,
 		placeholder,
 		clearLabel,
@@ -84,23 +109,38 @@
 	// The visible input text: while typing we show the raw query; otherwise the
 	// label of the current selection (so a hydrated value shows its label).
 	const selectedLabel = $derived(options.find((o) => o.value === value)?.label ?? '');
+	const inputValue = $derived(search || selectedLabel);
+
+	function commitValue(nextValue: string | null): void {
+		value = nextValue;
+		onValueChange?.(nextValue);
+	}
 
 	function clear(): void {
-		value = null;
 		search = '';
+		commitValue(null);
 	}
 </script>
 
 <Combobox.Root
 	type="single"
 	value={value ?? ''}
-	onValueChange={(v) => {
-		value = v ? v : null;
+	bind:open
+	{disabled}
+	{required}
+	{name}
+	{onOpenChange}
+	{loop}
+	{scrollAlignment}
+	{inputValue}
+	onValueChange={(nextValue) => {
+		commitValue(nextValue || null);
 	}}
-	onOpenChangeComplete={(open) => {
+	onOpenChangeComplete={(nextOpen) => {
 		// On close, drop the transient typed query so the input snaps back to the
 		// selection label (never a stale half-typed fragment).
-		if (!open) search = '';
+		if (!nextOpen) search = '';
+		onOpenChangeComplete?.(nextOpen);
 	}}
 	items={filtered.map((o) => ({ value: o.value, label: o.label }))}
 >
@@ -119,6 +159,7 @@
 				class="combobox-clear"
 				data-slot="combobox-clear"
 				aria-label={clearLabel}
+				{disabled}
 				onclick={clear}
 			>
 				<span aria-hidden="true">✕</span>

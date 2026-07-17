@@ -2,6 +2,8 @@
 
 Source-shipped Svelte 5 UI primitives. Transit is the wave-1 behavior and styling baseline. Consumers import individual families so unused primitives stay out of their bundle.
 
+**Last updated:** 2026-07-17
+
 ```svelte
 <script lang="ts">
 	import { Badge } from '@yesid/ui/badge';
@@ -29,6 +31,17 @@ Because the package ships source, a Tailwind consumer must scan `@yesid/ui/src`.
 ```
 
 For a separately installed package, point the same directive at the installed source, for example `@source "../node_modules/@yesid/ui/src";`. The path is relative to the stylesheet containing the directive.
+
+## Prospective v0.7.0 component contracts
+
+The source implements these contracts now; they become the public release contract with the prospective `v0.7.0` tag. They refine the historical extraction behavior recorded in [`PARITY-NOTES.md`](PARITY-NOTES.md) without rewriting that history.
+
+- `ButtonProps` and `BadgeProps` discriminate on `href`. `null` or `undefined` selects the button/span branch; any string, including `href=""`, selects the anchor branch. Each branch exposes its real element ref, events, and attributes. Anchor-only attributes are rejected on button/span branches, and button-only attributes are rejected on the Button anchor branch except for the wrapper-owned disabled-link API.
+- Fixed-content brand components (`ChevronToggle`, `SectionLabel`, `StopLabel`, and `TerminalCursor`) do not accept `children`; their named prop types are exported from `@yesid/ui/brand`. `CollapsibleContent` still accepts consumer children, but it does not expose bits-ui's lower-level `child` render hook because the wrapper owns that hook for its animation scaffold.
+- `Combobox` accepts an optional bindable `value?: string | null` and bindable `open`. It forwards the selected root behavior props and calls `onValueChange`, `onOpenChange`, and `onOpenChangeComplete` once per committed change. The input shows the typed query while searching and the current selected label otherwise, including after an external value update. Closing resets the transient query; clearing commits `null`; a disabled Combobox disables its clear control.
+- `Separator` has a discriminated surface. The `default` variant delegates to `bits-ui` and keeps its `child`, `children`, and `decorative` contract. `hazard` and `gradient` render native wrapper-owned divs, accept native div attributes, and reject those delegated-only props. Custom variants consume `orientation` instead of leaking it to the DOM, apply `maxWidth`, forward the outer ref, and preserve or default `data-slot` on that same outer element.
+- Sheet exports named prop types for Root, Trigger, Close, Portal, Content, Overlay, Header, Footer, Title, and Description. `SheetContentProps.portalProps` excludes portal children because Content owns the portal body. `closeLabel` owns the close button's accessible copy and defaults to `"Close"`; callers provide localized copy when needed.
+- `ToggleGroupProps` preserves bits-ui's `type="single"`/string and `type="multiple"`/string-array discrimination while keeping `value` bindable and forwarding the correctly typed callback. The implementation uses branch-specific bindings rather than a `never` cast. `ToggleGroupItemProps.value` is a required input, not a bindable output; `ref` remains bindable and snippet children remain supported.
 
 ## DESIGN: internal cn configuration
 
