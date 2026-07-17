@@ -64,7 +64,13 @@ Run `bun install`. Commit `vendor/design`, including `manifest.json` and `LICENS
 
 ## 3. Generate the product token outputs
 
-The token package ships the source tree and generators. It does not ship a generic `tokens.css` because each product owns its output paths and its `app.css` hand-written regions.
+The token package ships the source tree, generators, and a package-owned `tokens.css` generated from its canonical `tokens.json`. For an unchanged base, opt in directly:
+
+```css
+@import '@yesid/tokens/tokens.css';
+```
+
+Keep the thin product build below when the product owns generated output paths, token overrides, or an `app.css` `@theme` sentinel. Package CSS is never imported automatically.
 
 Create `tools/build-design-tokens.ts`:
 
@@ -73,12 +79,12 @@ Create `tools/build-design-tokens.ts`:
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseTokens } from '../vendor/design/tokens/src/parse.ts';
-import { generateTokensCss } from '../vendor/design/tokens/src/generators/tokens-css.ts';
+import { parseTokens } from '@yesid/tokens/parse';
+import { generateTokensCss } from '@yesid/tokens/generators/tokens-css';
 import {
   generateThemeBlock,
   replaceThemeRegion,
-} from '../vendor/design/tokens/src/generators/theme-block.ts';
+} from '@yesid/tokens/generators/theme-block';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const tokenSource = resolve(root, 'vendor/design/tokens/tokens.json');
@@ -201,7 +207,13 @@ Use the store when the component must render reduced-motion state:
 {/if}
 ```
 
-Copy the Layer 1 `.tap-press` and `.tap-feedback` utilities from `vendor/design/motion/tap-feedback.css` into the product-owned section of `src/app.css`. The motion package does not import application CSS for you.
+Opt in to the Layer 1 `.tap-press` and `.tap-feedback` utilities directly:
+
+```css
+@import '@yesid/motion/tap-feedback.css';
+```
+
+The stylesheet remains copyable from `vendor/design/motion/tap-feedback.css` when the product must control Tailwind layer order or adapt the utilities for Tailwind v3/plain CSS. The motion package does not import application CSS automatically.
 
 ## 6. Wire the brand gates into Vitest and CI
 

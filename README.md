@@ -9,8 +9,8 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 
 | Path | What it is |
 |---|---|
-| `packages/tokens` | `@yesid/tokens` — the DTCG `tokens.json` source of truth + generators (semantic CSS vars, Tailwind v4 `@theme` sentinel region, JS motion mirror, `DESIGN.md`) + parity tests + Figma round-trip scripts. Byte-faithful to the anchor except retargeted output paths (`build.ts`, `parity.test.ts`). |
-| `packages/motion` | `@yesid/motion` — the Snappy-Doctrine Tier-1 vocabulary: `boop`, `magnetic`, `cursorGlow`, `sectionGlow`, `cardParallax`, `pressBounce`, `wordmarkHover`, `sectionMagnet` + `policy.ts` (the motion doctrine), reduced-motion store, device/gsap/lenis helpers, generated `tokens.ts`. Byte-faithful except `$lib` → relative import rewrites and the DEVIATION register below. |
+| `packages/tokens` | `@yesid/tokens` — the DTCG `tokens.json` source of truth + package-owned generated `tokens.css` + generators (semantic CSS vars, Tailwind v4 `@theme` sentinel region, JS motion mirror, `DESIGN.md`) + parity tests + Figma round-trip scripts. Byte-faithful to the anchor except retargeted output paths (`build.ts`, `parity.test.ts`). |
+| `packages/motion` | `@yesid/motion` — the Snappy-Doctrine Tier-1 vocabulary: `boop`, `magnetic`, `cursorGlow`, `sectionGlow`, `cardParallax`, `pressBounce`, `wordmarkHover`, `sectionMagnet` + `policy.ts` (the motion doctrine), reduced-motion store, device/gsap/lenis helpers, generated `tokens.ts`, and optional `tap-feedback.css`. Byte-faithful except `$lib` → relative import rewrites and the DEVIATION register below. |
 | `packages/gates` | `@yesid/gates` — brand vitest gates as pure, parameterized engines + preset tables: tokens-only (style regressions), contrast (color-mix floors + computed WCAG AA pairs), no-raw-brand-hex, dataviz doctrine (no-primary-in-dataviz), tv()-only-in-ui. Detection internals byte-equivalent to the source gates; presets carry yesid.dev's and transit's concrete tables. |
 | `packages/ui` | `@yesid/ui` — source-shipped Svelte 5 primitives and promoted brand components, with package-owned class merging and product vocabulary configured once at boot. |
 | `apps/gallery` | `@yesid/gallery` — the living brand gallery: token sheets + motion demos rendered from `tokens.json`; the dogfood consumer that receives the generated outputs. |
@@ -80,7 +80,7 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 
 ```sh
 bun install                 # workspace install
-bun run tokens:build        # regenerate the 4 token outputs (idempotent)
+bun run tokens:build        # regenerate the 5 token outputs (idempotent)
 bun run ci:tokens           # build + git-diff drift gate on generated outputs
 bun run test                # turbo: all package + app tests
 bun run check               # turbo: typechecks + svelte-check

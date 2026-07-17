@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 // Ported from yesid.dev @ 2bdb611d91749dc437c07586cb82129eabe9dfec — only the
-// four OUTPUT PATHS are retargeted to this repo's consumers (apps/gallery +
-// packages/motion + repo-root DESIGN.md). Generator logic is byte-faithful.
+// five OUTPUT PATHS are retargeted to this package and this repo's consumers
+// (apps/gallery + packages/motion + repo-root DESIGN.md). Generator logic is
+// byte-faithful.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '../..');
 
 const TOKENS_JSON = resolve(here, 'tokens.json');
+const PACKAGE_TOKENS_CSS = resolve(here, 'tokens.css');
 const TOKENS_CSS = resolve(repoRoot, 'apps/gallery/src/lib/styles/tokens.css');
 const APP_CSS = resolve(repoRoot, 'apps/gallery/src/app.css');
 const MOTION_TS = resolve(repoRoot, 'packages/motion/src/tokens.ts');
@@ -56,6 +58,7 @@ function buildAll(): BuildTarget[] {
     { path: APP_CSS, content: appCssContent },
     { path: MOTION_TS, content: motionTs },
     { path: DESIGN_MD, content: designMd },
+    { path: PACKAGE_TOKENS_CSS, content: tokensCss },
   ];
 }
 
