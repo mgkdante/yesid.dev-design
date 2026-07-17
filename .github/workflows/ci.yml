@@ -1,4 +1,4 @@
-# CI — inert until this repo lands on GitHub (operator decision pending).
+# Public-repository CI. Pull requests run the full package and token gates.
 # Shape ported from yesid.dev web.yml @ 2bdb611d: PR-only (Actions budget),
 # composite setup action, token drift gate, explicit package suites.
 name: ci

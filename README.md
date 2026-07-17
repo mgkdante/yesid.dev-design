@@ -1,7 +1,7 @@
 # yesid.dev-design
 
 The yesid brand's styling foundation as a standalone bun+turbo monorepo — design
-tokens, pure motion actions, and brand quality gates, extracted from
+tokens, pure motion actions, UI primitives, and brand quality gates, extracted from
 **yesid.dev @ `2bdb611d91749dc437c07586cb82129eabe9dfec`** (the **parity
 anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 
@@ -12,6 +12,7 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 | `packages/tokens` | `@yesid/tokens` — the DTCG `tokens.json` source of truth + generators (semantic CSS vars, Tailwind v4 `@theme` sentinel region, JS motion mirror, `DESIGN.md`) + parity tests + Figma round-trip scripts. Byte-faithful to the anchor except retargeted output paths (`build.ts`, `parity.test.ts`). |
 | `packages/motion` | `@yesid/motion` — the Snappy-Doctrine Tier-1 vocabulary: `boop`, `magnetic`, `cursorGlow`, `sectionGlow`, `cardParallax`, `pressBounce`, `wordmarkHover`, `sectionMagnet` + `policy.ts` (the motion doctrine), reduced-motion store, device/gsap/lenis helpers, generated `tokens.ts`. Byte-faithful except `$lib` → relative import rewrites and the DEVIATION register below. |
 | `packages/gates` | `@yesid/gates` — brand vitest gates as pure, parameterized engines + preset tables: tokens-only (style regressions), contrast (color-mix floors + computed WCAG AA pairs), no-raw-brand-hex, dataviz doctrine (no-primary-in-dataviz), tv()-only-in-ui. Detection internals byte-equivalent to the source gates; presets carry yesid.dev's and transit's concrete tables. |
+| `packages/ui` | `@yesid/ui` — source-shipped Svelte 5 primitives and promoted brand components, with package-owned class merging and product vocabulary configured once at boot. |
 | `apps/gallery` | `@yesid/gallery` — the living brand gallery: token sheets + motion demos rendered from `tokens.json`; the dogfood consumer that receives the generated outputs. |
 
 ## Versioning + the parity contract
@@ -65,7 +66,7 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 
 ## Tier model
 
-- **Tier 1 (this repo):** tokens · pure motion actions · brand gates. Extracted at parity.
+- **Tier 1 (this repo):** tokens · pure motion actions · brand gates · promoted UI primitives. Extracted at parity or promoted in a documented wave.
 - **Tier 2 (stays app-side):** composed patterns (TocNav/TocPill/
   CollapsibleSection/persisted), morphHover/scrollChain, app art-direction
   pinning tests. Promote only by rule of three (Law 4).
@@ -82,12 +83,30 @@ bun run --cwd apps/gallery dev   # the living gallery
 bun run setup:hooks         # enable .githooks (generated-files guard)
 ```
 
+## Distribution
+
+Consumers vendor exact public GitHub tags. Copy [`tools/adopt.ts`](tools/adopt.ts),
+run it with `--tag vX.Y.Z`, and commit the resulting package snapshot and
+`manifest.json`. Git dependencies cannot select workspace subpackages, and npm
+publication remains an optional later layer. The full decision is in
+[`DECISIONS.md`](DECISIONS.md).
+
+For a new product, follow [`docs/BUILD-A-YESID-PRODUCT.md`](docs/BUILD-A-YESID-PRODUCT.md).
+It covers adoption, token generation, Tailwind, fonts, UI configuration, motion,
+gates, localization, and deliberate tag bumps.
+
+## Contributing
+
+Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a PR. Machinery changes
+are welcome. Brand identity values remain owner decisions.
+
 ## Consumers
 
-- **transit** (`transit.yesid.dev`) — adopts via vendored-sync at a pinned tag
+- **transit** (`transit.yesid.dev`) — pinned consumer via vendored sync
   (`apps/web/vendor/design/` + manifest; see transit's `tools/design-sync.ts`).
-- **yesid.dev** — adopts later via the FLIP-THE-SWITCH handoff
-  ([FLIP-THE-SWITCH.md](FLIP-THE-SWITCH.md)) at the parity tag, zero visual change.
+- **yesid.dev** — embedded source and parity origin; its package cutover is kept in
+  [`FLIP-THE-SWITCH.md`](FLIP-THE-SWITCH.md).
+- **gallery** — workspace dogfood consumer in [`apps/gallery`](apps/gallery).
 
 ## AI-accelerated, human-owned
 

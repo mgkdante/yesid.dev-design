@@ -1,6 +1,11 @@
 @import './app.css';
 @source '../../../packages/ui/src';
 
+.gallery-combobox-demo {
+	--size-tap-min: 44px;
+	max-width: 34rem;
+}
+
 .gallery-sticky-yesid {
 	background: var(--surface-3) !important;
 	box-shadow: none !important;

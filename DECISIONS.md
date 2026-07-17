@@ -67,3 +67,25 @@ The glow-shadow and page-x base values already matched what transit is adopting 
 - Monthly spend limit killed 2 recon subagents → implementation may have to run in the main loop (done for recon D/E already). Try workflows; fall back solo on spend-limit errors.
 - push-to-figma count pin moves 133→180 at v0.2.0 (dataviz adds 47 moded color variables) — update pin WITH changelog comment (house pattern).
 - Transit gsap version ^3.15 vs yesid ^3.14.2 — package declares ^3.14, both satisfy.
+
+---
+
+# P5.4 DECISIONS - public distribution
+
+Slice `P5.4` · 2026-07-16. This decision supersedes only the local-only distribution assumptions in D2 and D8. Their extraction and first-adopter history remains accurate.
+
+## D13 - Distribution is pinned-tag vendoring from the public repository
+
+**Status:** accepted.
+
+**Context.** The repository is public at `https://github.com/mgkdante/yesid.dev-design`, so consumers no longer need a sibling checkout or registry credentials. A Git dependency is not a package-level solution for this monorepo: package managers resolve the repository root and cannot select `packages/tokens`, `packages/motion`, `packages/gates`, and `packages/ui` as independent workspace packages. npm publication would solve package selection, but it adds registry ownership, release automation, provenance, and support work that is not needed yet.
+
+**Decision.** Consumers vendor the requested packages from a public GitHub tag. The tag is exact and never floats. `tools/adopt.ts` shallow-clones that tag over public HTTPS, copies the selected packages with the Transit exclusion rules, rewrites internal `workspace:*` links to sibling `file:` links, copies the MIT notice, and writes `manifest.json` with the tag, commit, package set, and deterministic tree hash. `--check` proves the committed snapshot has not been edited. `--source` uses a local checkout for development without network access; it does not prove that the supplied tag points at that checkout.
+
+Consumers may copy the script into their repo or run an equivalent sync script. They commit the vendored snapshot and manifest. A brand bump is explicit: choose a new tag, rerun the tool, review the generated diff, regenerate consumer-owned token outputs, and merge that bump deliberately. Vendored package code is never patched in the consumer.
+
+Transit remains the reference implementation. Adding public remote-fetch mode to Transit's `apps/web/tools/design-sync.ts` is a separate Transit-side change; this repository does not modify Transit during P5.4.
+
+**Consequences.** New products can adopt without credentials. CI can verify a snapshot offline after adoption. The repository tag and manifest become the distribution receipt. Consumers still own the small integration seams around token output paths, application CSS, localized copy, and product-specific gate configuration.
+
+**Deferred option.** npm publishing can be added later as an optional layer. It does not replace exact pins, deliberate bump reviews, or the one-direction flow law.

@@ -15,6 +15,7 @@
 	} from '@yesid/ui/brand';
 	import { Button } from '@yesid/ui/button';
 	import * as Card from '@yesid/ui/card';
+	import { Combobox, type ComboboxOption } from '@yesid/ui/combobox';
 	import * as Tabs from '@yesid/ui/tabs';
 	import { Toggle } from '@yesid/ui/toggle';
 
@@ -49,8 +50,40 @@
 	const radii = leaves(tree.radius as TokenGroup);
 	const spaces = leaves(tree.space as TokenGroup);
 	let galleryTogglePressed = $state(false);
+	let galleryComboboxValue = $state<string | null>('changelog');
 	let brandChevronOpen = $state(false);
 	const blueprintLabels: [string, string, string] = ['GRID 02', 'AXIS 17', 'REV P5.4'];
+	const galleryComboboxOptions: readonly ComboboxOption[] = [
+		{
+			value: 'changelog',
+			label: 'Changelog',
+			sublabel: 'Release history',
+			glyph: '01',
+			search: 'changelog release history',
+		},
+		{
+			value: 'gallery',
+			label: 'Gallery',
+			sublabel: 'Living component reference',
+			glyph: '02',
+			search: 'gallery living component reference',
+		},
+		{
+			value: 'resume',
+			label: 'Résumé',
+			sublabel: 'Work and project history',
+			glyph: '03',
+			search: 'resume work project history',
+		},
+	];
+
+	function foldComboboxText(raw: string): string {
+		return raw
+			.normalize('NFD')
+			.replace(/\p{Diacritic}/gu, '')
+			.toLowerCase()
+			.trim();
+	}
 </script>
 
 <svelte:head>
@@ -153,6 +186,29 @@
 					<Tabs.Content value="overview" class="pt-4">Package-owned defaults.</Tabs.Content>
 					<Tabs.Content value="details" class="pt-4">Caller classes still compose.</Tabs.Content>
 				</Tabs.Root>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root class="lg:col-span-2">
+			<Card.Header>
+				<Card.Title>Combobox</Card.Title>
+				<Card.Description>
+					Generic single-select typeahead with caller-owned options, search folding, and copy.
+				</Card.Description>
+			</Card.Header>
+			<Card.Content class="gallery-combobox-demo grid gap-3">
+				<Combobox
+					options={galleryComboboxOptions}
+					bind:value={galleryComboboxValue}
+					label="Choose a reference page"
+					placeholder="Type a page name"
+					clearLabel="Clear reference page"
+					emptyLabel="No matching reference pages"
+					fold={foldComboboxText}
+				/>
+				<p class="font-mono text-caption text-muted-foreground">
+					Selected: {galleryComboboxValue ?? 'none'}
+				</p>
 			</Card.Content>
 		</Card.Root>
 	</div>
@@ -293,9 +349,10 @@
 					</p>
 				</div>
 			</Card.Content>
-		</Card.Root>
-	</div>
-</section>
+			</Card.Root>
+
+			</div>
+	</section>
 
 <section class="mt-10 grid gap-8 md:grid-cols-2">
 	<div>

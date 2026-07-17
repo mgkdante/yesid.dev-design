@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { parseTokens, isPrimitive, isClampToken } from '../src/parse.ts';
 import type { Token, TokenTree } from '../src/types.ts';
 
-interface FigmaVariable {
+export interface FigmaVariable {
   name: string;
   type: 'COLOR' | 'FLOAT' | 'STRING';
   values: Record<string, string | number>;
@@ -84,7 +84,7 @@ function colorBucketFor(leaf: FlatLeaf): { name: string; bucket: ColorBucket } |
   return { name: ['color', ...parts.slice(2)].join('/'), bucket };
 }
 
-function buildVariables(tree: TokenTree): FigmaVariable[] {
+export function buildVariables(tree: TokenTree): FigmaVariable[] {
   const leaves = flattenTree(tree);
   const variables = new Map<string, FigmaVariable>();
 
@@ -149,10 +149,13 @@ function main(): void {
   process.stdout.write('\n');
 }
 
-try {
-  main();
-} catch (err) {
-  const msg = err instanceof Error ? err.message : String(err);
-  console.error(`push-to-figma: ${msg}`);
-  process.exit(1);
+const isMain = process.argv[1] ? resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
+if (isMain) {
+  try {
+    main();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`push-to-figma: ${msg}`);
+    process.exitCode = 1;
+  }
 }

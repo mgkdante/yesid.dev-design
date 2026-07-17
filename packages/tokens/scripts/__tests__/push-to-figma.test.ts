@@ -1,19 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { execSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import tokens from '../../tokens.json' with { type: 'json' };
+import { parseTokens } from '../../src/parse.ts';
+import { buildVariables, type FigmaVariable } from '../push-to-figma.ts';
 
-const SCRIPT = resolve(__dirname, '../push-to-figma.ts');
-
-interface FigmaVariable {
-  name: string;
-  type: 'COLOR' | 'FLOAT' | 'STRING';
-  values: Record<string, string | number>;
-  description?: string;
-}
+const tree = parseTokens(tokens);
 
 function runScript(): FigmaVariable[] {
-  const stdout = execSync(`bun run ${SCRIPT}`, { encoding: 'utf-8' });
-  return JSON.parse(stdout) as FigmaVariable[];
+  return buildVariables(tree);
 }
 
 describe('push-to-figma', () => {
