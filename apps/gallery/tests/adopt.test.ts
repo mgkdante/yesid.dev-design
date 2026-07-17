@@ -29,9 +29,20 @@ function makeSource(root: string): void {
 	write(join(root, 'LICENSE'), 'test license\n');
 	for (const name of ['tokens', 'motion', 'gates', 'ui']) {
 		const dependencies = name === 'ui' ? { '@yesid/motion': 'workspace:*' } : undefined;
+		const exports = {
+			'.': {
+				types: './src/runtime.ts',
+				...(name === 'ui' ? { svelte: './src/runtime.ts' } : {}),
+				default: './src/runtime.ts',
+			},
+		};
 		write(
 			join(root, 'packages', name, 'package.json'),
-			JSON.stringify({ name: `@yesid/${name}`, version: '0.0.0', dependencies }, null, 2) + '\n',
+			JSON.stringify(
+				{ name: `@yesid/${name}`, version: '0.0.0', exports, dependencies },
+				null,
+				2,
+			) + '\n',
 		);
 		write(join(root, 'packages', name, 'src', 'runtime.ts'), `export const name = '${name}';\n`);
 		write(join(root, 'packages', name, 'src', 'runtime.test.ts'), 'throw new Error();\n');
@@ -83,6 +94,25 @@ describe('adoptFromSource', () => {
 		expect(readFileSync(join(dest, 'ui', 'package.json'), 'utf-8')).toContain(
 			'"@yesid/motion": "file:../motion"',
 		);
+		const adoptedUiManifest = JSON.parse(
+			readFileSync(join(dest, 'ui', 'package.json'), 'utf-8'),
+		) as {
+			exports: Record<string, Record<string, string>>;
+			dependencies: Record<string, string>;
+		};
+		expect(adoptedUiManifest.exports).toEqual({
+			'.': {
+				types: './src/runtime.ts',
+				svelte: './src/runtime.ts',
+				default: './src/runtime.ts',
+			},
+		});
+		expect(Object.keys(adoptedUiManifest.exports['.'] ?? {})).toEqual([
+			'types',
+			'svelte',
+			'default',
+		]);
+		expect(adoptedUiManifest.dependencies).toEqual({ '@yesid/motion': 'file:../motion' });
 		expect(checkAdoption(dest)).toEqual(manifest);
 	});
 

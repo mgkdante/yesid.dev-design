@@ -14,13 +14,13 @@ staged() {
 	git diff --cached --name-only
 }
 
-GENERATED_RE='^(apps/gallery/src/lib/styles/tokens\.css|apps/gallery/src/app\.css|packages/motion/src/tokens\.ts|DESIGN\.md)$'
+GENERATED_RE='^(packages/tokens/tokens\.css|apps/gallery/src/lib/styles/tokens\.css|apps/gallery/src/app\.css|packages/motion/src/tokens\.ts|DESIGN\.md)$'
 SOURCE_RE='^packages/tokens/(tokens\.json|build\.ts|src/.*\.ts)$'
 
 if staged | grep -qE "$GENERATED_RE"; then
 	if ! staged | grep -qE "$SOURCE_RE"; then
 		echo "✗ pre-commit GUARD 1: generated token output staged without a token source change." >&2
-		echo "  Generated files (tokens.css / app.css sentinel region / motion tokens.ts / DESIGN.md)" >&2
+		echo "  Generated files (package/gallery tokens.css / app.css sentinel region / motion tokens.ts / DESIGN.md)" >&2
 		echo "  are owned by packages/tokens — edit tokens.json or the generators and run" >&2
 		echo "  \`bun run tokens:build\`, then stage source + outputs together." >&2
 		exit 1

@@ -39,10 +39,12 @@ describe('brand cascade', () => {
 			'apps/gallery/src/app.css',
 			'packages/motion/src/tokens.ts',
 			'DESIGN.md',
+			'packages/tokens/tokens.css',
 		] as const;
 		for (const path of buildTargets) copyFile(join(repoRoot, path), join(root, path));
 		const cascadedOutputs = [
 			'apps/gallery/src/lib/styles/tokens.css',
+			'packages/tokens/tokens.css',
 			'packages/motion/src/tokens.ts',
 		] as const;
 		const before = new Map(

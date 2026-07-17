@@ -18,10 +18,13 @@ function read(rel: string): string {
 }
 
 describe('parity — generated outputs match committed files', () => {
-  it('apps/gallery/src/lib/styles/tokens.css matches generator', () => {
+  it('both tokens.css targets match the generator and each other', () => {
     const expected = generateTokensCss(tree);
-    const actual = read('apps/gallery/src/lib/styles/tokens.css');
-    expect(actual).toBe(expected);
+    const galleryCss = read('apps/gallery/src/lib/styles/tokens.css');
+    const packageCss = read('packages/tokens/tokens.css');
+    expect(galleryCss).toBe(expected);
+    expect(packageCss).toBe(expected);
+    expect(packageCss).toBe(galleryCss);
   });
 
   it('apps/gallery/src/app.css @theme region matches generator', () => {

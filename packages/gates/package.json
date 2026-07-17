@@ -4,10 +4,20 @@
 	"private": true,
 	"type": "module",
 	"description": "Brand vitest gates as pure, parameterized engines + presets. Detection logic is byte-equivalent to the source gates: tokens-only + contrast floors from yesid.dev @ 2bdb611d (style-regressions / contrast-floors), no-raw-brand-hex + dataviz-doctrine from transit (brand-doctrine / tokens-aa). tv()-only-in-ui is MINTED here (no test existed in either repo — it codifies the observed convention). Engines are test-runner-agnostic (node:fs only); consumers wire them into their own describe/it blocks.",
+	"sideEffects": ["**/*.css"],
 	"exports": {
-		".": "./src/index.ts",
-		"./presets/yesid": "./src/presets/yesid.ts",
-		"./presets/transit": "./src/presets/transit.ts"
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		},
+		"./presets/yesid": {
+			"types": "./src/presets/yesid.ts",
+			"default": "./src/presets/yesid.ts"
+		},
+		"./presets/transit": {
+			"types": "./src/presets/transit.ts",
+			"default": "./src/presets/transit.ts"
+		}
 	},
 	"scripts": {
 		"test": "vitest run",

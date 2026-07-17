@@ -101,3 +101,15 @@ Transit remains the reference implementation. Adding public remote-fetch mode to
 **Decision.** This narrows D9 prospectively only. Beginning with `v0.7.0`, the root manifest's canonical version and the manifest versions for `@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, and `@yesid/ui` move in lockstep. The private `@yesid/gallery` app is excluded. Historical package-version skew and the annotated tags `v0.1.0` through `v0.6.0` remain immutable; D11 remains accurate historical evidence of the intentionally skewed `v0.3.0` package versions.
 
 **Consequence.** Future releases update the root and all four vendorable package manifests together. This decision does not create or move a tag, rewrite release history, or change package runtime behavior.
+
+## D15 - Prospective v0.7.0 source exports and opt-in CSS
+
+**Status:** accepted.
+
+**Context.** The source-shipped packages had raw string exports, no CSS side-effect metadata, and no intentional public map for `@yesid/tokens`. The motion tap-feedback baseline was historically delivered as copy-paste-only, while the canonical generated token CSS existed only inside the gallery and could not be exported from the tokens package.
+
+**Decision.** Beginning with the prospective `v0.7.0` contract, all four vendorable manifests retain explicitly imported CSS with `sideEffects: ["**/*.css"]` and use ordered conditional exports. Svelte-bearing `@yesid/ui` entries resolve through `types`, `svelte`, then `default`; plain TypeScript entries resolve through `types`, then `default`. Existing UI, motion, and gates subpaths remain unchanged. `@yesid/tokens` exposes its JSON, generated CSS, parser, serializer, types, and four generator modules, plus four temporary `./src/*` compatibility keys required by Transit's current builder. Repository-coupled build scripts, research, tests, and Figma orchestration remain private.
+
+`@yesid/tokens/tokens.css` and `@yesid/motion/tap-feedback.css` are direct public subpath imports. Both are opt-in; neither package injects CSS automatically or selects behavior by consumer. The token build owns both byte-identical CSS copies and the drift gates cover both. The motion stylesheet remains copyable when a consumer needs to control Tailwind syntax or layer order.
+
+**Consequence.** This prospectively supersedes D11's copy-paste-only delivery for tap feedback without rewriting that historical `v0.3.0` evidence. Consumers may import the public CSS subpath or keep a deliberate copy, and existing Transit token-builder imports remain valid until the later canary migration.
