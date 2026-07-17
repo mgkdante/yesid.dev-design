@@ -1,6 +1,6 @@
 {
   "name": "@yesid/ui",
-  "version": "0.1.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "description": "Source-shipped yesid brand UI primitives, ported byte-faithful from Transit with consumer-configurable class vocabulary.",
