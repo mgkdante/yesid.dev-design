@@ -8,7 +8,7 @@ Use this checklist in the new product:
 - [ ] Add the four vendored packages to `package.json` and run `bun install`.
 - [ ] Add the thin token build script, generate `tokens.css`, and wire the `@theme` sentinel.
 - [ ] Load Inter Variable and JetBrains Mono Variable.
-- [ ] Call `configureUi({ vocab })` before the first UI primitive renders.
+- [ ] Import one shared UI initializer from both SvelteKit client and server init hooks.
 - [ ] Apply the motion tiers and expose reduced-motion state where the product needs it.
 - [ ] Add the yesid gate preset to Vitest and CI.
 - [ ] Run the app tests, typecheck, vendor check, token drift check, and production build.
@@ -160,28 +160,73 @@ Run `bun tools/build-design-tokens.ts`. Load `src/app.css` from the root layout 
 
 The font tokens name `Inter Variable` for headings and body and `JetBrains Mono Variable` for mono text. Self-host those variable fonts and load them before the app paints. The fallback stacks work, but using them changes metrics and breaks visual parity.
 
-## 4. Configure UI once at boot
+## 4. Configure UI once per module graph at boot
 
-Call `configureUi` before the first `@yesid/ui` component renders. Add only product-owned Tailwind vocabulary. Base yesid text and color names already work without configuration.
+Call `configureUi` before the first `@yesid/ui` component renders. Add only
+product-owned Tailwind vocabulary. Base yesid text and color names already work
+without configuration.
 
-```svelte
-<script lang="ts">
-  import { configureUi } from '@yesid/ui/cn';
+Create one shared initializer, for example `src/lib/ui-initialization.ts`:
 
-  configureUi({
+```ts
+import { configureUi, type ConfigureUiResult } from '@yesid/ui/cn';
+
+export function initializeUi(): ConfigureUiResult {
+  return configureUi({
     vocab: {
       text: ['console-label'],
       colors: ['metric-healthy', 'metric-warning'],
     },
   });
-
-  let { children } = $props();
-</script>
-
-{@render children()}
+}
 ```
 
-Keep this configuration static for the application. Do not derive it from a request, tenant, user, or locale.
+Import that same initializer from both SvelteKit boot hooks. In
+`src/hooks.client.ts`:
+
+```ts
+import type { ClientInit } from '@sveltejs/kit';
+import { initializeUi } from '$lib/ui-initialization';
+
+export const init: ClientInit = () => {
+  initializeUi();
+};
+```
+
+In `src/hooks.server.ts`:
+
+```ts
+import type { ServerInit } from '@sveltejs/kit';
+import { initializeUi } from '$lib/ui-initialization';
+
+export const init: ServerInit = () => {
+  initializeUi();
+};
+```
+
+Do not put `configureUi` in a root layout instance script. The client and server
+hooks are the explicit initialization boundaries. They import one initializer
+source, while the client bundle and every SSR worker still load independent ESM
+module graphs and initialize their own package state. Separately bundled copies
+of `@yesid/ui` also have independent state. HMR can recreate a graph, at which
+point its boot hook initializes the recreated state.
+
+Within one loaded module graph, the first explicit call in an unlocked graph
+returns `'initialized'`. Repeating the same semantic configuration returns
+`'unchanged'`: omitted and empty fields are equivalent, and duplicate or
+reordered vocabulary entries do not change the meaning. A conflicting call
+throws without replacing the first configuration. There is no reset API.
+
+If `cn` runs first, directly or during a primitive render, it locks the
+zero-configuration default. A later empty call returns `'unchanged'`, while a
+later custom call throws. Keep the initializer ahead of all UI use when the
+product has custom vocabulary.
+
+This configuration is fixed application vocabulary. Never derive it from a
+request, tenant, user, locale, or other runtime-scoped value. Provider/context
+configuration is deferred and is not part of the prospective `v0.7.0` API.
+`ConfigureUiResult = 'initialized' | 'unchanged'` is an observable part of that
+prospective API, not an internal diagnostic.
 
 ## 5. Apply the motion policy
 
