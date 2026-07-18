@@ -65,6 +65,11 @@ describe('styleRegressions engine', () => {
 });
 
 describe('brandHex engine', () => {
+	it('rejects empty or malformed consumer policy', () => {
+		expect(() => buildBrandHexPattern([])).toThrow(/at least one/i);
+		expect(() => buildBrandHexPattern(['orange'])).toThrow(/6-digit hex/i);
+	});
+
 	it('compiles the byte-identical default pattern', () => {
 		expect(buildBrandHexPattern(['#E07800', '#FFB627']).source).toBe('#(?:e07800|ffb627)\\b');
 	});
