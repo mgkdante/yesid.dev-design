@@ -57,6 +57,7 @@ describe('token artifact ownership', () => {
 		expect(workflow).toContain('runs-on: windows-latest');
 		expect(workflow).toContain('token-byte-parity:');
 		expect(workflow).toContain('cmp --silent');
+		expect(workflow).toContain('run: bun run check');
 		for (const path of artifactPaths) expect(workflow, path).toContain(path);
 	});
 });
