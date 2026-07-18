@@ -28,7 +28,7 @@ notion:
 
 ## Project
 
-**yesid.dev-design** — the yesid brand's styling foundation as a standalone bun+turbo monorepo: `packages/tokens` (DTCG source of truth + generators), `packages/motion` (the pure Snappy-Doctrine actions), `packages/gates` (brand vitest gates as engines + presets), `apps/gallery` (the living brand gallery). Extracted byte-faithful from yesid.dev @ `2bdb611d91749dc437c07586cb82129eabe9dfec`; `v0.1.0` is the immovable parity tag. Consumers: transit (live, vendored-sync @ v0.2.0), yesid.dev (later, via FLIP-THE-SWITCH.md).
+**yesid.dev-design** — the yesid brand's styling foundation as a standalone bun+turbo monorepo: `packages/tokens` (DTCG source of truth + generators), `packages/motion` (the pure Snappy-Doctrine actions), `packages/gates` (neutral brand-quality engines; product policy stays consumer-side), `apps/gallery` (the living brand gallery). Extracted byte-faithful from yesid.dev @ `2bdb611d91749dc437c07586cb82129eabe9dfec`; `v0.1.0` is the immovable parity tag. Consumers: transit (live, vendored-sync @ v0.2.0), yesid.dev (later, via FLIP-THE-SWITCH.md).
 
 ## Governance laws (constitutional — see README for the full text)
 

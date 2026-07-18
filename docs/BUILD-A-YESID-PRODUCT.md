@@ -10,7 +10,7 @@ Use this checklist in the new product:
 - [ ] Load Inter Variable and JetBrains Mono Variable.
 - [ ] Import one shared UI initializer from both SvelteKit client and server init hooks.
 - [ ] Apply the motion tiers and expose reduced-motion state where the product needs it.
-- [ ] Add the yesid gate preset to Vitest and CI.
+- [ ] Add one consumer-owned gate policy module and its contract test to Vitest and CI.
 - [ ] Run the app tests, typecheck, vendor check, token drift check, and production build.
 - [ ] Commit the vendored snapshot, manifest, and generated token outputs together.
 
@@ -262,6 +262,11 @@ The stylesheet remains copyable from `vendor/design/motion/tap-feedback.css` whe
 
 ## 6. Wire the brand gates into Vitest and CI
 
+Keep product policy in the product. Copy its real brand hexes, forbidden
+patterns, contrast pairs, and identities into `src/gates/policy.ts`; do not
+invent replacements or copy another app's table. Add a contract test there so
+policy changes are deliberate.
+
 Create `src/brand-gates.test.ts`:
 
 ```ts
@@ -275,21 +280,27 @@ import {
   styleRegressionViolations,
 } from '@yesid/gates';
 import {
-  YESID_AA_PAIRS,
-  YESID_FORBIDDEN,
-  YESID_IDENTITIES,
-} from '@yesid/gates/presets/yesid';
+  PRODUCT_AA_PAIRS,
+  PRODUCT_BRAND_HEXES,
+  PRODUCT_FORBIDDEN,
+  PRODUCT_IDENTITIES,
+} from './gates/policy.js';
 import { describe, expect, it } from 'vitest';
 
 const srcRoot = fileURLToPath(new URL('.', import.meta.url));
 const generated = new Set([
   join(srcRoot, 'app.css'),
   join(srcRoot, 'lib/styles/tokens.css'),
+  join(srcRoot, 'gates/policy.ts'),
 ]);
 
 describe('brand gates', () => {
   it('uses tokens instead of raw brand hex values', () => {
-    const result = brandHexViolations({ root: srcRoot, allowlist: generated });
+    const result = brandHexViolations({
+      root: srcRoot,
+      hexes: PRODUCT_BRAND_HEXES,
+      allowlist: generated,
+    });
     expect(result.fileCount).toBeGreaterThan(0);
     expect(result.violations).toEqual([]);
   });
@@ -297,17 +308,22 @@ describe('brand gates', () => {
   it('avoids forbidden style patterns', () => {
     const failures = styleRegressionViolations({
       root: srcRoot,
-      forbidden: YESID_FORBIDDEN,
+      forbidden: PRODUCT_FORBIDDEN,
     }).filter(({ hits }) => hits.length > 0);
     expect(failures).toEqual([]);
   });
 
-  it('keeps the preset contrast pairs and identities', () => {
-    expect(runContrastPairs(tokens, YESID_AA_PAIRS).filter(({ pass }) => !pass)).toEqual([]);
-    expect(runIdentities(tokens, YESID_IDENTITIES).filter(({ pass }) => !pass)).toEqual([]);
+  it('keeps the product contrast pairs and identities', () => {
+    expect(runContrastPairs(tokens, PRODUCT_AA_PAIRS).filter(({ pass }) => !pass)).toEqual([]);
+    expect(runIdentities(tokens, PRODUCT_IDENTITIES).filter(({ pass }) => !pass)).toEqual([]);
   });
 });
 ```
+
+`@yesid/gates` exports engines and neutral defaults from its root only. A
+consumer with additional semantic color tokens, such as a product-specific
+accent, must pass its full `brandTokens` list to `colorMixViolations` instead
+of relying on the neutral default.
 
 Run these commands in CI:
 
