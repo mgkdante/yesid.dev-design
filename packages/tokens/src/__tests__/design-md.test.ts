@@ -61,4 +61,17 @@ describe('generateDesignMd', () => {
     const primaryLines = dedupedMd.split('\n').filter((l) => /^\s+primary:/.test(l));
     expect(primaryLines).toHaveLength(1);
   });
+
+  it('documents the supplied public UI inventory without stale app paths', () => {
+    const inventoryMd = generateDesignMd(fixture, {
+      brandComponents: ['BlueprintShell', 'MetroStation'],
+      primitiveSubpaths: ['button', 'card', 'tabs'],
+    });
+
+    expect(inventoryMd).toContain('@yesid/ui/brand` (2 components: `BlueprintShell`, `MetroStation`)');
+    expect(inventoryMd).toContain('3 primitive subpaths (`@yesid/ui/button`, `@yesid/ui/card`, `@yesid/ui/tabs`)');
+    expect(inventoryMd).not.toContain('apps/web');
+    expect(inventoryMd).not.toContain('12 brand primitives');
+    expect(inventoryMd).not.toContain('19 shadcn-svelte primitives');
+  });
 });
