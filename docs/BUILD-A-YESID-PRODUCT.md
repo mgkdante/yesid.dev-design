@@ -10,7 +10,7 @@ Use this checklist in the new product:
 - [ ] Load Inter Variable and JetBrains Mono Variable.
 - [ ] Import one shared UI initializer from both SvelteKit client and server init hooks.
 - [ ] Apply the motion tiers and expose reduced-motion state where the product needs it.
-- [ ] Add the yesid gate preset to Vitest and CI.
+- [ ] Add one consumer-owned gate policy module and its contract test to Vitest and CI.
 - [ ] Run the app tests, typecheck, vendor check, token drift check, and production build.
 - [ ] Commit the vendored snapshot, manifest, and generated token outputs together.
 

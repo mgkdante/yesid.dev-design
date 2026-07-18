@@ -76,10 +76,11 @@ PHASE B — THE FLIP (at the parity line, zero visual change):
    Move the existing 57 AA pairs, 2 terminal identities, forbidden patterns,
    color-mix configuration, and marker-file allowlist unchanged into one
    app-owned policy module with an exact contract test. Pass that policy to the
-   engines explicitly; `@yesid/gates` intentionally publishes no product
-   preset subpaths. KEEP the app-specific art-direction pinning tests local
-   (they are the per-app taste contract, not brand gates). Optionally adopt the
-   minted tv()-only-in-ui gate
+   engines explicitly. Historical parity tags still contain product preset
+   subpaths, but new integration code must not depend on them; the prospective
+   v0.7 contract removes them. KEEP the app-specific art-direction pinning
+   tests local (they are the per-app taste contract, not brand gates).
+   Optionally adopt the minted tv()-only-in-ui gate
    (uiRoot = `src/lib/components/ui`; badge/button/tabs-list/toggle pass as of
    the anchor).
 5. PIXEL-ZERO-DIFF: before/after screenshots of `/`, `/about`, `/services`,
