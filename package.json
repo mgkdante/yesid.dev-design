@@ -11,16 +11,19 @@
 	},
 	"workspaces": ["apps/*", "packages/*"],
 	"scripts": {
-		"build": "turbo run build",
+		"build": "bun run tokens:build && turbo run build",
 		"test": "turbo run test",
-		"check": "turbo run check",
+		"check": "tsc --project tsconfig.tools.json && turbo run check",
 		"dev": "turbo run dev",
-		"tokens:build": "bun run --cwd packages/tokens build",
-		"tokens:lint": "bun run --cwd packages/tokens lint:design-md",
-		"ci:tokens": "bun run tokens:build && git diff --exit-code packages/tokens/tokens.css apps/gallery/src/lib/styles/tokens.css apps/gallery/src/app.css packages/motion/src/tokens.ts DESIGN.md",
+		"tokens:build": "bun tools/build-tokens.ts",
+		"tokens:lint": "design.md lint DESIGN.md",
+		"ci:tokens": "bun run tokens:build && git diff --exit-code packages/tokens/tokens.css apps/gallery/src/app.css packages/motion/src/tokens.ts DESIGN.md",
 		"setup:hooks": "git config core.hooksPath .githooks"
 	},
 	"devDependencies": {
+		"@google/design.md": "0.1.1",
+		"@types/node": "^22.0.0",
+		"typescript": "^5.9.3",
 		"turbo": "^2.5.0"
 	}
 }

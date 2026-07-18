@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Pre-commit guard for generated token outputs (ported from yesid.dev @ 2bdb611d,
-# paths retargeted to this repo's consumers).
+# Pre-commit guard for repository-owned generated token outputs.
 #
 # GUARD 1: staging any GENERATED token output without staging a matching token
 # SOURCE fails the commit. The guard is deliberately coarse for app.css (any
@@ -14,14 +13,14 @@ staged() {
 	git diff --cached --name-only
 }
 
-GENERATED_RE='^(packages/tokens/tokens\.css|apps/gallery/src/lib/styles/tokens\.css|apps/gallery/src/app\.css|packages/motion/src/tokens\.ts|DESIGN\.md)$'
-SOURCE_RE='^packages/tokens/(tokens\.json|build\.ts|src/.*\.ts)$'
+GENERATED_RE='^(packages/tokens/tokens\.css|apps/gallery/src/app\.css|packages/motion/src/tokens\.ts|DESIGN\.md)$'
+SOURCE_RE='^(packages/tokens/(tokens\.json|src/.*\.ts)|packages/ui/(package\.json|src/brand/index\.ts)|tools/build-tokens\.ts)$'
 
 if staged | grep -qE "$GENERATED_RE"; then
 	if ! staged | grep -qE "$SOURCE_RE"; then
 		echo "✗ pre-commit GUARD 1: generated token output staged without a token source change." >&2
-		echo "  Generated files (package/gallery tokens.css / app.css sentinel region / motion tokens.ts / DESIGN.md)" >&2
-		echo "  are owned by packages/tokens — edit tokens.json or the generators and run" >&2
+		echo "  Generated files (package tokens.css / app.css sentinel region / motion tokens.ts / DESIGN.md)" >&2
+		echo "  are owned by the root token build — edit its source inputs and run" >&2
 		echo "  \`bun run tokens:build\`, then stage source + outputs together." >&2
 		exit 1
 	fi

@@ -4,7 +4,7 @@ name: yesid.dev
 description: Digital infrastructure that moves. Edge-to-edge, dark-first, four-color infrastructure doctrine (orange signage · yellow wayfinding · reflective white · structural black), motion-with-intent.
 
 # GENERATED FROM packages/tokens/tokens.json — DO NOT EDIT
-# Run `bun run --cwd packages/tokens build` to regenerate.
+# Run `bun run tokens:build` to regenerate.
 
 colors:
   primary: "#E07800"
@@ -98,7 +98,14 @@ spacing:
   "card-gap": "clamp(1rem, 2vw, 1.5rem)"
 
 components:
-  # see Notion design system page
+  BlueprintShell: {}
+  ChevronToggle: {}
+  MetroStation: {}
+  SectionLabel: {}
+  StickyPanel: {}
+  StopLabel: {}
+  TerminalCursor: {}
+  TocBadge: {}
 ---
 
 ## Overview
@@ -162,8 +169,8 @@ Borders use semantic tokens (`border`, `border-subtle`, `border-strong`).
 
 ## Components
 
-See `apps/web/src/lib/components/brand/` (12 brand primitives) and `apps/web/src/lib/components/ui/`
-(19 shadcn-svelte primitives, customized with brand tokens). Design-system documentation:
+See `@yesid/ui/brand` (8 components: `BlueprintShell`, `ChevronToggle`, `MetroStation`, `SectionLabel`, `StickyPanel`, `StopLabel`, `TerminalCursor`, `TocBadge`) and
+13 primitive subpaths (`@yesid/ui/badge`, `@yesid/ui/button`, `@yesid/ui/card`, `@yesid/ui/collapsible`, `@yesid/ui/combobox`, `@yesid/ui/resizable`, `@yesid/ui/scroll-area`, `@yesid/ui/separator`, `@yesid/ui/sheet`, `@yesid/ui/skeleton`, `@yesid/ui/tabs`, `@yesid/ui/toggle`, `@yesid/ui/toggle-group`). Design-system documentation:
 Notion → Business → Brand.
 
 ## Do's and Don'ts

@@ -1,5 +1,5 @@
 /* Semantic CSS custom properties (--background, --foreground, etc.) */
-@import '$lib/styles/tokens.css';
+@import '@yesid/tokens/tokens.css';
 
 /* Tailwind CSS v4 (CSS-first config, no tailwind.config.js needed) */
 @import 'tailwindcss';
@@ -54,7 +54,7 @@ html {
 /* ===== TOKENS:START ===== */
 /* GENERATED FROM packages/tokens/tokens.json - DO NOT EDIT */
 /* Hand-edits to this region will be overwritten on the next build. */
-/* Run `bun run --cwd packages/tokens build` to regenerate. */
+/* Run `bun run tokens:build` to regenerate. */
 @theme {
   --font-heading: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
   --font-body: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
