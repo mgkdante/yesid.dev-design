@@ -8,7 +8,6 @@ import { describe, expect, it } from 'vitest';
 const srcRoot = fileURLToPath(new URL('.', import.meta.url));
 const generatedTokenFiles = new Set([
 	join(srcRoot, 'app.css'),
-	join(srcRoot, 'lib/styles/tokens.css'),
 ]);
 
 describe('gallery brand gates', () => {

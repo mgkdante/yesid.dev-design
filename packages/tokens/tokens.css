@@ -1,5 +1,5 @@
 /* GENERATED FROM packages/tokens/tokens.json - DO NOT EDIT */
-/* Run `bun run --cwd packages/tokens build` to regenerate. */
+/* Run `bun run tokens:build` to regenerate. */
 
 :root {
   --primary: #E07800;

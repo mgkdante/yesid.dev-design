@@ -5,7 +5,10 @@
     "": {
       "name": "yesid-dev-design",
       "devDependencies": {
+        "@google/design.md": "0.1.1",
+        "@types/node": "^22.0.0",
         "turbo": "^2.5.0",
+        "typescript": "^5.9.3",
       },
     },
     "apps/gallery": {
@@ -61,7 +64,6 @@
       "name": "@yesid/tokens",
       "version": "0.7.0",
       "devDependencies": {
-        "@google/design.md": "0.1.1",
         "@types/node": "^22.0.0",
         "typescript": "^5.5.0",
         "vitest": "^4.1.0",

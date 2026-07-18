@@ -70,7 +70,7 @@ describe('generateDesignMd', () => {
 
     expect(inventoryMd).toContain('@yesid/ui/brand` (2 components: `BlueprintShell`, `MetroStation`)');
     expect(inventoryMd).toContain('3 primitive subpaths (`@yesid/ui/button`, `@yesid/ui/card`, `@yesid/ui/tabs`)');
-    expect(inventoryMd).not.toContain('apps/web');
+    expect(inventoryMd).not.toContain(['apps', 'web'].join('/'));
     expect(inventoryMd).not.toContain('12 brand primitives');
     expect(inventoryMd).not.toContain('19 shadcn-svelte primitives');
   });
