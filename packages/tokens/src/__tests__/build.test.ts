@@ -32,4 +32,15 @@ describe('buildAll', () => {
     });
     expect(Object.keys(outputs)).not.toContain(expect.stringContaining('/'));
   });
+
+  it('does not mutate its input and returns identical UTF-8 bytes', () => {
+    const snapshot = structuredClone(tree);
+    const first = buildAll({ tree });
+    const second = buildAll({ tree });
+
+    expect(tree).toEqual(snapshot);
+    for (const target of Object.keys(first) as (keyof typeof first)[]) {
+      expect(Buffer.from(second[target], 'utf8')).toEqual(Buffer.from(first[target], 'utf8'));
+    }
+  });
 });
