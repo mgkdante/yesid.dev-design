@@ -69,10 +69,8 @@ const EXISTING_MOTION_EXPORTS = {
 	'./utils/ticker': './src/utils/ticker.ts',
 } as const;
 
-const EXISTING_GATES_EXPORTS = {
+const GATES_EXPORTS = {
 	'.': './src/index.ts',
-	'./presets/yesid': './src/presets/yesid.ts',
-	'./presets/transit': './src/presets/transit.ts',
 } as const;
 
 const TOKEN_DIRECT_EXPORTS = {
@@ -237,10 +235,9 @@ describe('conditioned package export contract', () => {
 		expect(manifests[packageName].sideEffects).toEqual(['**/*.css']);
 	});
 
-	it('preserves every existing UI, motion, and gates export target', () => {
+	it('preserves every existing UI and motion export target', () => {
 		expectPreservedTargets(manifests['@yesid/ui'], EXISTING_UI_EXPORTS);
 		expectPreservedTargets(manifests['@yesid/motion'], EXISTING_MOTION_EXPORTS);
-		expectPreservedTargets(manifests['@yesid/gates'], EXISTING_GATES_EXPORTS);
 	});
 
 	it('exposes only the approved package keys', () => {
@@ -252,7 +249,7 @@ describe('conditioned package export contract', () => {
 			'./tap-feedback.css',
 		]));
 		expect(new Set(Object.keys(readExports(manifests['@yesid/gates'])))).toEqual(new Set([
-			...Object.keys(EXISTING_GATES_EXPORTS),
+			...Object.keys(GATES_EXPORTS),
 		]));
 		expect(new Set(Object.keys(readExports(manifests['@yesid/tokens'])))).toEqual(new Set([
 			...Object.keys(TOKEN_DIRECT_EXPORTS),
@@ -292,7 +289,7 @@ describe('conditioned package export contract', () => {
 		);
 		expectConditionalExports(
 			manifests['@yesid/gates'],
-			EXISTING_GATES_EXPORTS,
+			GATES_EXPORTS,
 			['types', 'default'],
 		);
 	});

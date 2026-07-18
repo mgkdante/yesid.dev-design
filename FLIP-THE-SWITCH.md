@@ -22,11 +22,11 @@ CONTEXT YOU CAN TRUST (verified at extraction time, 2026-07-02):
   `feat/conversion-hardening-batch`), with an exhaustive deviation register in
   its README (MOTION-1 gsap-util slim · $lib→relative import rewrites ·
   retargeted build paths · pruned actions barrel · gates refactored to
-  engines+presets · tv()-only-in-ui minted).
+  reusable engines · tv()-only-in-ui minted).
 - `v0.2.0` = v0.1.0 + the dataviz scale (transit's, additive — unused vars
   here, still zero visual change). Transit already consumes v0.2.0 in
-  production via vendored-sync (transit PR #195): the engines and presets are
-  battle-tested by 2,577 passing tests there.
+  production via vendored-sync (transit PR #195), which proved the extracted
+  gate behavior in a second product.
 - Consumption pattern proven in transit: vendored snapshot + manifest
   (`tools/design-sync.ts`) + `file:` deps + re-export shims at the old import
   paths + provenance-header re-stamping in a thin `tools/tokens/build.ts`
@@ -44,7 +44,8 @@ PHASE A — UPSTREAM THE INTERIM DRIFT (patch releases FIRST):
    - `apps/web/src/lib/motion/{actions/*,policy.ts,stores/reducedMotion.ts,utils/{device,gsap,lenis,sectionMagnet}.ts}`
      vs design `packages/motion/src/**` (mind the documented import rewrites),
    - `apps/web/src/tests/{style-regressions,contrast-floors}.test.ts` detection
-     logic vs design `packages/gates/src/engines/**` + `presets/yesid.ts`.
+     logic vs design `packages/gates/src/engines/**`; keep the concrete policy
+     tables app-side.
 2. Any change this repo made SINCE `2bdb611d` in those layers is interim drift:
    upstream each into `../yesid.dev-design` as patch/minor releases
    (v0.1.1… if it must land under the parity line for a byte-clean flip —
@@ -71,11 +72,14 @@ PHASE B — THE FLIP (at the parity line, zero visual change):
    local fat `utils/gsap.ts` vendored HERE (they are Tier 2; the package's gsap
    util is deliberately slimmed — deviation MOTION-1).
 4. Gates: re-seat `style-regressions.test.ts` (the FORBIDDEN-table part) and
-   `contrast-floors.test.ts` (both engines) as thin configs on `@yesid/gates`
-   + `presets/yesid` (57 AA pairs + 2 terminal identities + color-mix floors +
-   marker-file allowlist are all in the preset). KEEP the app-specific
-   art-direction pinning tests local (they are the per-app taste contract, not
-   brand gates). Optionally adopt the minted tv()-only-in-ui gate
+   `contrast-floors.test.ts` (both engines) as thin configs on `@yesid/gates`.
+   Move the existing 57 AA pairs, 2 terminal identities, forbidden patterns,
+   color-mix configuration, and marker-file allowlist unchanged into one
+   app-owned policy module with an exact contract test. Pass that policy to the
+   engines explicitly; `@yesid/gates` intentionally publishes no product
+   preset subpaths. KEEP the app-specific art-direction pinning tests local
+   (they are the per-app taste contract, not brand gates). Optionally adopt the
+   minted tv()-only-in-ui gate
    (uiRoot = `src/lib/components/ui`; badge/button/tabs-list/toggle pass as of
    the anchor).
 5. PIXEL-ZERO-DIFF: before/after screenshots of `/`, `/about`, `/services`,
