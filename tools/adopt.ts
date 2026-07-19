@@ -1,35 +1,38 @@
 #!/usr/bin/env bun
 
-import { spawnSync } from 'node:child_process';
 import {
 	copyFileSync,
 	existsSync,
 	lstatSync,
 	mkdirSync,
-	mkdtempSync,
 	readFileSync,
 	readdirSync,
-	rmSync,
 	writeFileSync,
 } from 'node:fs';
-import { homedir, tmpdir } from 'node:os';
+import { homedir } from 'node:os';
 import { dirname, join, parse as parsePath, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+	acquireArchive,
+	acquireRelease,
+	acquireWorktree,
+} from './adopt/acquisition.js';
 import {
 	MANIFEST_SCHEMA,
 	PACKAGE_EXCLUDE,
 	PACKAGE_NAMES,
 	REPOSITORY_ID,
 	WORKTREE_EXCLUDE,
-	assertCommit,
 	assertTag,
 	exclusionPolicyDigest,
 	parseManifest,
 	parsePackages,
+	parseProvenance,
 	pathInside,
 	toolDigest,
 	treeHash,
 	type AdoptManifest,
+	type AdoptProvenance,
 	type PackageName,
 } from './adopt/contract.js';
 import {
@@ -57,14 +60,11 @@ export {
 	type AdoptTransactionPaths,
 } from './adopt/transaction.js';
 
-export const DESIGN_REPO_URL = 'https://github.com/mgkdante/yesid.dev-design';
-
 export interface AdoptFromSourceOptions {
 	source: string;
 	dest: string;
-	tag: string;
 	packages: PackageName[];
-	commit: string;
+	provenance: AdoptProvenance;
 	runtime?: AdoptRuntime;
 }
 
@@ -77,6 +77,7 @@ export type ParsedArgs =
 			packages: PackageName[];
 			dest: string;
 			source?: string;
+			archive?: string;
 	  };
 
 export function parseArgs(argv: string[]): ParsedArgs {
@@ -95,7 +96,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
 			help = true;
 			continue;
 		}
-		if (!['--tag', '--packages', '--dest', '--source'].includes(arg)) {
+		if (!['--tag', '--packages', '--dest', '--source', '--archive'].includes(arg)) {
 			throw new Error(`unknown argument "${arg}"`);
 		}
 		if (values.has(arg)) throw new Error(`duplicate argument ${arg}`);
@@ -109,7 +110,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
 	const dest = values.get('--dest');
 	if (check) {
 		if (!dest) throw new Error('--check requires --dest');
-		for (const incompatible of ['--tag', '--packages', '--source']) {
+		for (const incompatible of ['--tag', '--packages', '--source', '--archive']) {
 			if (values.has(incompatible)) throw new Error(`--check cannot be combined with ${incompatible}`);
 		}
 		return { mode: 'check', dest };
@@ -128,7 +129,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
 		dest,
 	};
 	const source = values.get('--source');
+	const archive = values.get('--archive');
+	if (source && archive) throw new Error('--source and --archive are mutually exclusive');
 	if (source) parsed.source = source;
+	if (archive) parsed.archive = archive;
 	return parsed;
 }
 
@@ -257,8 +261,7 @@ function rewriteInternalWorkspaceDependencies(packageRoot: string): void {
 export function adoptFromSource(options: AdoptFromSourceOptions): AdoptResult {
 	const source = resolve(options.source);
 	const dest = resolve(options.dest);
-	assertTag(options.tag);
-	assertCommit(options.commit);
+	const provenance = parseProvenance(options.provenance, 'adoption source');
 	assertSafeDestination(dest, source);
 	assertReplaceableDestination(dest);
 	validatePackageClosure(source, options.packages);
@@ -279,15 +282,11 @@ export function adoptFromSource(options: AdoptFromSourceOptions): AdoptResult {
 				const manifest: AdoptManifest = {
 					schema: MANIFEST_SCHEMA,
 					repository: REPOSITORY_ID,
-					provenance: {
-						mode: 'worktree',
-						tag: {
-							name: options.tag,
-							object: options.commit,
-							peeledCommit: options.commit,
-						},
-						asset: null,
-					},
+				provenance: {
+					mode: provenance.mode,
+					tag: { ...provenance.tag },
+					asset: provenance.asset ? { ...provenance.asset } : null,
+				},
 					packages: [...options.packages],
 					exclusionPolicyDigest: exclusionPolicyDigest(),
 					toolDigest: toolDigest(stage),
@@ -314,62 +313,27 @@ export function adoptFromSource(options: AdoptFromSourceOptions): AdoptResult {
 	);
 }
 
-function runGit(args: string[], cwd?: string): string {
-	const result = spawnSync('git', args, { cwd, encoding: 'utf-8' });
-	if (result.status !== 0) {
-		const detail = result.stderr.trim() || result.stdout.trim() || `exit ${result.status ?? 'unknown'}`;
-		throw new Error(`git ${args[0]} failed: ${detail}`);
-	}
-	return result.stdout.trim();
-}
-
-function readCommit(source: string): string {
-	const commit = runGit(['-C', source, 'rev-parse', 'HEAD']);
-	assertCommit(commit);
-	return commit;
-}
-
-export function adopt(
+export async function adopt(
 	options: Extract<ParsedArgs, { mode: 'adopt' }>,
 	runtime: AdoptRuntime = {},
-): AdoptResult {
+): Promise<AdoptResult> {
 	try {
 		const dest = resolve(options.dest);
-		if (options.source) {
-			const source = resolve(options.source);
-			return adoptFromSource({
-				source,
-				dest,
-				tag: options.tag,
-				packages: options.packages,
-				commit: readCommit(source),
-				runtime,
-			});
-		}
-
-		const cloneRoot = mkdtempSync(join(tmpdir(), 'yesid-adopt-source-'));
-		const source = join(cloneRoot, 'yesid.dev-design');
+		const acquired = options.source
+			? acquireWorktree(options.source, options.tag)
+			: options.archive
+				? acquireArchive(options.archive, options.tag)
+				: await acquireRelease(options.tag);
 		try {
-			runGit([
-				'clone',
-				'--depth',
-				'1',
-				'--single-branch',
-				'--branch',
-				options.tag,
-				DESIGN_REPO_URL,
-				source,
-			]);
 			return adoptFromSource({
-				source,
+				source: acquired.source,
 				dest,
-				tag: options.tag,
 				packages: options.packages,
-				commit: readCommit(source),
+				provenance: acquired.provenance,
 				runtime,
 			});
 		} finally {
-			rmSync(cloneRoot, { recursive: true, force: true });
+			acquired.cleanup();
 		}
 	} catch (error) {
 		if (error instanceof AdoptError) throw error;
@@ -414,11 +378,14 @@ function usage(): string {
 		'Usage:',
 		'  bun tools/adopt.ts --tag vX.Y.Z --packages tokens,motion,gates,ui --dest vendor/design',
 		'  bun tools/adopt.ts --tag vX.Y.Z --packages tokens,motion,gates,ui --dest vendor/design --source ../yesid.dev-design',
+		'  bun tools/adopt.ts --tag vX.Y.Z --packages tokens,motion,gates,ui --dest vendor/design --archive ./yesid.dev-design-vX.Y.Z.tar',
 		'  bun tools/adopt.ts --check --dest vendor/design',
+		'',
+		'Default mode verifies and installs the immutable GitHub Release asset.',
 	].join('\n');
 }
 
-export function main(argv = process.argv.slice(2), runtime: AdoptRuntime = {}): number {
+export async function main(argv = process.argv.slice(2), runtime: AdoptRuntime = {}): Promise<number> {
 	let args: ParsedArgs;
 	try {
 		args = parseArgs(argv);
@@ -444,10 +411,10 @@ export function main(argv = process.argv.slice(2), runtime: AdoptRuntime = {}): 
 		}
 	}
 	try {
-		const result = adopt(args, runtime);
+		const result = await adopt(args, runtime);
 		const { manifest } = result;
-		if (args.source) {
-			console.log('i local --source mode records the current checkout; verify the tag separately before release');
+		if (args.source || args.archive) {
+			console.log(`i local ${args.source ? '--source' : '--archive'} development mode`);
 		}
 		console.log(
 			`✓ adopted @yesid/{${manifest.packages.join(',')}} at ${manifest.provenance.tag.name} (${manifest.provenance.tag.peeledCommit.slice(0, 9)})`,
@@ -463,4 +430,4 @@ export function main(argv = process.argv.slice(2), runtime: AdoptRuntime = {}): 
 }
 
 const isMain = process.argv[1] ? resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
-if (isMain) process.exitCode = main();
+if (isMain) void main().then((code) => (process.exitCode = code));

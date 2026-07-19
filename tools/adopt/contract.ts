@@ -169,8 +169,24 @@ export function parseManifest(value: unknown, path: string): AdoptManifest {
 	if (manifest.schema !== MANIFEST_SCHEMA || manifest.repository !== REPOSITORY_ID) {
 		throw new Error(`invalid manifest identity at ${path}`);
 	}
-	const provenance = manifest.provenance;
-	if (!provenance || !['release', 'archive', 'worktree'].includes(provenance.mode)) {
+	const provenance = parseProvenance(manifest.provenance, path);
+	if (!Array.isArray(manifest.packages)) throw new Error(`invalid package closure at ${path}`);
+	const packages = parsePackages(manifest.packages.join(','));
+	if (packages.join(',') !== manifest.packages.join(',')) {
+		throw new Error(`manifest packages are not in canonical order at ${path}`);
+	}
+	assertDigest(manifest.exclusionPolicyDigest, `exclusionPolicyDigest in ${path}`);
+	assertDigest(manifest.toolDigest, `toolDigest in ${path}`);
+	assertDigest(manifest.treeHash, `treeHash in ${path}`);
+	return { ...manifest, provenance } as AdoptManifest;
+}
+
+export function parseProvenance(value: unknown, path: string): AdoptProvenance {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		throw new Error(`invalid provenance at ${path}`);
+	}
+	const provenance = value as Partial<AdoptProvenance>;
+	if (!['release', 'archive', 'worktree'].includes(provenance.mode ?? '')) {
 		throw new Error(`invalid provenance at ${path}`);
 	}
 	assertCanonicalKeys(provenance, ['mode', 'tag', 'asset'], 'provenance', path);
@@ -201,15 +217,7 @@ export function parseManifest(value: unknown, path: string): AdoptManifest {
 	} else if (provenance.asset !== null) {
 		throw new Error(`development provenance must not claim a Release asset at ${path}`);
 	}
-	if (!Array.isArray(manifest.packages)) throw new Error(`invalid package closure at ${path}`);
-	const packages = parsePackages(manifest.packages.join(','));
-	if (packages.join(',') !== manifest.packages.join(',')) {
-		throw new Error(`manifest packages are not in canonical order at ${path}`);
-	}
-	assertDigest(manifest.exclusionPolicyDigest, `exclusionPolicyDigest in ${path}`);
-	assertDigest(manifest.toolDigest, `toolDigest in ${path}`);
-	assertDigest(manifest.treeHash, `treeHash in ${path}`);
-	return manifest as AdoptManifest;
+	return provenance as AdoptProvenance;
 }
 
 export function pathInside(parent: string, child: string): boolean {

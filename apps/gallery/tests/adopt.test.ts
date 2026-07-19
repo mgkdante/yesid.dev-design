@@ -21,10 +21,21 @@ import {
 	main,
 	parseArgs,
 	treeHash,
+	type AdoptProvenance,
 } from '../../../tools/adopt.js';
 
 const scratch: string[] = [];
 const crashFixture = fileURLToPath(new URL('./fixtures/adopt-crash.ts', import.meta.url));
+const OLD_COMMIT = 'fedcba9876543210fedcba9876543210fedcba98';
+const NEW_COMMIT = '0123456789abcdef0123456789abcdef01234567';
+
+function worktreeProvenance(tag: string, commit: string): AdoptProvenance {
+	return {
+		mode: 'worktree',
+		tag: { name: tag, object: commit, peeledCommit: commit },
+		asset: null,
+	};
+}
 
 function tempDir(): string {
 	const dir = mkdtempSync(join(tmpdir(), 'yesid-adopt-test-'));
@@ -119,7 +130,15 @@ function crashAdoption(
 ): ReturnType<typeof spawnSync> {
 	return spawnSync(
 		'bun',
-		[crashFixture, options.source, options.dest, options.tag, options.commit, point],
+		[
+			crashFixture,
+			options.source,
+			options.dest,
+			options.provenance.tag.name,
+			options.provenance.tag.object,
+			options.provenance.tag.peeledCommit,
+			point,
+		],
 		{ encoding: 'utf8' },
 	);
 }
@@ -138,9 +157,8 @@ describe('adoptFromSource', () => {
 		const result = adoptFromSource({
 			source,
 			dest,
-			tag: 'v9.8.7',
 			packages: ['tokens', 'motion', 'gates', 'ui'],
-			commit: '0123456789abcdef0123456789abcdef01234567',
+			provenance: worktreeProvenance('v9.8.7', NEW_COMMIT),
 		});
 		const { manifest } = result;
 
@@ -217,9 +235,8 @@ describe('adoptFromSource', () => {
 		const options: Parameters<typeof adoptFromSource>[0] = {
 			source,
 			dest,
-			tag: 'v1.0.0',
 			packages: ['tokens'],
-			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 		};
 		adoptFromSource(options);
 
@@ -243,9 +260,8 @@ describe('adoptFromSource', () => {
 		adoptFromSource({
 			source,
 			dest,
-			tag: 'v1.0.0',
 			packages: ['tokens'],
-			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 		});
 
 		const manifestPath = join(dest, 'manifest.json');
@@ -267,9 +283,8 @@ describe('adoptFromSource', () => {
 			adoptFromSource({
 				source,
 				dest: join(root, 'vendor', 'design'),
-				tag: 'v1.0.0',
 				packages: ['ui'],
-				commit: 'fedcba9876543210fedcba9876543210fedcba98',
+				provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 			}),
 		).toThrow(/ui requires motion/);
 	});
@@ -285,9 +300,8 @@ describe('adoptFromSource', () => {
 			adoptFromSource({
 				source,
 				dest,
-				tag: 'v1.0.0',
 				packages: ['tokens'],
-				commit: 'fedcba9876543210fedcba9876543210fedcba98',
+				provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 			}),
 		).toThrow(/refusing to replace a non-adoption destination/);
 		expect(readFileSync(join(dest, 'keep.ts'), 'utf-8')).toBe('product source\n');
@@ -301,9 +315,8 @@ describe('adoptFromSource', () => {
 		const options: Parameters<typeof adoptFromSource>[0] = {
 			source,
 			dest,
-			tag: 'v1.0.0',
 			packages: ['tokens'],
-			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 		};
 		const first = adoptWithRuntime(options);
 		expect(first.outcome).toBe('installed');
@@ -337,9 +350,8 @@ describe('adoptFromSource', () => {
 		const options: Parameters<typeof adoptFromSource>[0] = {
 			source,
 			dest,
-			tag: 'v1.0.0',
 			packages: ['tokens'],
-			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 		};
 		let concurrentError: unknown;
 
@@ -367,9 +379,8 @@ describe('adoptFromSource', () => {
 		const base: Parameters<typeof adoptFromSource>[0] = {
 			source,
 			dest,
-			tag: 'v1.0.0',
 			packages: ['tokens'],
-			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 		};
 		adoptWithRuntime(base);
 		const before = adoptionSnapshot(dest);
@@ -379,8 +390,7 @@ describe('adoptFromSource', () => {
 			adoptWithRuntime(
 				{
 					...base,
-					tag: 'v1.0.1',
-					commit: '0123456789abcdef0123456789abcdef01234567',
+					provenance: worktreeProvenance('v1.0.1', NEW_COMMIT),
 				},
 				(point) => {
 					if (point === faultPoint) throw fault;
@@ -403,9 +413,8 @@ describe('adoptFromSource', () => {
 		const base: Parameters<typeof adoptFromSource>[0] = {
 			source,
 			dest,
-			tag: 'v1.0.0',
 			packages: ['tokens'],
-			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 		};
 		adoptWithRuntime(base);
 		const before = adoptionSnapshot(dest);
@@ -414,8 +423,7 @@ describe('adoptFromSource', () => {
 			adoptWithRuntime(
 				{
 					...base,
-					tag: 'v1.0.1',
-					commit: '0123456789abcdef0123456789abcdef01234567',
+					provenance: worktreeProvenance('v1.0.1', NEW_COMMIT),
 				},
 				(point, paths) => {
 					if (point === 'destination.installed') {
@@ -440,15 +448,13 @@ describe('adoptFromSource', () => {
 			const base: Parameters<typeof adoptFromSource>[0] = {
 				source,
 				dest,
-				tag: 'v1.0.0',
 				packages: ['tokens'],
-				commit: 'fedcba9876543210fedcba9876543210fedcba98',
+				provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 			};
 			adoptWithRuntime(base);
 			const next = {
 				...base,
-				tag: 'v1.0.1',
-				commit: '0123456789abcdef0123456789abcdef01234567',
+				provenance: worktreeProvenance('v1.0.1', NEW_COMMIT),
 			};
 
 			const crashed = crashAdoption(next, crashPoint);
@@ -479,9 +485,8 @@ describe('adoptFromSource', () => {
 		const base: Parameters<typeof adoptFromSource>[0] = {
 			source,
 			dest,
-			tag: 'v1.0.0',
 			packages: ['tokens'],
-			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 		};
 		adoptWithRuntime(base);
 		let thrown: unknown;
@@ -489,8 +494,7 @@ describe('adoptFromSource', () => {
 			adoptWithRuntime(
 				{
 					...base,
-					tag: 'v1.0.1',
-					commit: '0123456789abcdef0123456789abcdef01234567',
+					provenance: worktreeProvenance('v1.0.1', NEW_COMMIT),
 				},
 				(point) => {
 					if (point === 'backup.durable') throw new Error('primary fault');
@@ -527,14 +531,14 @@ describe('schema 2 hashing', () => {
 });
 
 describe('stable CLI exits', () => {
-	function invoke(argv: string[]): { code: number; errors: string[] } {
+	async function invoke(argv: string[]): Promise<{ code: number; errors: string[] }> {
 		const errors: string[] = [];
 		const error = vi.spyOn(console, 'error').mockImplementation((...values: unknown[]) => {
 			errors.push(values.map(String).join(' '));
 		});
 		const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 		try {
-			return { code: main(argv), errors };
+			return { code: await main(argv), errors };
 		} finally {
 			error.mockRestore();
 			log.mockRestore();
@@ -572,8 +576,8 @@ describe('stable CLI exits', () => {
 			ADOPT_EXIT.PRECONDITION,
 			false,
 		],
-	] as const)('maps %s failures without noisy usage text', (_label, argv, expected, hasUsage) => {
-		const result = invoke([...argv]);
+	] as const)('maps %s failures without noisy usage text', async (_label, argv, expected, hasUsage) => {
+		const result = await invoke([...argv]);
 		expect(result.code).toBe(expected);
 		expect(result.errors.some((line) => line.includes('Usage:'))).toBe(hasUsage);
 	});
@@ -599,11 +603,37 @@ describe('parseArgs', () => {
 			dest: 'vendor/design',
 			source: '../yesid.dev-design',
 		});
+		expect(
+			parseArgs([
+				'--tag',
+				'v1.2.3',
+				'--packages',
+				'tokens',
+				'--dest',
+				'vendor/design',
+				'--archive',
+				'./release.tar',
+			]),
+		).toMatchObject({ mode: 'adopt', archive: './release.tar' });
 		expect(parseArgs(['--check', '--dest', 'vendor/design'])).toEqual({
 			mode: 'check',
 			dest: 'vendor/design',
 		});
 		expect(() => parseArgs(['--wat'])).toThrow(/unknown argument/);
+		expect(() =>
+			parseArgs([
+				'--tag',
+				'v1.2.3',
+				'--packages',
+				'tokens',
+				'--dest',
+				'vendor/design',
+				'--source',
+				'../source',
+				'--archive',
+				'./release.tar',
+			]),
+		).toThrow(/mutually exclusive/);
 		expect(() =>
 			parseArgs(['--tag', 'v1.2.3', '--packages', 'tokens,unknown', '--dest', 'vendor/design']),
 		).toThrow(/unknown package/);
