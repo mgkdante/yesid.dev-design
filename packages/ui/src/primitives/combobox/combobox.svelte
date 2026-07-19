@@ -72,6 +72,8 @@
 	import { Combobox } from 'bits-ui';
 	import { cn } from '../../cn/index.js';
 
+	const listboxId = $props.id();
+
 	let {
 		options,
 		value = $bindable(null),
@@ -149,6 +151,7 @@
 			data-slot="combobox-input"
 			class="combobox-input"
 			aria-label={label}
+			aria-controls={listboxId}
 			{placeholder}
 			defaultValue={selectedLabel}
 			oninput={(e) => (search = e.currentTarget.value)}
@@ -180,33 +183,39 @@
 			class="combobox-content"
 			sideOffset={6}
 		>
-			<Combobox.Viewport class="combobox-viewport">
-				{#each filtered as option (option.value)}
-					<Combobox.Item
-						data-slot="combobox-item"
-						class="combobox-item"
-						value={option.value}
-						label={option.label}
-					>
-						{#snippet children({ selected })}
-							{#if option.glyph}
-								<span class="combobox-item-glyph" aria-hidden="true">{option.glyph}</span>
-							{/if}
-							<span class="combobox-item-body">
-								<span class="combobox-item-label">{option.label}</span>
-								{#if option.sublabel}
-									<span class="combobox-item-sub">{option.sublabel}</span>
-								{/if}
-							</span>
-							{#if selected}
-								<span class="combobox-item-check" aria-hidden="true">✓</span>
-							{/if}
-						{/snippet}
-					</Combobox.Item>
-				{:else}
-					<p class="combobox-empty">{emptyLabel}</p>
-				{/each}
-			</Combobox.Viewport>
+			{#snippet child({ props, wrapperProps })}
+				<div {...wrapperProps}>
+					<div {...props} id={listboxId} aria-label={label}>
+						<Combobox.Viewport class="combobox-viewport">
+							{#each filtered as option (option.value)}
+								<Combobox.Item
+									data-slot="combobox-item"
+									class="combobox-item"
+									value={option.value}
+									label={option.label}
+								>
+									{#snippet children({ selected })}
+										{#if option.glyph}
+											<span class="combobox-item-glyph" aria-hidden="true">{option.glyph}</span>
+										{/if}
+										<span class="combobox-item-body">
+											<span class="combobox-item-label">{option.label}</span>
+											{#if option.sublabel}
+												<span class="combobox-item-sub">{option.sublabel}</span>
+											{/if}
+										</span>
+										{#if selected}
+											<span class="combobox-item-check" aria-hidden="true">✓</span>
+										{/if}
+									{/snippet}
+								</Combobox.Item>
+							{:else}
+								<p class="combobox-empty">{emptyLabel}</p>
+							{/each}
+						</Combobox.Viewport>
+					</div>
+				</div>
+			{/snippet}
 		</Combobox.Content>
 	</Combobox.Portal>
 </Combobox.Root>

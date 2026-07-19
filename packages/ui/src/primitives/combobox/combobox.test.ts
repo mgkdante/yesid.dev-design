@@ -20,6 +20,17 @@ describe('Combobox', () => {
 		).toBe(true);
 	});
 
+	it('names the listbox and links it to the input', async () => {
+		render(ComboboxFixture, { props: { options } });
+		const input = screen.getByRole('combobox', { name: 'Choose a product' });
+
+		await fireEvent.pointerDown(screen.getByRole('button', { name: 'Choose a product' }));
+		const listbox = await screen.findByRole('listbox', { name: 'Choose a product' });
+
+		expect(listbox.id).not.toBe('');
+		expect(input.getAttribute('aria-controls')).toBe(listbox.id);
+	});
+
 	it('renders a seeded selection and clears the bound nullable value', async () => {
 		render(ComboboxFixture, { props: { options, value: 'beta' } });
 
