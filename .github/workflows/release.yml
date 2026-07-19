@@ -1,0 +1,202 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing annotated release tag (vX.Y.Z or prerelease)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+
+      - name: Check canonical immutable-release preconditions
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REPOSITORY" != "mgkdante/yesid.dev-design" ]]; then
+            echo "::error::releases are restricted to mgkdante/yesid.dev-design"
+            exit 1
+          fi
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::invalid release tag: $RELEASE_TAG"
+            exit 1
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" \
+            | jq -e '.enabled == true' >/dev/null
+          git fetch --no-tags origin \
+            refs/heads/main:refs/remotes/origin/main
+          git rev-parse --verify "refs/remotes/origin/main^{commit}" >/dev/null
+          git rev-parse --verify "refs/tags/${RELEASE_TAG}^{tag}" >/dev/null
+          release_version="${RELEASE_TAG#v}"
+          bun run release:check -- --version "$release_version" --tag "$RELEASE_TAG"
+
+      - name: Detect exact-tag release state
+        id: release-state
+        run: |
+          set -euo pipefail
+          release_json="$RUNNER_TEMP/existing-release.json"
+          release_error="$RUNNER_TEMP/existing-release.error"
+          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
+            >"$release_json" 2>"$release_error"; then
+            if jq -e '.draft == true' "$release_json" >/dev/null; then
+              echo "::error::existing draft release $RELEASE_TAG will not be mutated by a rerun. Inspect and delete only that draft, then rerun the original tag-push workflow."
+              exit 1
+            fi
+            if ! jq -e '.draft == false and .immutable == true' "$release_json" >/dev/null; then
+              echo "::error::existing release $RELEASE_TAG is not a published immutable release"
+              exit 1
+            fi
+            echo "exists=true" >>"$GITHUB_OUTPUT"
+          elif grep -q 'HTTP 404' "$release_error"; then
+            if [[ "$GITHUB_EVENT_NAME" != "push" ]]; then
+              echo "::error::workflow_dispatch verifies an existing exact-tag release only"
+              exit 1
+            fi
+            echo "exists=false" >>"$GITHUB_OUTPUT"
+          else
+            cat "$release_error" >&2
+            exit 1
+          fi
+
+      - name: Build canonical archive
+        if: steps.release-state.outputs.exists == 'false'
+        run: |
+          set -euo pipefail
+          release_archive="$RUNNER_TEMP/yesid.dev-design-${RELEASE_TAG}.tar"
+          bun tools/release-archive.ts build \
+            --tag "$RELEASE_TAG" \
+            --output "$release_archive" \
+            >"$RUNNER_TEMP/built-archive-evidence.json"
+
+      - name: Create draft release
+        if: steps.release-state.outputs.exists == 'false'
+        run: |
+          set -euo pipefail
+          release_options=(
+            --draft
+            --verify-tag
+            --title "$RELEASE_TAG"
+            --notes "Canonical immutable release ${RELEASE_TAG}."
+          )
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            release_options+=(--prerelease)
+          fi
+          gh release create "$RELEASE_TAG" "${release_options[@]}"
+
+      - name: Attach canonical archive
+        if: steps.release-state.outputs.exists == 'false'
+        run: |
+          set -euo pipefail
+          release_archive="$RUNNER_TEMP/yesid.dev-design-${RELEASE_TAG}.tar"
+          gh release upload "$RELEASE_TAG" "$release_archive"
+
+      - name: Validate draft asset bytes
+        if: steps.release-state.outputs.exists == 'false'
+        run: |
+          set -euo pipefail
+          asset_name="yesid.dev-design-${RELEASE_TAG}.tar"
+          draft_json="$RUNNER_TEMP/draft-release.json"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" >"$draft_json"
+          jq -e --arg tag "$RELEASE_TAG" --arg asset "$asset_name" '
+            .tag_name == $tag and
+            .draft == true and
+            .immutable == false and
+            (.assets | length) == 1 and
+            ([.assets[] | select(.name == $asset)] | length) == 1 and
+            ([.assets[] | select(.name == $asset)][0].state == "uploaded") and
+            ([.assets[] | select(.name == $asset)][0].size > 0) and
+            ([.assets[] | select(.name == $asset)][0].digest | test("^sha256:[0-9a-f]{64}$"))
+          ' "$draft_json" >/dev/null
+          draft_size="$(jq -r --arg asset "$asset_name" \
+            '[.assets[] | select(.name == $asset)][0].size' "$draft_json")"
+          draft_digest="$(jq -r --arg asset "$asset_name" \
+            '[.assets[] | select(.name == $asset)][0].digest' "$draft_json")"
+          test "$(jq -r '.size' "$RUNNER_TEMP/built-archive-evidence.json")" = "$draft_size"
+          test "$(jq -r '.digest' "$RUNNER_TEMP/built-archive-evidence.json")" = "$draft_digest"
+
+      - name: Publish immutable release
+        if: steps.release-state.outputs.exists == 'false'
+        run: gh release edit "$RELEASE_TAG" --draft=false
+
+      - name: Verify published release, attestation, tag, digest, and archive
+        run: |
+          set -euo pipefail
+          asset_name="yesid.dev-design-${RELEASE_TAG}.tar"
+          release_json="$RUNNER_TEMP/published-release.json"
+          verification_root="$RUNNER_TEMP/release-verification"
+          downloaded_asset="$verification_root/$asset_name"
+          mkdir -p "$verification_root"
+
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" >"$release_json"
+          jq -e --arg tag "$RELEASE_TAG" --arg asset "$asset_name" '
+            .tag_name == $tag and
+            .draft == false and
+            .immutable == true and
+            (.assets | length) == 1 and
+            ([.assets[] | select(.name == $asset)] | length) == 1 and
+            ([.assets[] | select(.name == $asset)][0].state == "uploaded") and
+            ([.assets[] | select(.name == $asset)][0].size > 0) and
+            ([.assets[] | select(.name == $asset)][0].digest | test("^sha256:[0-9a-f]{64}$"))
+          ' "$release_json" >/dev/null
+
+          gh release download "$RELEASE_TAG" \
+            --pattern "$asset_name" \
+            --dir "$verification_root"
+          bun tools/release-archive.ts verify \
+            --tag "$RELEASE_TAG" \
+            --archive "$downloaded_asset" \
+            >"$RUNNER_TEMP/archive-evidence.json"
+
+          expected_size="$(jq -r --arg asset "$asset_name" \
+            '[.assets[] | select(.name == $asset)][0].size' "$release_json")"
+          expected_digest="$(jq -r --arg asset "$asset_name" \
+            '[.assets[] | select(.name == $asset)][0].digest' "$release_json")"
+          actual_size="$(jq -r '.size' "$RUNNER_TEMP/archive-evidence.json")"
+          actual_digest="$(jq -r '.digest' "$RUNNER_TEMP/archive-evidence.json")"
+          test "$actual_size" = "$expected_size"
+          test "$actual_digest" = "$expected_digest"
+
+          remote_tag_object="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" \
+            --jq 'select(.object.type == "tag") | .object.sha')"
+          gh api "repos/${GITHUB_REPOSITORY}/git/tags/${remote_tag_object}" \
+            >"$RUNNER_TEMP/remote-tag.json"
+          remote_peeled_commit="$(jq -er --arg tag "$RELEASE_TAG" \
+            'select(.tag == $tag and .object.type == "commit") | .object.sha' \
+            "$RUNNER_TEMP/remote-tag.json")"
+          test "$(jq -r '.tag.object' "$RUNNER_TEMP/archive-evidence.json")" = "$remote_tag_object"
+          test "$(jq -r '.tag.peeledCommit' "$RUNNER_TEMP/archive-evidence.json")" = "$remote_peeled_commit"
+
+          attestation_verified=false
+          for attempt in {1..12}; do
+            if gh release verify "$RELEASE_TAG" && \
+              gh release verify-asset "$RELEASE_TAG" "$downloaded_asset"; then
+              attestation_verified=true
+              break
+            fi
+            if [[ "$attempt" -lt 12 ]]; then sleep 5; fi
+          done
+          test "$attestation_verified" = true
