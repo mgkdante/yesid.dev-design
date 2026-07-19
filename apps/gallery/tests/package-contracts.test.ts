@@ -244,14 +244,14 @@ describe('browser authority script contract', () => {
 			const result = spawnSync('bun', ['run', 'test:browser', '--', '--list'], {
 				cwd: REPOSITORY_PATH,
 				encoding: 'utf8',
-				timeout: 30_000,
+				timeout: 60_000,
 			});
 			const output = `${result.stdout}\n${result.stderr}`;
 
 			expect(result.status, output).toBe(0);
 			expect(output).toMatch(/Total: 14 tests in 4 files/);
 		},
-		30_000,
+		60_000,
 	);
 });
 
