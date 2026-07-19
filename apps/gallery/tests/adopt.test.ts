@@ -1,19 +1,23 @@
+import { spawnSync } from 'node:child_process';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
+	readdirSync,
 	rmSync,
 	statSync,
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { adoptFromSource, checkAdoption, parseArgs, treeHash } from '../../../tools/adopt.js';
 
 const scratch: string[] = [];
+const crashFixture = fileURLToPath(new URL('./fixtures/adopt-crash.ts', import.meta.url));
 
 function tempDir(): string {
 	const dir = mkdtempSync(join(tmpdir(), 'yesid-adopt-test-'));
@@ -100,6 +104,17 @@ function adoptionSnapshot(dest: string): { manifest: string; tree: string } {
 		manifest: readFileSync(join(dest, 'manifest.json'), 'utf8'),
 		tree: treeHash(dest),
 	};
+}
+
+function crashAdoption(
+	options: Parameters<typeof adoptFromSource>[0],
+	point: Checkpoint,
+): ReturnType<typeof spawnSync> {
+	return spawnSync(
+		'bun',
+		[crashFixture, options.source, options.dest, options.tag, options.commit, point],
+		{ encoding: 'utf8' },
+	);
 }
 
 afterEach(() => {
@@ -397,6 +412,89 @@ describe('adoptFromSource', () => {
 			),
 		).toThrow(/adoption transaction failed/i);
 		expect(adoptionSnapshot(dest)).toEqual(before);
+	});
+
+	it.each([
+		['backup.durable', 'installed'],
+		['destination.installed', 'noop'],
+	] as const)(
+		'recovers within one second after process death at %s',
+		(crashPoint, expectedOutcome) => {
+			const root = tempDir();
+			const source = join(root, 'source');
+			const dest = join(root, 'vendor', 'design');
+			makeSource(source);
+			const base: Parameters<typeof adoptFromSource>[0] = {
+				source,
+				dest,
+				tag: 'v1.0.0',
+				packages: ['tokens'],
+				commit: 'fedcba9876543210fedcba9876543210fedcba98',
+			};
+			adoptWithRuntime(base);
+			const next = {
+				...base,
+				tag: 'v1.0.1',
+				commit: '0123456789abcdef0123456789abcdef01234567',
+			};
+
+			const crashed = crashAdoption(next, crashPoint);
+			expect(crashed.status, crashed.stderr).toBe(97);
+			const parent = dirname(dest);
+			const prefix = `.${basename(dest)}.yesid-adopt`;
+			expect(existsSync(join(parent, `${prefix}.lock`))).toBe(true);
+			expect(existsSync(join(parent, `${prefix}.backup`))).toBe(true);
+
+			const started = performance.now();
+			const recovered = adoptWithRuntime(next);
+			const recoveryMs = performance.now() - started;
+
+			expect(recovered.outcome).toBe(expectedOutcome);
+			expect(recoveryMs).toBeLessThan(1_000);
+			expect(checkAdoption(dest)).toEqual(recovered.manifest);
+			expect(existsSync(join(parent, `${prefix}.lock`))).toBe(false);
+			expect(existsSync(join(parent, `${prefix}.backup`))).toBe(false);
+			expect(readdirSync(parent).filter((entry) => entry.startsWith(`${prefix}.stage-`))).toEqual([]);
+		},
+	);
+
+	it('returns recovery-required and preserves the durable backup when rollback fails', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		const base: Parameters<typeof adoptFromSource>[0] = {
+			source,
+			dest,
+			tag: 'v1.0.0',
+			packages: ['tokens'],
+			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+		};
+		adoptWithRuntime(base);
+		let thrown: unknown;
+		try {
+			adoptWithRuntime(
+				{
+					...base,
+					tag: 'v1.0.1',
+					commit: '0123456789abcdef0123456789abcdef01234567',
+				},
+				(point) => {
+					if (point === 'backup.durable') throw new Error('primary fault');
+					if (point === 'rollback.started') throw new Error('rollback fault');
+				},
+			);
+		} catch (error) {
+			thrown = error;
+		}
+		const backup = join(dirname(dest), `.${basename(dest)}.yesid-adopt.backup`);
+		expect(thrown).toMatchObject({ code: 7 });
+		expect(existsSync(backup)).toBe(true);
+		expect(existsSync(dest)).toBe(false);
+
+		const recovered = adoptWithRuntime(base);
+		expect(recovered.outcome).toBe('noop');
+		expect(existsSync(backup)).toBe(false);
 	});
 });
 
