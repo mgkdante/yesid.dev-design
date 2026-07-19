@@ -107,6 +107,19 @@ describe('API report approval', () => {
 		).toThrow('API report changes require a new release fragment for: @yesid/ui');
 	});
 
+	it('does not let a fragment for another package authorize the changed report', () => {
+		expect(() =>
+			authorizeApiChanges({
+				baseReports: BASE_REPORTS,
+				currentReports: { ...BASE_REPORTS, '@yesid/ui': 'ui-v2' },
+				baseFragments: {},
+				currentFragments: {
+					'.changes/wrong-package.md': fragment({ '@yesid/motion': 'patch' }),
+				},
+			}),
+		).toThrow('API report changes require a new release fragment for: @yesid/ui');
+	});
+
 	it('treats first report creation as the one-time approved baseline', () => {
 		expect(
 			authorizeApiChanges({
