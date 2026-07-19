@@ -29,8 +29,9 @@ describe('StickyPanel yesid.dev wrapper parity', () => {
 		expect(panel?.classList).toContain('panel');
 		expect(panel?.classList).toContain('scrollbar-hidden');
 		expect(panel?.classList).toContain('yesid-sticky-panel');
-		expect(panel?.getAttribute('style')).toContain('top: 4rem');
-		expect(panel?.hasAttribute('data-lenis-prevent')).toBe(true);
+			expect(panel?.getAttribute('style')).toContain('top: 4rem');
+			expect(panel?.getAttribute('tabindex')).toBe('0');
+			expect(panel?.hasAttribute('data-lenis-prevent')).toBe(true);
 			expect(panel?.textContent).toContain('Sidebar');
 		});
 
