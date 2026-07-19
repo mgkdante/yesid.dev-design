@@ -59,11 +59,21 @@ export function walkFiles(root: string, out: string[] = []): string[] {
 
 function digestFiles(root: string, files: readonly string[]): string {
 	const hash = createHash('sha256');
-	for (const path of files) {
-		hash.update(normalizedRelative(root, path));
-		hash.update('\0');
-		hash.update(readFileSync(path));
-		hash.update('\0');
+	const ordered = [...files].sort((a, b) =>
+		Buffer.compare(Buffer.from(normalizedRelative(root, a)), Buffer.from(normalizedRelative(root, b))),
+	);
+	const length = (size: number): Buffer => {
+		const buffer = Buffer.allocUnsafe(8);
+		buffer.writeBigUInt64BE(BigInt(size));
+		return buffer;
+	};
+	for (const path of ordered) {
+		const relativePath = Buffer.from(normalizedRelative(root, path));
+		const content = readFileSync(path);
+		hash.update(length(relativePath.byteLength));
+		hash.update(relativePath);
+		hash.update(length(content.byteLength));
+		hash.update(content);
 	}
 	return `sha256:${hash.digest('hex')}`;
 }
@@ -124,12 +134,24 @@ function assertDigest(value: unknown, field: string): asserts value is string {
 	if (typeof value !== 'string' || !SHA256.test(value)) throw new Error(`invalid ${field}`);
 }
 
+function assertCanonicalKeys(
+	value: object,
+	expected: readonly string[],
+	label: string,
+	path: string,
+): void {
+	const actual = Object.keys(value).sort();
+	const canonical = [...expected].sort();
+	if (JSON.stringify(actual) !== JSON.stringify(canonical)) {
+		throw new Error(`manifest ${label} keys are not canonical at ${path}`);
+	}
+}
+
 export function parseManifest(value: unknown, path: string): AdoptManifest {
 	if (!value || typeof value !== 'object' || Array.isArray(value)) {
 		throw new Error(`invalid manifest at ${path}`);
 	}
 	const manifest = value as Partial<AdoptManifest>;
-	const keys = Object.keys(manifest);
 	const expectedKeys = [
 		'schema',
 		'repository',
@@ -139,9 +161,7 @@ export function parseManifest(value: unknown, path: string): AdoptManifest {
 		'toolDigest',
 		'treeHash',
 	];
-	if (JSON.stringify(keys) !== JSON.stringify(expectedKeys)) {
-		throw new Error(`manifest keys are not canonical at ${path}`);
-	}
+	assertCanonicalKeys(manifest, expectedKeys, 'top-level', path);
 	if (manifest.schema !== MANIFEST_SCHEMA || manifest.repository !== REPOSITORY_ID) {
 		throw new Error(`invalid manifest identity at ${path}`);
 	}
@@ -149,6 +169,11 @@ export function parseManifest(value: unknown, path: string): AdoptManifest {
 	if (!provenance || !['release', 'archive', 'worktree'].includes(provenance.mode)) {
 		throw new Error(`invalid provenance at ${path}`);
 	}
+	assertCanonicalKeys(provenance, ['mode', 'tag', 'asset'], 'provenance', path);
+	if (!provenance.tag || typeof provenance.tag !== 'object') {
+		throw new Error(`invalid tag provenance at ${path}`);
+	}
+	assertCanonicalKeys(provenance.tag, ['name', 'object', 'peeledCommit'], 'tag', path);
 	assertTag(provenance.tag?.name ?? '');
 	assertCommit(provenance.tag?.object ?? '');
 	assertCommit(provenance.tag?.peeledCommit ?? '');
@@ -156,7 +181,16 @@ export function parseManifest(value: unknown, path: string): AdoptManifest {
 		if (!provenance.asset || typeof provenance.asset.name !== 'string') {
 			throw new Error(`release manifest has no asset at ${path}`);
 		}
-		if (!Number.isSafeInteger(provenance.asset.size) || provenance.asset.size < 0) {
+		assertCanonicalKeys(provenance.asset, ['name', 'size', 'digest'], 'asset', path);
+		if (
+			provenance.asset.name.length === 0 ||
+			provenance.asset.name === '.' ||
+			provenance.asset.name === '..' ||
+			/[\\/\0]/.test(provenance.asset.name)
+		) {
+			throw new Error(`unsafe release asset name at ${path}`);
+		}
+		if (!Number.isSafeInteger(provenance.asset.size) || provenance.asset.size <= 0) {
 			throw new Error(`invalid release asset size at ${path}`);
 		}
 		assertDigest(provenance.asset.digest, `release asset digest in ${path}`);
