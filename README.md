@@ -90,10 +90,12 @@ bun run setup:hooks         # enable .githooks (generated-files guard)
 
 ## Distribution
 
-Consumers vendor exact public GitHub tags. Copy [`tools/adopt.ts`](tools/adopt.ts),
-run it with `--tag vX.Y.Z`, and commit the resulting package snapshot and
-`manifest.json`. Git dependencies cannot select workspace subpackages, and npm
-publication remains an optional later layer. The full decision is in
+Consumers vendor exact immutable GitHub Release assets. Run the complete
+[`tools/adopt.ts`](tools/adopt.ts) bundle (`tools/adopt.ts` plus `tools/adopt/`)
+with `--tag vX.Y.Z`, then commit the package snapshot, self-vendored adoption
+tool, and schema-2 `manifest.json`. `--check` verifies the tool, exclusion policy,
+and full payload offline. Git dependencies cannot select workspace subpackages,
+and npm publication remains an optional later layer. The full decision is in
 [`DECISIONS.md`](DECISIONS.md).
 
 For a new product, follow [`docs/BUILD-A-YESID-PRODUCT.md`](docs/BUILD-A-YESID-PRODUCT.md).
