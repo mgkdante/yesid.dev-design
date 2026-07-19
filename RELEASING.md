@@ -92,16 +92,17 @@ requires an annotated tag, a clean tagged tree, and a peeled commit contained in
 `origin/main`. A lightweight tag, mismatched version, or off-main commit fails
 closed.
 
-After a tag is pushed, it is immutable even if publication fails. Fixes use a
-new version and tag; force-push is never a recovery mechanism.
+Repository policy treats a pushed release tag as write-once even if publication
+fails: fixes use a new version and tag, and force-push is never a recovery
+mechanism. Platform-enforced immutability begins only after the Release is
+published successfully.
 
-## 3. Publish through the release workflow
+## 3. Publish from the tag-push workflow
 
-Dispatch `.github/workflows/release.yml` with the exact `tag` input:
-
-```sh
-gh workflow run release.yml -f tag="$TAG"
-```
+The tag push automatically starts `.github/workflows/release.yml` through its
+`push.tags: v*` trigger. Do not manually dispatch first publication and do not
+push the tag again. `workflow_dispatch` is verification-only: it accepts an
+exact `tag` input after publication and rejects a missing Release.
 
 The workflow builds the archive outside the repository:
 
@@ -125,8 +126,12 @@ commit. The build refuses symlinks, dirty input, unsafe paths, a non-canonical
 output name, output inside the repository, and overwrite of an existing file.
 
 For a new tag, the workflow creates a draft, uploads exactly the canonical
-asset, validates the asset metadata and digest, and only then publishes the
-immutable Release. A failed run is not authority to edit a published object.
+asset, validates its uploaded state, size, and digest against the locally built
+archive, and only then publishes the immutable Release. If that first run leaves
+an existing draft, every rerun refuses to mutate it. Inspect the failure, delete
+only that draft, and rerun the original tag-push workflow. Manual dispatch does
+not resume first publication. A failed run is never authority to edit a
+published object.
 
 ## 4. Verify publication and reruns
 
@@ -138,12 +143,14 @@ bun tools/release-archive.ts verify \
   --archive "$DOWNLOADED_ASSET"
 ```
 
-Verification recomputes the digest and archive contract and cross-checks the
-embedded receipt, annotated tag object, peeled commit, version, and main
-ancestry. A rerun verifies the existing published Release; it does not create,
-upload, edit, or publish anything. The rerun must confirm immutable status,
-exactly one canonical asset, unchanged asset metadata/digest, and the complete
-archive attestation. Any mismatch fails closed.
+Verification deterministically rebuilds the exact tagged tree and requires the
+result to match the downloaded asset byte-for-byte. It also recomputes the
+digest and cross-checks the archive contract, embedded receipt, annotated tag
+object, peeled commit, version, and main ancestry. A rerun verifies the existing
+published Release; it does not create, upload, edit, or publish anything. The
+rerun must confirm immutable status, exactly one canonical asset, unchanged
+asset metadata/digest, and the complete archive attestation. Any mismatch fails
+closed.
 
 Trigger one exact-tag rerun after first publication:
 

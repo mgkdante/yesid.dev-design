@@ -51,6 +51,11 @@ describe('repository governance contract', () => {
 		expect(releasing).toContain('yesid.dev-design-${tag}.tar');
 		expect(releasing).toContain('.yesid-release.json');
 		expect(releasing).toContain('Do not move, replace, delete, or recreate a published tag');
+		expect(releasing).toContain('The tag push automatically starts');
+		expect(releasing).toContain('workflow_dispatch` is verification-only');
+		expect(releasing).toContain('Platform-enforced immutability begins only after');
+		expect(releasing).toContain('byte-for-byte');
+		expect(releasing).toMatch(/delete\s+only that draft/u);
 		expect(releasing).toContain('A rerun verifies');
 		expect(releasing).toContain('digest');
 	});
