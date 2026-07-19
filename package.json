@@ -28,12 +28,12 @@
 		"setup:hooks": "git config core.hooksPath .githooks"
 	},
 	"devDependencies": {
-		"@google/design.md": "0.1.1",
+		"@google/design.md": "0.3.0",
 		"@microsoft/api-extractor": "7.58.11",
-		"@types/node": "^22.0.0",
+		"@types/node": "^26.1.1",
 		"svelte2tsx": "0.7.58",
 		"turbo": "^2.5.0",
-		"typescript": "^5.9.3"
+		"typescript": "^7.0.2"
 	},
 	"patchedDependencies": {
 		"bits-ui@2.18.1": "patches/bits-ui@2.18.1.patch"

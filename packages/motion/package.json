@@ -63,10 +63,10 @@
     "svelte": "^5.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.1.1",
     "happy-dom": "^20.8.9",
     "svelte": "^5.54.0",
-    "typescript": "^5.5.0",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.0"
   }
 }
