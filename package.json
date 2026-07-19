@@ -16,6 +16,8 @@
 		"api:report": "bun tools/api-authority.ts report",
 		"build": "bun run tokens:build && turbo run build",
 		"test": "turbo run test",
+		"test:browser": "bun --cwd apps/gallery run test:browser",
+		"browser:install": "bun --cwd apps/gallery run browser:install",
 		"check": "bun run api:check && tsc --project tsconfig.tools.json && turbo run check",
 		"dev": "turbo run dev",
 		"tokens:build": "bun tools/build-tokens.ts",
