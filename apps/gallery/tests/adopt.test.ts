@@ -113,14 +113,16 @@ describe('adoptFromSource', () => {
 		const dest = join(root, 'product', 'vendor', 'design');
 		makeSource(source);
 
-		const manifest = adoptFromSource({
+		const result = adoptFromSource({
 			source,
 			dest,
 			tag: 'v9.8.7',
 			packages: ['tokens', 'motion', 'gates', 'ui'],
 			commit: '0123456789abcdef0123456789abcdef01234567',
 		});
+		const { manifest } = result;
 
+		expect(result.outcome).toBe('installed');
 		expect(Object.keys(manifest)).toEqual([
 			'schema',
 			'repository',

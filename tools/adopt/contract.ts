@@ -85,6 +85,10 @@ export function treeHash(root: string): string {
 	);
 }
 
+export function fullTreeHash(root: string): string {
+	return digestFiles(root, walkFiles(root));
+}
+
 export function toolDigest(root: string): string {
 	const files = walkFiles(join(root, 'tools')).filter((path) => {
 		const rel = normalizedRelative(root, path);

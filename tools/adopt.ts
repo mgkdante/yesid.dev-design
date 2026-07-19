@@ -9,7 +9,6 @@ import {
 	mkdtempSync,
 	readFileSync,
 	readdirSync,
-	renameSync,
 	rmSync,
 	writeFileSync,
 } from 'node:fs';
@@ -33,6 +32,13 @@ import {
 	type AdoptManifest,
 	type PackageName,
 } from './adopt/contract.js';
+import {
+	ADOPT_EXIT,
+	AdoptError,
+	installAdoption,
+	type AdoptResult,
+	type AdoptRuntime,
+} from './adopt/transaction.js';
 
 export {
 	MANIFEST_SCHEMA,
@@ -41,15 +47,25 @@ export {
 	type AdoptManifest,
 	type PackageName,
 } from './adopt/contract.js';
+export {
+	ADOPT_EXIT,
+	AdoptError,
+	type AdoptCheckpoint,
+	type AdoptExitCode,
+	type AdoptResult,
+	type AdoptRuntime,
+	type AdoptTransactionPaths,
+} from './adopt/transaction.js';
 
 export const DESIGN_REPO_URL = 'https://github.com/mgkdante/yesid.dev-design';
 
-interface AdoptFromSourceOptions {
+export interface AdoptFromSourceOptions {
 	source: string;
 	dest: string;
 	tag: string;
 	packages: PackageName[];
 	commit: string;
+	runtime?: AdoptRuntime;
 }
 
 export type ParsedArgs =
@@ -69,6 +85,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
 	let help = false;
 	for (let index = 0; index < argv.length; index++) {
 		const arg = argv[index];
+		if (!arg) throw new Error('empty argument');
 		if (arg === '--check') {
 			if (check) throw new Error('duplicate argument --check');
 			check = true;
@@ -237,20 +254,7 @@ function rewriteInternalWorkspaceDependencies(packageRoot: string): void {
 	if (rewritten !== source) writeFileSync(packageJsonPath, rewritten, 'utf-8');
 }
 
-function installStagedDestination(stage: string, dest: string, tempRoot: string): void {
-	const backup = join(tempRoot, 'previous');
-	const hadPrevious = existsSync(dest);
-	if (hadPrevious) renameSync(dest, backup);
-	try {
-		renameSync(stage, dest);
-	} catch (error) {
-		if (hadPrevious && existsSync(backup)) renameSync(backup, dest);
-		throw error;
-	}
-	if (hadPrevious) rmSync(backup, { recursive: true, force: true });
-}
-
-export function adoptFromSource(options: AdoptFromSourceOptions): AdoptManifest {
+export function adoptFromSource(options: AdoptFromSourceOptions): AdoptResult {
 	const source = resolve(options.source);
 	const dest = resolve(options.dest);
 	assertTag(options.tag);
@@ -261,41 +265,53 @@ export function adoptFromSource(options: AdoptFromSourceOptions): AdoptManifest 
 	const license = join(source, 'LICENSE');
 	if (!existsSync(license)) throw new Error(`LICENSE not found at ${license}`);
 
-	mkdirSync(dirname(dest), { recursive: true });
-	const tempRoot = mkdtempSync(join(dirname(dest), '.yesid-adopt-'));
-	const stage = join(tempRoot, 'design');
-	mkdirSync(stage);
-	try {
-		copyFileSync(license, join(stage, 'LICENSE'));
-		copyToolBundle(source, stage);
-		for (const name of options.packages) {
-			const packageDest = join(stage, name);
-			copyPackage(join(source, 'packages', name), packageDest);
-			rewriteInternalWorkspaceDependencies(packageDest);
-		}
-		const manifest: AdoptManifest = {
-			schema: MANIFEST_SCHEMA,
-			repository: REPOSITORY_ID,
-			provenance: {
-				mode: 'worktree',
-				tag: {
-					name: options.tag,
-					object: options.commit,
-					peeledCommit: options.commit,
-				},
-				asset: null,
+	return installAdoption(
+		{
+			dest,
+			build(stage) {
+				copyFileSync(license, join(stage, 'LICENSE'));
+				copyToolBundle(source, stage);
+				for (const name of options.packages) {
+					const packageDest = join(stage, name);
+					copyPackage(join(source, 'packages', name), packageDest);
+					rewriteInternalWorkspaceDependencies(packageDest);
+				}
+				const manifest: AdoptManifest = {
+					schema: MANIFEST_SCHEMA,
+					repository: REPOSITORY_ID,
+					provenance: {
+						mode: 'worktree',
+						tag: {
+							name: options.tag,
+							object: options.commit,
+							peeledCommit: options.commit,
+						},
+						asset: null,
+					},
+					packages: [...options.packages],
+					exclusionPolicyDigest: exclusionPolicyDigest(),
+					toolDigest: toolDigest(stage),
+					treeHash: treeHash(stage),
+				};
+				writeFileSync(
+					join(stage, 'manifest.json'),
+					`${JSON.stringify(manifest, null, '\t')}\n`,
+					'utf-8',
+				);
+				return manifest;
 			},
-			packages: [...options.packages],
-			exclusionPolicyDigest: exclusionPolicyDigest(),
-			toolDigest: toolDigest(stage),
-			treeHash: treeHash(stage),
-		};
-		writeFileSync(join(stage, 'manifest.json'), `${JSON.stringify(manifest, null, '\t')}\n`, 'utf-8');
-		installStagedDestination(stage, dest, tempRoot);
-		return manifest;
-	} finally {
-		rmSync(tempRoot, { recursive: true, force: true });
-	}
+			inspect: checkAdoption,
+			recognize(path) {
+				try {
+					readManifest(path);
+					return true;
+				} catch {
+					return false;
+				}
+			},
+		},
+		options.runtime,
+	);
 }
 
 function runGit(args: string[], cwd?: string): string {
@@ -313,7 +329,7 @@ function readCommit(source: string): string {
 	return commit;
 }
 
-export function adopt(options: Extract<ParsedArgs, { mode: 'adopt' }>): AdoptManifest {
+export function adopt(options: Extract<ParsedArgs, { mode: 'adopt' }>): AdoptResult {
 	const dest = resolve(options.dest);
 	if (options.source) {
 		const source = resolve(options.source);
@@ -401,7 +417,8 @@ export function main(argv = process.argv.slice(2)): number {
 			);
 			return 0;
 		}
-		const manifest = adopt(args);
+		const result = adopt(args);
+		const { manifest } = result;
 		if (args.source) {
 			console.log('i local --source mode records the current checkout; verify the tag separately before release');
 		}
@@ -409,11 +426,13 @@ export function main(argv = process.argv.slice(2)): number {
 			`✓ adopted @yesid/{${manifest.packages.join(',')}} at ${manifest.provenance.tag.name} (${manifest.provenance.tag.peeledCommit.slice(0, 9)})`,
 		);
 		console.log(`  treeHash ${manifest.treeHash}`);
+		if (result.outcome === 'noop') console.log('= unchanged');
 		return 0;
 	} catch (error) {
 		console.error(`✗ ${error instanceof Error ? error.message : String(error)}`);
+		if (error instanceof AdoptError) return error.code;
 		console.error(usage());
-		return 1;
+		return ADOPT_EXIT.INTERNAL;
 	}
 }
 
