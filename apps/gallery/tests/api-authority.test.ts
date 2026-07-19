@@ -6,8 +6,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
 	authorizeApiChanges,
 	checkApiReports,
+	collectDirectAssetTargets,
 	createApiReports,
 	parseChangeFragment,
+	planDeclarationNamespaces,
 	validatePublicSymbols,
 	writeApiReports,
 	type PublicSymbol,
@@ -138,6 +140,37 @@ describe('public symbol safety', () => {
 });
 
 describe('deterministic package API reports', () => {
+	it('fails closed when distinct targets collapse to one declaration namespace', () => {
+		expect(() => planDeclarationNamespaces(['./src/a-b.ts', './src/a/b.ts'])).toThrow(
+			'Declaration namespace collision AB: ./src/a-b.ts, ./src/a/b.ts',
+		);
+	});
+
+	it('retains every distinct direct asset target and its ordered conditions', () => {
+		expect(
+			collectDirectAssetTargets({
+				'./theme.css': {
+					browser: './theme-browser.css',
+					default: './theme.css',
+					fallback: './theme.css',
+				},
+				'./tokens.json': './tokens.json',
+			}),
+		).toEqual([
+			{
+				subpath: './theme.css',
+				target: './theme-browser.css',
+				conditions: ['browser'],
+			},
+			{
+				subpath: './theme.css',
+				target: './theme.css',
+				conditions: ['default', 'fallback'],
+			},
+			{ subpath: './tokens.json', target: './tokens.json', conditions: ['default'] },
+		]);
+	});
+
 	it('renders every conditioned surface, declaration, and direct public asset', async () => {
 		const first = await createApiReports(REPOSITORY_ROOT);
 
