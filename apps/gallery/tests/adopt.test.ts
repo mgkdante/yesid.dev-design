@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
 	existsSync,
 	mkdirSync,
@@ -14,7 +14,14 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { adoptFromSource, checkAdoption, parseArgs, treeHash } from '../../../tools/adopt.js';
+import {
+	ADOPT_EXIT,
+	adoptFromSource,
+	checkAdoption,
+	main,
+	parseArgs,
+	treeHash,
+} from '../../../tools/adopt.js';
 
 const scratch: string[] = [];
 const crashFixture = fileURLToPath(new URL('./fixtures/adopt-crash.ts', import.meta.url));
@@ -367,7 +374,8 @@ describe('adoptFromSource', () => {
 		adoptWithRuntime(base);
 		const before = adoptionSnapshot(dest);
 
-		expect(() =>
+		let thrown: unknown;
+		try {
 			adoptWithRuntime(
 				{
 					...base,
@@ -377,8 +385,13 @@ describe('adoptFromSource', () => {
 				(point) => {
 					if (point === faultPoint) throw fault;
 				},
-			),
-		).toThrow(/adoption transaction failed/i);
+			);
+		} catch (error) {
+			thrown = error;
+		}
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.TRANSACTION_FAILED });
+		expect(thrown).toBeInstanceOf(Error);
+		expect((thrown as Error).message).toMatch(/adoption transaction failed/i);
 		expect(adoptionSnapshot(dest)).toEqual(before);
 	});
 
@@ -510,6 +523,59 @@ describe('schema 2 hashing', () => {
 		writeFileSync(join(twoFiles, 'c'), '');
 
 		expect(treeHash(oneFile)).not.toBe(treeHash(twoFiles));
+	});
+});
+
+describe('stable CLI exits', () => {
+	function invoke(argv: string[]): { code: number; errors: string[] } {
+		const errors: string[] = [];
+		const error = vi.spyOn(console, 'error').mockImplementation((...values: unknown[]) => {
+			errors.push(values.map(String).join(' '));
+		});
+		const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+		try {
+			return { code: main(argv), errors };
+		} finally {
+			error.mockRestore();
+			log.mockRestore();
+		}
+	}
+
+	it('keeps the public exit-code table stable', () => {
+		expect(ADOPT_EXIT).toEqual({
+			OK: 0,
+			INTERNAL: 1,
+			USAGE: 2,
+			PRECONDITION: 3,
+			LOCKED: 4,
+			CHECK_FAILED: 5,
+			TRANSACTION_FAILED: 6,
+			RECOVERY_REQUIRED: 7,
+		});
+	});
+
+	it.each([
+		['usage', ['--wat'], ADOPT_EXIT.USAGE, true],
+		['check', ['--check', '--dest', 'missing/vendor/design'], ADOPT_EXIT.CHECK_FAILED, false],
+		[
+			'precondition',
+			[
+				'--tag',
+				'v1.0.0',
+				'--packages',
+				'tokens',
+				'--dest',
+				'missing/vendor/design',
+				'--source',
+				'missing/source',
+			],
+			ADOPT_EXIT.PRECONDITION,
+			false,
+		],
+	] as const)('maps %s failures without noisy usage text', (_label, argv, expected, hasUsage) => {
+		const result = invoke([...argv]);
+		expect(result.code).toBe(expected);
+		expect(result.errors.some((line) => line.includes('Usage:'))).toBe(hasUsage);
 	});
 });
 
