@@ -53,6 +53,8 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup
+      - name: Check API reports
+        run: bun run api:check
       - name: Generate token outputs
         run: bun run tokens:build
       - name: Upload Windows token outputs

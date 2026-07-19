@@ -56,6 +56,38 @@ bun run --cwd packages/tokens test
 
 Run the full suite before requesting review.
 
+## Public API changes
+
+The committed reports in `api-reports/` are the review surface for every released package. A change to an export condition, declaration, Svelte prop or binding, or direct public asset is a public API change.
+
+After changing a public surface:
+
+1. Run `bun run api:report`.
+2. Review the report diff. Do not approve a report you cannot explain.
+3. Add a new `.changes/<slug>.md` release fragment that names every changed package and chooses `patch`, `minor`, or `major`.
+4. Run `bun run api:check` and the owning tests.
+
+A fragment has YAML-style front matter followed by a concrete description:
+
+```md
+---
+"@yesid/ui": minor
+"@yesid/motion": patch
+---
+
+Describe the consumer-visible contract change.
+```
+
+CI runs `bun run api:approve` against the pull request's exact base commit. Only a fragment added by the current change can authorize a changed report; an older or malformed fragment cannot be reused. Initial report creation is the one-time baseline exemption.
+
+## Escaped consumer defects
+
+When a defect is first found in a consumer, reproduce it there, then add a neutral upstream regression at the lowest boundary that owns the behavior. Use the package suite for package-local behavior and the Gallery integration or browser suite for cross-package or rendered behavior.
+
+Consumer-named permanent fixtures are rejected. A regression must describe the portable contract, not the product that happened to expose it. Keep the consumer reproduction only as temporary diagnostic evidence unless it protects a separate consumer-owned behavior.
+
+Fix the defect upstream and prove the neutral regression passes. If the fix changes a public surface, update the API report and add the release fragment in the same pull request. Release an immutable tag, then move the consumer's exact pin in its own deliberate bump. A consumer patch is never a substitute for the upstream fix.
+
 ## Pull request expectations
 
 - Keep the pull request small enough to review directly.
