@@ -17,6 +17,23 @@ describe('browser accessibility authority', () => {
 		);
 	});
 
+	it('emits full-page candidates without enabling snapshot updates', () => {
+		const config = readFileSync(new URL('../playwright.config.ts', import.meta.url), 'utf8');
+		const visualSpec = readFileSync(
+			new URL('./browser/gallery.visual.spec.ts', import.meta.url),
+			'utf8',
+		);
+
+		expect(config).toContain("updateSnapshots: 'none'");
+		expect(visualSpec).toContain('testInfo.snapshotPath(screenshotName)');
+		expect(visualSpec).toContain('testInfo.outputPath(`gallery-${theme}-candidate.png`)');
+		expect(visualSpec).toContain('await page.screenshot({');
+		expect(visualSpec).toContain("animations: 'disabled'");
+		expect(visualSpec).toContain("caret: 'hide'");
+		expect(visualSpec).toContain('fullPage: true');
+		expect(visualSpec).toContain("scale: 'css'");
+	});
+
 	it('blocks serious and critical violations without hiding lower-impact evidence', () => {
 		const violations = [
 			{ id: 'minor-rule', impact: 'minor' },
