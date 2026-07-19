@@ -53,8 +53,19 @@ export interface PublicSymbol {
 	releaseTag: string | undefined;
 }
 
-type ConditionalExport = Readonly<Record<string, string>>;
-type PackageExport = string | ConditionalExport;
+export type ConditionalExport = Readonly<Record<string, string>>;
+export type PackageExport = string | ConditionalExport;
+
+export interface DeclarationNamespace {
+	name: string;
+	target: string;
+}
+
+export interface DirectAssetTarget {
+	subpath: string;
+	target: string;
+	conditions: string[];
+}
 
 interface ReleasedPackage {
 	name: ReleasedPackageName;
@@ -119,7 +130,42 @@ function surfaceName(target: string): string {
 		.split(/[^A-Za-z0-9]+/u)
 		.filter(Boolean);
 	const name = parts.map((part) => `${part[0]?.toUpperCase()}${part.slice(1)}`).join('');
-	return name || 'Root';
+	if (!name) return 'Root';
+	return /^\d/u.test(name) ? `Surface${name}` : name;
+}
+
+export function planDeclarationNamespaces(targets: readonly string[]): DeclarationNamespace[] {
+	const planned = targets.map((target) => ({ name: surfaceName(target), target }));
+	const byName = new Map<string, string[]>();
+	for (const { name, target } of planned) {
+		const collisions = byName.get(name) ?? [];
+		collisions.push(target);
+		byName.set(name, collisions);
+	}
+	for (const [name, collisions] of byName) {
+		if (collisions.length > 1) {
+			throw new Error(`Declaration namespace collision ${name}: ${collisions.join(', ')}`);
+		}
+	}
+	return planned;
+}
+
+export function collectDirectAssetTargets(
+	exports: Readonly<Record<string, PackageExport>>,
+): DirectAssetTarget[] {
+	const assets: DirectAssetTarget[] = [];
+	for (const [subpath, value] of Object.entries(exports)) {
+		const conditions = typeof value === 'string' ? [['default', value] as const] : Object.entries(value);
+		for (const [condition, target] of conditions) {
+			if (!DIRECT_ASSET.test(target)) continue;
+			const existing = assets.find(
+				(candidate) => candidate.subpath === subpath && candidate.target === target,
+			);
+			if (existing) existing.conditions.push(condition);
+			else assets.push({ subpath, target, conditions: [condition] });
+		}
+	}
+	return assets;
 }
 
 function formatDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
@@ -324,7 +370,7 @@ async function createPackageReport(
 
 	const declarationSections: string[] = ['## Declaration namespaces', ''];
 	const syntheticExports: string[] = [];
-	for (const target of targets) {
+	for (const { name: namespace, target } of planDeclarationNamespaces(targets)) {
 		const entrypoint = declarationPath(packageOutput, target);
 		if (!existsSync(entrypoint)) {
 			throw new Error(`${config.name} export target ${target} did not emit ${entrypoint}`);
@@ -335,7 +381,6 @@ async function createPackageReport(
 				exportedSymbols(config.name, subpath, entrypoint, join(packageOutput, 'tsconfig.json')),
 			);
 		}
-		const namespace = surfaceName(target);
 		const declarationRelative = `./${target
 			.replace(/^\.\//u, '')
 			.replace(/\.ts$/u, '.js')}`;
@@ -352,15 +397,10 @@ async function createPackageReport(
 		'',
 	);
 
-	const assets = Object.entries(exports).filter(([, value]) =>
-		exportTargets(value).some((target) => DIRECT_ASSET.test(target)),
-	);
 	const assetSection = ['## Direct public assets', ''];
-	for (const [subpath, value] of assets) {
-		const target = exportTargets(value)[0];
-		if (!target) continue;
+	for (const { subpath, target, conditions } of collectDirectAssetTargets(exports)) {
 		assetSection.push(
-			`- \`${subpath}\` — direct asset, sha256 \`${sha256(resolve(sourcePackage, target))}\``,
+			`- \`${subpath}\` — direct asset \`${target}\` (${conditions.map((condition) => `\`${condition}\``).join(', ')}), sha256 \`${sha256(resolve(sourcePackage, target))}\``,
 		);
 	}
 	assetSection.push('');

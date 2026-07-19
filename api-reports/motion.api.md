@@ -59,7 +59,7 @@
 
 ## Direct public assets
 
-- `./tap-feedback.css` — direct asset, sha256 `5501446ba351c14ba6c6220f3fe8623aa66b48f3130bd28e3c523796da3e9652`
+- `./tap-feedback.css` — direct asset `./tap-feedback.css` (`default`), sha256 `5501446ba351c14ba6c6220f3fe8623aa66b48f3130bd28e3c523796da3e9652`
 
 ## Declaration namespaces
 
