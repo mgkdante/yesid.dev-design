@@ -8,6 +8,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
 	checkPreparedRelease,
@@ -17,9 +18,11 @@ import {
 	parseReleaseTag,
 	prepareRelease,
 } from '../../../tools/release-core.js';
+import { runReleaseCommand } from '../../../tools/release.js';
 
 const scratch: string[] = [];
 const RELEASED_WORKSPACES = ['tokens', 'motion', 'gates', 'ui'] as const;
+const REPOSITORY_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
 afterEach(() => {
 	for (const directory of scratch.splice(0)) rmSync(directory, { recursive: true, force: true });
@@ -303,5 +306,42 @@ describe('prepared release checks', () => {
 		expect(() => checkPreparedRelease(root, { version: '0.7.0-rc.1' })).toThrow(
 			'Duplicate consumed release fragment identity: checked',
 		);
+	});
+});
+
+describe('release CLI contract', () => {
+	it('prepares and checks an exact version through the thin command boundary', () => {
+		const root = createRepository();
+		addFragment(root, 'cli');
+
+		expect(runReleaseCommand(['prepare', '--version', '0.7.0-rc.1'], root)).toBe(
+			'Release 0.7.0-rc.1 prepared',
+		);
+		expect(
+			runReleaseCommand(
+				['check', '--version', '0.7.0-rc.1', '--tag', 'v0.7.0-rc.1'],
+				root,
+			),
+		).toBe('Release 0.7.0-rc.1 is prepared for v0.7.0-rc.1');
+	});
+
+	it.each([
+		[[], 'usage: bun tools/release.ts <prepare|check> --version <exact SemVer>'],
+		[['prepare'], 'prepare requires --version followed by an exact SemVer'],
+		[
+			['prepare', '--version', '0.7.0', '--tag', 'v0.7.0'],
+			'prepare does not accept --tag',
+		],
+		[['check', '--version', '0.7.0', '--unknown'], 'Unknown release argument: --unknown'],
+	] as const)('rejects invalid argv %#', (args, error) => {
+		expect(() => runReleaseCommand(args, createRepository())).toThrow(error);
+	});
+
+	it('publishes stable package-script entrypoints', () => {
+		const manifest = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'package.json'), 'utf8')) as {
+			scripts: Record<string, string>;
+		};
+		expect(manifest.scripts['release:prepare']).toBe('bun tools/release.ts prepare');
+		expect(manifest.scripts['release:check']).toBe('bun tools/release.ts check');
 	});
 });
