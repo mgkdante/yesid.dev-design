@@ -102,30 +102,39 @@ function walkSourceFiles(root: string, current = root, out: string[] = []): stri
 	return out;
 }
 
-function internalWorkspaceDependencies(packageJson: Record<string, unknown>): PackageName[] {
-	const found = new Set<PackageName>();
+interface InternalDependency {
+	field: string;
+	name: string;
+	sibling: PackageName;
+}
+
+function internalDependencies(packageJson: Record<string, unknown>): InternalDependency[] {
+	const found: InternalDependency[] = [];
 	for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
 		const dependencies = packageJson[field];
 		if (!dependencies || typeof dependencies !== 'object') continue;
 		for (const [name, version] of Object.entries(dependencies)) {
-			if (!name.startsWith('@yesid/') || version !== 'workspace:*') continue;
+			if (!name.startsWith('@yesid/')) continue;
 			const sibling = name.slice('@yesid/'.length);
 			if (!PACKAGE_NAMES.includes(sibling as PackageName)) {
 				throw new Error(`cannot vendor unresolved workspace dependency ${name}`);
 			}
-			found.add(sibling as PackageName);
+			if (typeof version !== 'string' || !/^workspace:\S+$/.test(version)) {
+				throw new Error(`internal dependency ${name} must use workspace:`);
+			}
+			found.push({ field, name, sibling: sibling as PackageName });
 		}
 	}
-	return [...found];
+	return found;
 }
 
 function validatePackageClosure(source: string, packages: PackageName[]): void {
 	for (const name of packages) {
 		const packageJsonPath = join(source, 'packages', name, 'package.json');
 		if (!existsSync(packageJsonPath)) throw new Error(`package ${name} not found at ${packageJsonPath}`);
-		for (const sibling of internalWorkspaceDependencies(readPackageJson(packageJsonPath))) {
-			if (!packages.includes(sibling)) {
-				throw new Error(`${name} requires ${sibling}; include both packages`);
+		for (const dependency of internalDependencies(readPackageJson(packageJsonPath))) {
+			if (!packages.includes(dependency.sibling)) {
+				throw new Error(`${name} requires ${dependency.sibling}; include both packages`);
 			}
 		}
 	}
@@ -160,12 +169,14 @@ function copyToolBundle(source: string, dest: string): void {
 
 function rewriteInternalWorkspaceDependencies(packageRoot: string): void {
 	const packageJsonPath = join(packageRoot, 'package.json');
-	const source = readFileSync(packageJsonPath, 'utf-8');
-	const rewritten = source.replace(
-		/("@yesid\/([^"]+)"\s*:\s*)"workspace:\*"/g,
-		(_match, prefix: string, sibling: string) => `${prefix}"file:../${sibling}"`,
-	);
-	if (rewritten !== source) writeFileSync(packageJsonPath, rewritten, 'utf-8');
+	const packageJson = readPackageJson(packageJsonPath);
+	const dependencies = internalDependencies(packageJson);
+	if (dependencies.length === 0) return;
+	for (const dependency of dependencies) {
+		const field = packageJson[dependency.field] as Record<string, unknown>;
+		field[dependency.name] = `file:../${dependency.sibling}`;
+	}
+	writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf-8');
 }
 
 export function checkAdoption(destInput: string): AdoptManifest {

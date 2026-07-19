@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
 	ADOPT_EXIT,
+	adopt,
 	adoptFromSource,
 	checkAdoption,
 	main,
@@ -289,6 +290,51 @@ describe('adoptFromSource', () => {
 		).toThrow(/ui requires motion/);
 	});
 
+	it('closes and rewrites every valid workspace selector for internal packages', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const uiManifest = join(source, 'packages', 'ui', 'package.json');
+		makeSource(source);
+		write(uiManifest, readFileSync(uiManifest, 'utf8').replace('workspace:*', 'workspace:^'));
+
+		expect(() =>
+			adoptFromSource({
+				source,
+				dest: join(root, 'incomplete'),
+				packages: ['ui'],
+				provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+			}),
+		).toThrow(/ui requires motion/);
+
+		const dest = join(root, 'complete');
+		adoptFromSource({
+			source,
+			dest,
+			packages: ['motion', 'ui'],
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+		});
+		expect(readFileSync(join(dest, 'ui', 'package.json'), 'utf8')).toContain(
+			'"@yesid/motion": "file:../motion"',
+		);
+	});
+
+	it('fails closed when an internal package bypasses the workspace protocol', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const uiManifest = join(source, 'packages', 'ui', 'package.json');
+		makeSource(source);
+		write(uiManifest, readFileSync(uiManifest, 'utf8').replace('workspace:*', '^1.0.0'));
+
+		expect(() =>
+			adoptFromSource({
+				source,
+				dest: join(root, 'vendor', 'design'),
+				packages: ['motion', 'ui'],
+				provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+			}),
+		).toThrow(/internal dependency @yesid\/motion must use workspace:/);
+	});
+
 	it('refuses to replace an unrelated nonempty destination', () => {
 		const root = tempDir();
 		const source = join(root, 'source');
@@ -458,7 +504,7 @@ describe('adoptFromSource', () => {
 			};
 
 			const crashed = crashAdoption(next, crashPoint);
-			expect(crashed.status, crashed.stderr).toBe(97);
+			expect(crashed.status, String(crashed.stderr)).toBe(97);
 			const parent = dirname(dest);
 			const prefix = `.${basename(dest)}.yesid-adopt`;
 			expect(existsSync(join(parent, `${prefix}.lock`))).toBe(true);
@@ -528,6 +574,14 @@ describe('schema 2 hashing', () => {
 
 		expect(treeHash(oneFile)).not.toBe(treeHash(twoFiles));
 	});
+
+	it.skipIf(process.platform === 'win32')('rejects special filesystem nodes instead of omitting them', () => {
+		const root = tempDir();
+		const fifo = join(root, 'hidden-fifo');
+		const created = spawnSync('mkfifo', [fifo], { encoding: 'utf8' });
+		expect(created.status, created.stderr).toBe(0);
+		expect(() => treeHash(root)).toThrow(/non-regular filesystem entry/);
+	});
 });
 
 describe('stable CLI exits', () => {
@@ -556,6 +610,39 @@ describe('stable CLI exits', () => {
 			TRANSACTION_FAILED: 6,
 			RECOVERY_REQUIRED: 7,
 		});
+	});
+
+	it('preserves the transaction exit when acquired-source cleanup also fails', async () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		makeSource(source);
+
+		await expect(
+			adopt(
+				{
+					mode: 'adopt',
+					tag: 'v1.0.0',
+					packages: ['tokens'],
+					dest: join(root, 'vendor', 'design'),
+				},
+				{
+					checkpoint(point) {
+						if (point === 'stage.ready') throw new Error('transaction fault');
+					},
+				},
+				{
+					async acquire() {
+						return {
+							source,
+							provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+							cleanup() {
+								throw new Error('cleanup fault');
+							},
+						};
+					},
+				},
+			),
+		).rejects.toMatchObject({ code: ADOPT_EXIT.TRANSACTION_FAILED });
 	});
 
 	it.each([

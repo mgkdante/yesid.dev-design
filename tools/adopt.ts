@@ -6,6 +6,7 @@ import {
 	acquireArchive,
 	acquireRelease,
 	acquireWorktree,
+	type AcquiredSource,
 } from './adopt/acquisition.js';
 import {
 	MANIFEST_SCHEMA,
@@ -33,6 +34,7 @@ export {
 	PACKAGE_NAMES,
 	treeHash,
 	type AdoptManifest,
+	type AdoptProvenance,
 	type PackageName,
 } from './adopt/contract.js';
 export {
@@ -57,6 +59,22 @@ export type ParsedArgs =
 			source?: string;
 			archive?: string;
 	  };
+
+type AdoptArgs = Extract<ParsedArgs, { mode: 'adopt' }>;
+
+export interface AdoptDependencies {
+	acquire(options: AdoptArgs): Promise<AcquiredSource>;
+}
+
+const DEFAULT_DEPENDENCIES: AdoptDependencies = {
+	async acquire(options) {
+		return options.source
+			? acquireWorktree(options.source, options.tag)
+			: options.archive
+				? acquireArchive(options.archive, options.tag)
+				: acquireRelease(options.tag);
+	},
+};
 
 export function parseArgs(argv: string[]): ParsedArgs {
 	const values = new Map<string, string>();
@@ -116,16 +134,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
 
 
 export async function adopt(
-	options: Extract<ParsedArgs, { mode: 'adopt' }>,
+	options: AdoptArgs,
 	runtime: AdoptRuntime = {},
+	dependencies: AdoptDependencies = DEFAULT_DEPENDENCIES,
 ): Promise<AdoptResult> {
 	try {
 		const dest = resolve(options.dest);
-		const acquired = options.source
-			? acquireWorktree(options.source, options.tag)
-			: options.archive
-				? acquireArchive(options.archive, options.tag)
-				: await acquireRelease(options.tag);
+		const acquired = await dependencies.acquire(options);
+		let primaryError: unknown;
 		try {
 			return adoptFromSource({
 				source: acquired.source,
@@ -134,8 +150,33 @@ export async function adopt(
 				provenance: acquired.provenance,
 				runtime,
 			});
+		} catch (error) {
+			primaryError = error;
+			throw error;
 		} finally {
-			acquired.cleanup();
+			try {
+				acquired.cleanup();
+			} catch (cleanupError) {
+				if (primaryError instanceof AdoptError) {
+					throw new AdoptError(primaryError.code, primaryError.message, {
+						cause: new AggregateError(
+							[primaryError, cleanupError],
+							'acquired-source cleanup also failed',
+						),
+					});
+				}
+				if (primaryError !== undefined) {
+					throw new AggregateError(
+						[primaryError, cleanupError],
+						'adoption and acquired-source cleanup failed',
+					);
+				}
+				throw new AdoptError(
+					ADOPT_EXIT.INTERNAL,
+					'adoption completed but acquired-source cleanup failed',
+					{ cause: cleanupError },
+				);
+			}
 		}
 	} catch (error) {
 		if (error instanceof AdoptError) throw error;
@@ -160,7 +201,11 @@ function usage(): string {
 	].join('\n');
 }
 
-export async function main(argv = process.argv.slice(2), runtime: AdoptRuntime = {}): Promise<number> {
+export async function main(
+	argv = process.argv.slice(2),
+	runtime: AdoptRuntime = {},
+	dependencies: AdoptDependencies = DEFAULT_DEPENDENCIES,
+): Promise<number> {
 	let args: ParsedArgs;
 	try {
 		args = parseArgs(argv);
@@ -186,7 +231,7 @@ export async function main(argv = process.argv.slice(2), runtime: AdoptRuntime =
 		}
 	}
 	try {
-		const result = await adopt(args, runtime);
+		const result = await adopt(args, runtime, dependencies);
 		const { manifest } = result;
 		if (args.source || args.archive) {
 			console.log(`i local ${args.source ? '--source' : '--archive'} development mode`);

@@ -53,6 +53,7 @@ export function walkFiles(root: string, out: string[] = []): string[] {
 		if (stat.isSymbolicLink()) throw new Error(`refusing symbolic link ${path}`);
 		if (stat.isDirectory()) walkFiles(path, out);
 		else if (stat.isFile()) out.push(path);
+		else throw new Error(`refusing non-regular filesystem entry ${path}`);
 	}
 	return out;
 }
