@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
 	authorizeApiChanges,
+	createApiReports,
 	parseChangeFragment,
 	validatePublicSymbols,
 	type PublicSymbol,
 } from '../../../tools/api-authority.js';
+import { fileURLToPath } from 'node:url';
+
+const REPOSITORY_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
 const BASE_REPORTS = {
 	'@yesid/tokens': 'tokens-v1',
@@ -121,4 +125,32 @@ describe('public symbol safety', () => {
 		const ticker = await import('@yesid/motion/utils/ticker');
 		expect(Object.keys(ticker)).toEqual(['subscribe', 'unsubscribe']);
 	});
+});
+
+describe('deterministic package API reports', () => {
+	it('renders every conditioned surface, declaration, and direct public asset', async () => {
+		const first = await createApiReports(REPOSITORY_ROOT);
+		const second = await createApiReports(REPOSITORY_ROOT);
+
+		expect(second).toEqual(first);
+		expect(Object.keys(first)).toEqual([
+			'@yesid/tokens',
+			'@yesid/motion',
+			'@yesid/gates',
+			'@yesid/ui',
+		]);
+		for (const report of Object.values(first)) {
+			expect(report).toMatch(/^<!-- GENERATED: bun run api:report/u);
+			expect(report).not.toContain(REPOSITORY_ROOT);
+			expect(report).not.toContain('\r\n');
+		}
+
+		expect(first['@yesid/tokens']).toContain('`./tokens.json` — direct asset, sha256 `');
+		expect(first['@yesid/tokens']).toContain('export declare function parseTokens');
+		expect(first['@yesid/motion']).toContain('export declare function subscribe');
+		expect(first['@yesid/motion']).not.toContain('_resetForTests');
+		expect(first['@yesid/gates']).toContain('export declare function runContrastPairs');
+		expect(first['@yesid/ui']).toContain('export type ButtonProps');
+		expect(first['@yesid/ui']).toContain('export declare function configureUi');
+	}, 30_000);
 });
