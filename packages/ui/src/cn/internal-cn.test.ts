@@ -1,11 +1,26 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
+import tokens from '../../../tokens/tokens.json';
 import type { ConfigureUiResult as RootConfigureUiResult } from '../index.js';
 import type { ConfigureUiResult as CnConfigureUiResult } from './index.js';
+import { createTwMergeConfig } from './create-cn.js';
 
 const CONFLICT_PREFIX =
 	'@yesid/ui is already initialized with a different configuration. Conflicting fields: ';
 const CONFLICT_SUFFIX =
 	'. configureUi() accepts one semantic configuration per loaded ESM module instance.';
+
+function textTokenNames(
+	node: Record<string, unknown>,
+	prefix = '',
+): string[] {
+	return Object.entries(node).flatMap(([name, value]) => {
+		const tokenName = prefix ? `${prefix}-${name}` : name;
+		if (value && typeof value === 'object' && '$value' in value) return [tokenName];
+		return value && typeof value === 'object'
+			? textTokenNames(value as Record<string, unknown>, tokenName)
+			: [];
+	});
+}
 
 async function freshCnModule() {
 	vi.resetModules();
@@ -20,6 +35,13 @@ async function renderFreshBadge(className: string) {
 }
 
 describe('configureUi', () => {
+	it('classifies every generated typography token as a font size', () => {
+		const generatedTextNames = [...new Set(textTokenNames(tokens.text))].sort();
+		const configuredTextNames = [...new Set(createTwMergeConfig().extend.theme.text)].sort();
+
+		expect(configuredTextNames).toEqual(generatedTextNames);
+	});
+
 	it('publishes the same result type from the package root and cn subpath', () => {
 		expectTypeOf<RootConfigureUiResult>().toEqualTypeOf<CnConfigureUiResult>();
 		expectTypeOf<CnConfigureUiResult>().toEqualTypeOf<'initialized' | 'unchanged'>();
