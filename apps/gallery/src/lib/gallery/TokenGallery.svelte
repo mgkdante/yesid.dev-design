@@ -58,7 +58,7 @@
 		{ name: 'Dark', tokens: dark },
 		{ name: 'Light', tokens: light },
 	] as mode (mode.name)}
-		<div>
+		<div class="min-w-0">
 			<h2 class="font-heading text-heading font-semibold">
 				{mode.name} semantics ({mode.tokens.length})
 			</h2>
