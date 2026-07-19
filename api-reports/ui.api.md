@@ -129,7 +129,7 @@
 import { AlertDialogRootPropsWithoutHTML } from 'bits-ui';
 import { ClassValue } from 'clsx';
 import { Collapsible as Collapsible_2 } from 'bits-ui';
-import { Combobox } from 'bits-ui';
+import { Combobox as Combobox_2 } from 'bits-ui';
 import { Component } from 'svelte';
 import { Dialog } from 'bits-ui';
 import type { HTMLAnchorAttributes } from 'svelte/elements';
@@ -512,7 +512,13 @@ const CollapsibleTrigger: Component<Collapsible_2.TriggerProps, {}, "ref">;
 type CollapsibleTrigger = ReturnType<typeof CollapsibleTrigger>;
 
 // @public (undocumented)
-type ComboboxBehaviorProps = Pick<Combobox.RootProps, 'disabled' | 'required' | 'name' | 'open' | 'onOpenChange' | 'onOpenChangeComplete' | 'loop' | 'scrollAlignment'>;
+const Combobox: Component<ComboboxProps, {}, "open" | "value">;
+
+// @public (undocumented)
+type Combobox = ReturnType<typeof Combobox>;
+
+// @public (undocumented)
+type ComboboxBehaviorProps = Pick<Combobox_2.RootProps, 'disabled' | 'required' | 'name' | 'open' | 'onOpenChange' | 'onOpenChangeComplete' | 'loop' | 'scrollAlignment'>;
 
 // @public
 interface ComboboxOption {

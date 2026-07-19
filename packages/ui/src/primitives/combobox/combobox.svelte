@@ -69,7 +69,7 @@
 </script>
 
 <script lang="ts">
-	import { Combobox } from 'bits-ui';
+	import { Combobox as BitsCombobox } from 'bits-ui';
 	import { flushSync } from 'svelte';
 	import { cn } from '../../cn/index.js';
 
@@ -130,7 +130,7 @@
 	}
 </script>
 
-<Combobox.Root
+<BitsCombobox.Root
 	type="single"
 	value={value ?? ''}
 	bind:open
@@ -153,7 +153,7 @@
 	items={filtered.map((o) => ({ value: o.value, label: o.label }))}
 >
 	<div class={cn('combobox', className)} data-slot="combobox">
-		<Combobox.Input
+		<BitsCombobox.Input
 			data-slot="combobox-input"
 			class="combobox-input"
 			aria-label={label}
@@ -174,17 +174,17 @@
 				<span aria-hidden="true">✕</span>
 			</button>
 		{/if}
-		<Combobox.Trigger
+		<BitsCombobox.Trigger
 			data-slot="combobox-trigger"
 			class="combobox-trigger"
 			aria-label={label}
 		>
 			<span aria-hidden="true">⌄</span>
-		</Combobox.Trigger>
+		</BitsCombobox.Trigger>
 	</div>
 
-	<Combobox.Portal>
-		<Combobox.Content
+	<BitsCombobox.Portal>
+		<BitsCombobox.Content
 			data-slot="combobox-content"
 			class="combobox-content"
 			sideOffset={6}
@@ -192,9 +192,9 @@
 			{#snippet child({ props, wrapperProps })}
 				<div {...wrapperProps}>
 					<div {...props} id={listboxId} aria-label={label}>
-						<Combobox.Viewport class="combobox-viewport">
+						<BitsCombobox.Viewport class="combobox-viewport">
 							{#each filtered as option (option.value)}
-								<Combobox.Item
+								<BitsCombobox.Item
 									data-slot="combobox-item"
 									class="combobox-item"
 									value={option.value}
@@ -214,17 +214,17 @@
 											<span class="combobox-item-check" aria-hidden="true">✓</span>
 										{/if}
 									{/snippet}
-								</Combobox.Item>
+								</BitsCombobox.Item>
 							{:else}
 								<p class="combobox-empty">{emptyLabel}</p>
 							{/each}
-						</Combobox.Viewport>
+						</BitsCombobox.Viewport>
 					</div>
 				</div>
 			{/snippet}
-		</Combobox.Content>
-	</Combobox.Portal>
-</Combobox.Root>
+		</BitsCombobox.Content>
+	</BitsCombobox.Portal>
+</BitsCombobox.Root>
 
 <style>
 	/* The trigger row: a mono input carrying the same card/border/focus chrome as

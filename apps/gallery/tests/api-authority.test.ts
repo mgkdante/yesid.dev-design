@@ -322,6 +322,24 @@ describe('deterministic package API reports', () => {
 		expect(mutated).not.toContain('const Button: Component<ButtonProps, {}, "ref">;');
 	}, 60_000);
 
+	it('reports Combobox component bindings and detects open binding loss', async () => {
+		const baseline = readFileSync(join(REPOSITORY_ROOT, 'api-reports/ui.api.md'), 'utf8');
+		expect(baseline).toContain(
+			'const Combobox: Component<ComboboxProps, {}, "open" | "value">;',
+		);
+
+		const root = createPackageScratch('ui');
+		const comboboxPath = join(root, 'packages/ui/src/primitives/combobox/combobox.svelte');
+		replaceInFile(comboboxPath, 'open = $bindable(false),', 'open = false,');
+
+		const mutated = await createApiReport(root, '@yesid/ui');
+		expect(mutated).not.toBe(baseline);
+		expect(mutated).toContain('const Combobox: Component<ComboboxProps, {}, "value">;');
+		expect(mutated).not.toContain(
+			'const Combobox: Component<ComboboxProps, {}, "open" | "value">;',
+		);
+	}, 60_000);
+
 	it('writes exact report paths and fails closed on stale committed bytes', () => {
 		const root = mkdtempSync(join(tmpdir(), 'yesid-api-report-test-'));
 		scratch.push(root);
