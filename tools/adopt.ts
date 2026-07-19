@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 
 import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import {
 	copyFileSync,
 	existsSync,
@@ -15,25 +14,35 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { dirname, isAbsolute, join, parse as parsePath, relative, resolve, sep } from 'node:path';
+import { dirname, join, parse as parsePath, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+	MANIFEST_SCHEMA,
+	PACKAGE_EXCLUDE,
+	PACKAGE_NAMES,
+	REPOSITORY_ID,
+	WORKTREE_EXCLUDE,
+	assertCommit,
+	assertTag,
+	exclusionPolicyDigest,
+	parseManifest,
+	parsePackages,
+	pathInside,
+	toolDigest,
+	treeHash,
+	type AdoptManifest,
+	type PackageName,
+} from './adopt/contract.js';
+
+export {
+	MANIFEST_SCHEMA,
+	PACKAGE_NAMES,
+	treeHash,
+	type AdoptManifest,
+	type PackageName,
+} from './adopt/contract.js';
 
 export const DESIGN_REPO_URL = 'https://github.com/mgkdante/yesid.dev-design';
-export const PACKAGE_NAMES = ['tokens', 'motion', 'gates', 'ui'] as const;
-export type PackageName = (typeof PACKAGE_NAMES)[number];
-
-export const EXCLUDE =
-	/(^|\/)(__tests__\/|test-fixtures\/|scripts\/|research\/|vitest\.(?:config|setup)\.ts$|vitest\.d\.ts$|\.gitignore$)|\.test\.ts$/;
-const LOCAL_WORKTREE_EXCLUDE = /(^|\/)(node_modules|\.turbo)(\/|$)/;
-
-export interface AdoptManifest {
-	repo: 'yesid.dev-design';
-	tag: string;
-	commit: string;
-	packages: PackageName[];
-	note: string;
-	treeHash: string;
-}
 
 interface AdoptFromSourceOptions {
 	source: string;
@@ -53,34 +62,6 @@ export type ParsedArgs =
 			dest: string;
 			source?: string;
 	  };
-
-function assertTag(tag: string): void {
-	if (!/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(tag)) {
-		throw new Error(`invalid tag "${tag}"; expected vX.Y.Z`);
-	}
-}
-
-function assertCommit(commit: string): void {
-	if (!/^[0-9a-f]{40}$/.test(commit)) {
-		throw new Error(`invalid commit "${commit}"; expected a 40-character Git commit`);
-	}
-}
-
-function parsePackages(raw: string): PackageName[] {
-	const requested = raw.split(',').map((name) => name.trim());
-	if (requested.length === 0 || requested.some((name) => name.length === 0)) {
-		throw new Error('--packages must contain at least one package');
-	}
-	if (new Set(requested).size !== requested.length) {
-		throw new Error('--packages contains a duplicate package');
-	}
-	for (const name of requested) {
-		if (!PACKAGE_NAMES.includes(name as PackageName)) {
-			throw new Error(`unknown package "${name}"; choose from ${PACKAGE_NAMES.join(',')}`);
-		}
-	}
-	return PACKAGE_NAMES.filter((name) => requested.includes(name));
-}
 
 export function parseArgs(argv: string[]): ParsedArgs {
 	const values = new Map<string, string>();
@@ -134,11 +115,6 @@ export function parseArgs(argv: string[]): ParsedArgs {
 	return parsed;
 }
 
-function pathInside(parent: string, child: string): boolean {
-	const rel = relative(parent, child);
-	return rel === '' || (!rel.startsWith(`..${sep}`) && rel !== '..' && !isAbsolute(rel));
-}
-
 function assertSafeDestination(dest: string, source?: string): void {
 	const resolvedDest = resolve(dest);
 	const forbidden = new Set([parsePath(resolvedDest).root, resolve(process.cwd()), resolve(homedir())]);
@@ -174,41 +150,17 @@ function normalizedRelative(root: string, path: string): string {
 	return relative(root, path).split(sep).join('/');
 }
 
-export function walkFiles(root: string, out: string[] = []): string[] {
-	for (const entry of readdirSync(root).sort()) {
-		const path = join(root, entry);
-		const stat = lstatSync(path);
-		if (stat.isSymbolicLink()) throw new Error(`refusing symbolic link ${path}`);
-		if (stat.isDirectory()) walkFiles(path, out);
-		else if (stat.isFile()) out.push(path);
-	}
-	return out;
-}
-
 function walkSourceFiles(root: string, current = root, out: string[] = []): string[] {
 	for (const entry of readdirSync(current).sort()) {
 		const path = join(current, entry);
 		const rel = normalizedRelative(root, path);
-		if (LOCAL_WORKTREE_EXCLUDE.test(rel)) continue;
+		if (WORKTREE_EXCLUDE.test(rel)) continue;
 		const stat = lstatSync(path);
 		if (stat.isSymbolicLink()) throw new Error(`refusing symbolic link ${path}`);
 		if (stat.isDirectory()) walkSourceFiles(root, path, out);
 		else if (stat.isFile()) out.push(path);
 	}
 	return out;
-}
-
-export function treeHash(root: string): string {
-	const hash = createHash('sha256');
-	for (const path of walkFiles(root)) {
-		const rel = normalizedRelative(root, path);
-		if (rel === 'manifest.json') continue;
-		hash.update(rel);
-		hash.update('\0');
-		hash.update(readFileSync(path));
-		hash.update('\0');
-	}
-	return hash.digest('hex');
 }
 
 function readPackageJson(path: string): Record<string, unknown> {
@@ -252,7 +204,23 @@ function copyPackage(source: string, dest: string): void {
 	mkdirSync(dest, { recursive: true });
 	for (const path of walkSourceFiles(source)) {
 		const rel = normalizedRelative(source, path);
-		if (EXCLUDE.test(rel)) continue;
+		if (PACKAGE_EXCLUDE.test(rel)) continue;
+		const target = join(dest, ...rel.split('/'));
+		mkdirSync(dirname(target), { recursive: true });
+		copyFileSync(path, target);
+	}
+}
+
+function copyToolBundle(source: string, dest: string): void {
+	const toolRoot = join(source, 'tools');
+	const entrypoint = join(toolRoot, 'adopt.ts');
+	const moduleRoot = join(toolRoot, 'adopt');
+	if (!existsSync(entrypoint) || !existsSync(moduleRoot)) {
+		throw new Error(`self-vendored adopt tool is incomplete under ${toolRoot}`);
+	}
+	const files = [entrypoint, ...walkSourceFiles(moduleRoot)];
+	for (const path of files) {
+		const rel = normalizedRelative(source, path);
 		const target = join(dest, ...rel.split('/'));
 		mkdirSync(dirname(target), { recursive: true });
 		copyFileSync(path, target);
@@ -299,17 +267,27 @@ export function adoptFromSource(options: AdoptFromSourceOptions): AdoptManifest 
 	mkdirSync(stage);
 	try {
 		copyFileSync(license, join(stage, 'LICENSE'));
+		copyToolBundle(source, stage);
 		for (const name of options.packages) {
 			const packageDest = join(stage, name);
 			copyPackage(join(source, 'packages', name), packageDest);
 			rewriteInternalWorkspaceDependencies(packageDest);
 		}
 		const manifest: AdoptManifest = {
-			repo: 'yesid.dev-design',
-			tag: options.tag,
-			commit: options.commit,
+			schema: MANIFEST_SCHEMA,
+			repository: REPOSITORY_ID,
+			provenance: {
+				mode: 'worktree',
+				tag: {
+					name: options.tag,
+					object: options.commit,
+					peeledCommit: options.commit,
+				},
+				asset: null,
+			},
 			packages: [...options.packages],
-			note: 'GENERATED by tools/adopt.ts. Never edit vendored design code by hand.',
+			exclusionPolicyDigest: exclusionPolicyDigest(),
+			toolDigest: toolDigest(stage),
 			treeHash: treeHash(stage),
 		};
 		writeFileSync(join(stage, 'manifest.json'), `${JSON.stringify(manifest, null, '\t')}\n`, 'utf-8');
@@ -376,30 +354,20 @@ export function adopt(options: Extract<ParsedArgs, { mode: 'adopt' }>): AdoptMan
 function readManifest(dest: string): AdoptManifest {
 	const path = join(dest, 'manifest.json');
 	if (!existsSync(path)) throw new Error(`no manifest at ${path}`);
-	const manifest = readPackageJson(path) as Partial<AdoptManifest>;
-	if (
-		manifest.repo !== 'yesid.dev-design' ||
-		typeof manifest.tag !== 'string' ||
-		typeof manifest.commit !== 'string' ||
-		typeof manifest.treeHash !== 'string' ||
-		!Array.isArray(manifest.packages)
-	) {
-		throw new Error(`invalid manifest at ${path}`);
-	}
-	assertTag(manifest.tag);
-	assertCommit(manifest.commit);
-	if (!/^[0-9a-f]{64}$/.test(manifest.treeHash)) throw new Error(`invalid treeHash in ${path}`);
-	const packages = parsePackages(manifest.packages.join(','));
-	if (packages.join(',') !== manifest.packages.join(',')) {
-		throw new Error(`manifest packages are not in canonical order at ${path}`);
-	}
-	return manifest as AdoptManifest;
+	return parseManifest(readPackageJson(path), path);
 }
 
 export function checkAdoption(destInput: string): AdoptManifest {
 	const dest = resolve(destInput);
 	assertSafeDestination(dest);
 	const manifest = readManifest(dest);
+	const actualToolDigest = toolDigest(dest);
+	if (actualToolDigest !== manifest.toolDigest) {
+		throw new Error(`adopt tool digest mismatch in ${dest}`);
+	}
+	if (manifest.exclusionPolicyDigest !== exclusionPolicyDigest()) {
+		throw new Error(`adoption exclusion policy differs from this tool`);
+	}
 	const actual = treeHash(dest);
 	if (actual !== manifest.treeHash) {
 		throw new Error(
@@ -428,7 +396,9 @@ export function main(argv = process.argv.slice(2)): number {
 		}
 		if (args.mode === 'check') {
 			const manifest = checkAdoption(args.dest);
-			console.log(`✓ ${args.dest} matches ${manifest.tag} @ ${manifest.commit.slice(0, 9)}`);
+			console.log(
+				`✓ ${args.dest} matches ${manifest.provenance.tag.name} @ ${manifest.provenance.tag.peeledCommit.slice(0, 9)}`,
+			);
 			return 0;
 		}
 		const manifest = adopt(args);
@@ -436,7 +406,7 @@ export function main(argv = process.argv.slice(2)): number {
 			console.log('i local --source mode records the current checkout; verify the tag separately before release');
 		}
 		console.log(
-			`✓ adopted @yesid/{${manifest.packages.join(',')}} at ${manifest.tag} (${manifest.commit.slice(0, 9)})`,
+			`✓ adopted @yesid/{${manifest.packages.join(',')}} at ${manifest.provenance.tag.name} (${manifest.provenance.tag.peeledCommit.slice(0, 9)})`,
 		);
 		console.log(`  treeHash ${manifest.treeHash}`);
 		return 0;
