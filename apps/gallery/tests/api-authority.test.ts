@@ -1,4 +1,12 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+	cpSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	symlinkSync,
+	writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +15,7 @@ import {
 	authorizeApiChanges,
 	checkApiReports,
 	collectDirectAssetTargets,
+	createApiReport,
 	createApiReports,
 	parseChangeFragment,
 	planDeclarationNamespaces,
@@ -34,6 +43,23 @@ function fragment(packages: Readonly<Record<string, 'patch' | 'minor' | 'major'>
 		([name, bump]) => `${JSON.stringify(name)}: ${bump}`,
 	);
 	return `---\n${declarations.join('\n')}\n---\n\nExplain the public contract change.\n`;
+}
+
+function createPackageScratch(directory: 'tokens' | 'ui'): string {
+	const root = mkdtempSync(join(tmpdir(), `yesid-${directory}-mutation-`));
+	scratch.push(root);
+	mkdirSync(join(root, 'packages'), { recursive: true });
+	cpSync(join(REPOSITORY_ROOT, 'packages', directory), join(root, 'packages', directory), {
+		recursive: true,
+	});
+	symlinkSync(join(REPOSITORY_ROOT, 'node_modules'), join(root, 'node_modules'), 'junction');
+	return root;
+}
+
+function replaceInFile(path: string, before: string, after: string): void {
+	const source = readFileSync(path, 'utf8');
+	if (!source.includes(before)) throw new Error(`${path} does not contain mutation target`);
+	writeFileSync(path, source.replace(before, after));
 }
 
 describe('API report approval', () => {
@@ -194,6 +220,74 @@ describe('deterministic package API reports', () => {
 		expect(first['@yesid/ui']).toContain('type ButtonProps');
 		expect(first['@yesid/ui']).toContain('function configureUi');
 	}, 30_000);
+
+	it('detects TypeScript signatures, export shape, and direct asset byte mutations', async () => {
+		const baseline = await createApiReport(REPOSITORY_ROOT, '@yesid/tokens');
+
+		const signatureRoot = createPackageScratch('tokens');
+		replaceInFile(
+			join(signatureRoot, 'packages/tokens/src/serialize.ts'),
+			'export function serializeCss(token: Token): string {',
+			'export function serializeCss(token: Token, compact?: boolean): string {',
+		);
+		const signatureReport = await createApiReport(signatureRoot, '@yesid/tokens');
+		expect(signatureReport).not.toBe(baseline);
+		expect(signatureReport).toContain('compact?: boolean');
+
+		const conditionRoot = createPackageScratch('tokens');
+		const conditionManifestPath = join(conditionRoot, 'packages/tokens/package.json');
+		const conditionManifest = JSON.parse(readFileSync(conditionManifestPath, 'utf8')) as {
+			exports: Record<string, string | Record<string, string>>;
+		};
+		conditionManifest.exports['./serialize'] = {
+			default: './src/types.ts',
+			types: './src/serialize.ts',
+		};
+		writeFileSync(conditionManifestPath, `${JSON.stringify(conditionManifest, null, 2)}\n`);
+		const conditionReport = await createApiReport(conditionRoot, '@yesid/tokens');
+		expect(conditionReport).not.toBe(baseline);
+		expect(conditionReport).toContain(
+			'### `./serialize`\n\n- `default` → `./src/types.ts`\n- `types` → `./src/serialize.ts`',
+		);
+
+		const removalRoot = createPackageScratch('tokens');
+		const removalManifestPath = join(removalRoot, 'packages/tokens/package.json');
+		const removalManifest = JSON.parse(readFileSync(removalManifestPath, 'utf8')) as {
+			exports: Record<string, unknown>;
+		};
+		delete removalManifest.exports['./serialize'];
+		writeFileSync(removalManifestPath, `${JSON.stringify(removalManifest, null, 2)}\n`);
+		const removalReport = await createApiReport(removalRoot, '@yesid/tokens');
+		expect(removalReport).not.toBe(baseline);
+		expect(removalReport).not.toContain('### `./serialize`');
+
+		const assetRoot = createPackageScratch('tokens');
+		const assetPath = join(assetRoot, 'packages/tokens/tokens.css');
+		writeFileSync(assetPath, `${readFileSync(assetPath, 'utf8')}\n/* authority mutation */\n`);
+		const assetReport = await createApiReport(assetRoot, '@yesid/tokens');
+		expect(assetReport).not.toBe(baseline);
+		expect(assetReport.match(/- `\.\/tokens\.css`[^\n]+/u)?.[0]).not.toBe(
+			baseline.match(/- `\.\/tokens\.css`[^\n]+/u)?.[0],
+		);
+	}, 60_000);
+
+	it('detects Svelte prop and binding metadata mutations', async () => {
+		const baseline = await createApiReport(REPOSITORY_ROOT, '@yesid/ui');
+		const root = createPackageScratch('ui');
+		const buttonPath = join(root, 'packages/ui/src/primitives/button/button.svelte');
+		replaceInFile(
+			buttonPath,
+			'\t\tsize?: ButtonSize;\n\t};',
+			'\t\tsize?: ButtonSize;\n\t\tauthorityProbe?: boolean;\n\t};',
+		);
+		replaceInFile(buttonPath, 'ref = $bindable(null),', 'ref = null,');
+
+		const mutated = await createApiReport(root, '@yesid/ui');
+		expect(mutated).not.toBe(baseline);
+		expect(mutated).toContain('authorityProbe?: boolean');
+		expect(baseline).toContain('const Button: Component<ButtonProps, {}, "ref">;');
+		expect(mutated).not.toContain('const Button: Component<ButtonProps, {}, "ref">;');
+	}, 60_000);
 
 	it('writes exact report paths and fails closed on stale committed bytes', () => {
 		const root = mkdtempSync(join(tmpdir(), 'yesid-api-report-test-'));
