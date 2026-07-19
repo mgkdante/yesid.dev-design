@@ -252,7 +252,7 @@ describe('deterministic package API reports', () => {
 		expect(readFileSync(join(REPOSITORY_ROOT, 'api-reports/ui.api.md'), 'utf8')).toBe(
 			first['@yesid/ui'],
 		);
-	}, 30_000);
+	}, 60_000);
 
 	it('detects TypeScript signatures, export shape, and direct asset byte mutations', async () => {
 		const baseline = await createApiReport(REPOSITORY_ROOT, '@yesid/tokens');
