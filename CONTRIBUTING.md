@@ -109,4 +109,9 @@ If the reason is not obvious, explain the constraint in the commit body.
 
 ## License and brand identity
 
-The software is available under the [MIT License](LICENSE). That license does not grant permission to use the yesid name, wordmark, or brand identity. Keep the copyright and license notice with substantial copies of the software.
+The software is available under the unmodified [MIT License](LICENSE). Keep its
+copyright and permission notice with substantial copies. The separate
+[`NOTICE`](NOTICE) and [`TRADEMARK.md`](TRADEMARK.md) explain attribution and
+brand-identifier boundaries without changing the software grant.
+
+Public compatibility changes also follow [`DEPRECATION.md`](DEPRECATION.md).

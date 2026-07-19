@@ -105,15 +105,18 @@ gates, localization, and deliberate tag bumps.
 ## Contributing
 
 Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a PR. Machinery changes
-are welcome. Brand identity values remain owner decisions.
+are welcome. Brand identity values remain owner decisions. Release operators
+use [`RELEASING.md`](RELEASING.md); compatibility follows
+[`DEPRECATION.md`](DEPRECATION.md), and supported report boundaries are in
+[`SUPPORT.md`](SUPPORT.md).
 
 ## Consumers
 
-- **transit** (`transit.yesid.dev`) — pinned consumer via vendored sync
-  (`apps/web/vendor/design/` + manifest; see transit's `tools/design-sync.ts`).
-- **yesid.dev** — embedded source and parity origin; its package cutover is kept in
-  [`FLIP-THE-SWITCH.md`](FLIP-THE-SWITCH.md).
-- **gallery** — workspace dogfood consumer in [`apps/gallery`](apps/gallery).
+The evidence-backed starting states and acceptance vocabulary live in
+[`CONSUMERS.md`](CONSUMERS.md). Transit begins from a legacy vendored pin,
+yesid.dev begins from embedded workspace packages, and Gallery is the private
+workspace dogfood consumer. None of those facts alone claims a `v0.7.0` cascade
+is complete.
 
 ## AI-accelerated, human-owned
 

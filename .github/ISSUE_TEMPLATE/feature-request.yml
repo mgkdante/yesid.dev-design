@@ -1,0 +1,56 @@
+name: Feature request
+description: Propose a reusable upstream contract backed by consumer evidence
+title: "[request] "
+labels: []
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Product policy stays in consumers. Brand direction is owner-decided.
+        Describe the portable problem before proposing an API.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Reusable problem
+      description: What package-level limitation exists, and why is it not consumer-owned policy or composition?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Consumer evidence
+      description: Name real consumers, revisions, and current workarounds. For a composed component, identify three independent consumers or keep it app-side.
+      placeholder: Include links or exact commits; do not invent future consumers.
+    validations:
+      required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: Proposed neutral contract
+      description: Describe inputs, outputs, ownership, error behavior, and why no app conditional is needed.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Consumer-side alternatives considered
+      description: Explain why a local adapter, policy module, or composition is insufficient.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and migration
+      description: State the expected release level and impact on existing exact-tag consumers.
+    validations:
+      required: true
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Architecture checks
+      options:
+        - label: The request does not encode a named consumer or product policy upstream.
+          required: true
+        - label: If this promotes a composed component, three independent consumers are evidenced above.
+          required: true
