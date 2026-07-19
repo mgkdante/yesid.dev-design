@@ -163,6 +163,9 @@ describe('public symbol safety', () => {
 	it.each([
 		[{ ...base, name: '_resetForTests' }, '_resetForTests uses a test/internal public name'],
 		[{ ...base, name: 'resetForTests' }, 'resetForTests uses a test/internal public name'],
+		[{ ...base, name: 'testHelper' }, 'testHelper uses a test/internal public name'],
+		[{ ...base, name: 'internalHelper' }, 'internalHelper uses a test/internal public name'],
+		[{ ...base, name: 'buildTestOnly' }, 'buildTestOnly uses a test/internal public name'],
 		[{ ...base, name: 'subscribe', releaseTag: 'internal' }, 'subscribe is marked @internal'],
 	] as const)('rejects unsafe symbol %#', (symbol, expected) => {
 		expect(() => validatePublicSymbols([symbol])).toThrow(expected);
