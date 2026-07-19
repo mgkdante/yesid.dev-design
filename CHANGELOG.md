@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+<!-- release-fragment: reduced-motion-resubscribe -->
+- `@yesid/motion` (patch): Refresh the OS reduced-motion preference when the store gains its first subscriber so preference changes while idle never leave later consumers with a stale animation policy.
+
 ## 0.7.0
 
 <!-- release-fragment: u1-package-contracts -->
