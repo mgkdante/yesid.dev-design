@@ -11,5 +11,5 @@
     "target": "ES2022",
     "types": ["node"]
   },
-  "include": ["tools/build-tokens.ts"]
+  "include": ["tools/**/*.ts"]
 }

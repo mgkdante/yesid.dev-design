@@ -4,7 +4,7 @@ Use this checklist in the new product:
 
 - [ ] Start from Bun, SvelteKit, Svelte 5, and Tailwind CSS v4.
 - [ ] Pick and record one exact `yesid.dev-design` tag.
-- [ ] Copy `tools/adopt.ts` from that tag and vendor `tokens,motion,gates,ui`.
+- [ ] Bootstrap the complete adoption tool bundle from that tag and vendor `tokens,motion,gates,ui`.
 - [ ] Add the four vendored packages to `package.json` and run `bun install`.
 - [ ] Add the thin token build script, generate `tokens.css`, and wire the `@theme` sentinel.
 - [ ] Load Inter Variable and JetBrains Mono Variable.
@@ -27,23 +27,23 @@ Create the SvelteKit app first. Confirm its normal test, check, and build comman
 
 ## 2. Vendor one exact tag
 
-Choose the newest tag you have reviewed from the [GitHub tags page](https://github.com/mgkdante/yesid.dev-design/tags). Do not resolve a floating `latest` value in CI.
+Choose the newest immutable release tag you have reviewed from the [GitHub releases page](https://github.com/mgkdante/yesid.dev-design/releases). Do not resolve a floating `latest` value in CI. The first adoption needs a reviewed copy of both `tools/adopt.ts` and `tools/adopt/`; the entrypoint is deliberately small and does not duplicate its acquisition, payload, contract, or transaction domains.
 
 ```sh
 export YESID_DESIGN_TAG=vX.Y.Z
-mkdir -p tools
-curl -fsSL "https://raw.githubusercontent.com/mgkdante/yesid.dev-design/${YESID_DESIGN_TAG}/tools/adopt.ts" \
-  -o tools/adopt.ts
-bun tools/adopt.ts \
+git clone --depth 1 --branch "$YESID_DESIGN_TAG" \
+  https://github.com/mgkdante/yesid.dev-design .yesid-design-bootstrap
+bun .yesid-design-bootstrap/tools/adopt.ts \
   --tag "$YESID_DESIGN_TAG" \
   --packages tokens,motion,gates,ui \
   --dest vendor/design
-bun tools/adopt.ts --check --dest vendor/design
+bun vendor/design/tools/adopt.ts --check --dest vendor/design
+rm -rf .yesid-design-bootstrap
 ```
 
-The tool shallow-clones the public repository at that tag. It needs no GitHub token. It copies runtime source and package metadata, excludes tests and repo-only files, rewrites internal workspace links, copies the license, and writes `vendor/design/manifest.json`.
+Production mode does not trust the checkout as payload. It verifies the fixed public repository identity, an exact published immutable Release, its one canonical asset and SHA-256 digest, the annotated tag object and peeled commit, and the receipt embedded in the bounded POSIX ustar archive. It then stages the selected runtime closure beside the destination, self-vendors the complete adoption tool, rewrites valid internal workspace links, writes the deterministic schema-2 manifest, and atomically swaps only after verification. It needs no GitHub token for the public repository.
 
-For local package development, add `--source /absolute/path/to/yesid.dev-design`. Local mode records that checkout's current commit and hashes its current package files. It does not prove that `--tag` points at the same tree.
+For local package development, add `--source /absolute/path/to/yesid.dev-design`. Source mode requires a clean checkout whose `HEAD` is the peeled commit of an annotated tag, then installs an owned snapshot materialized from that Git object. `--archive /absolute/path/to/release.tar` is the network-free archive mode. Both are explicit development modes and never claim immutable-Release asset provenance.
 
 Add the vendored packages to the product's `package.json`:
 
@@ -328,7 +328,7 @@ of relying on the neutral default.
 Run these commands in CI:
 
 ```sh
-bun tools/adopt.ts --check --dest vendor/design
+bun vendor/design/tools/adopt.ts --check --dest vendor/design
 bun tools/build-design-tokens.ts
 git diff --exit-code src/lib/styles/tokens.css src/app.css
 bun x vitest run
@@ -349,9 +349,9 @@ A brand change follows one direction:
 1. Edit `packages/tokens/tokens.json` in `yesid.dev-design`.
 2. Regenerate and verify the upstream outputs.
 3. Create a new annotated `vX.Y.Z` tag.
-4. Change the consumer's one exact tag pin and rerun `tools/adopt.ts`.
+4. Bootstrap the complete tool bundle from the reviewed next tag and rerun it against the same destination. Do not execute the entrypoint from inside the destination while replacing that destination.
 5. Run `tools/build-design-tokens.ts` in the consumer.
 6. Review the vendored and generated changes together.
-7. Run `--check`, tests, typecheck, gates, and the production build.
+7. Run the newly vendored `tools/adopt.ts --check`, tests, typecheck, gates, and the production build.
 
 Never use `^`, `~`, a branch, or a floating tag. Never hand-edit `vendor/design`. Upstream the change, tag it, and let each consumer choose when to take the bump. npm publication may be added later, but it does not change this pin and cascade rule.
