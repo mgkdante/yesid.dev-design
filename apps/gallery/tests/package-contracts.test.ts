@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +14,7 @@ type PackageManifest = {
 	sideEffects?: unknown;
 	svelte?: unknown;
 	exports?: Record<string, PackageExport>;
+	scripts?: Record<string, string>;
 };
 
 type ReleasedPackageName =
@@ -29,6 +31,7 @@ const RELEASED_MANIFESTS: ReadonlySet<ReleasedPackageName> = new Set([
 ]);
 
 const ROOT_MANIFEST_URL = new URL('../../../package.json', import.meta.url);
+const REPOSITORY_PATH = fileURLToPath(new URL('../../../', import.meta.url));
 const GALLERY_MANIFEST_URL = new URL('../package.json', import.meta.url);
 const RELEASED_MANIFEST_URLS: Record<ReleasedPackageName, URL> = {
 	'@yesid/tokens': new URL('../../../packages/tokens/package.json', import.meta.url),
@@ -221,6 +224,35 @@ describe('prospective package release contract', () => {
 		expect(galleryManifest.private).toBe(true);
 		expect(isReleasedManifestName(galleryManifest.name)).toBe(false);
 	});
+});
+
+describe('browser authority script contract', () => {
+	const rootManifest = readManifest(ROOT_MANIFEST_URL);
+
+	it('delegates root browser commands through Bun run in the Gallery workspace', () => {
+		expect(rootManifest.scripts?.['test:browser']).toBe(
+			'bun run --cwd apps/gallery test:browser',
+		);
+		expect(rootManifest.scripts?.['browser:install']).toBe(
+			'bun run --cwd apps/gallery browser:install',
+		);
+	});
+
+	it(
+		'discovers the complete browser matrix through the root command',
+		() => {
+			const result = spawnSync('bun', ['run', 'test:browser', '--', '--list'], {
+				cwd: REPOSITORY_PATH,
+				encoding: 'utf8',
+				timeout: 30_000,
+			});
+			const output = `${result.stdout}\n${result.stderr}`;
+
+			expect(result.status, output).toBe(0);
+			expect(output).toMatch(/Total: 14 tests in 4 files/);
+		},
+		30_000,
+	);
 });
 
 describe('conditioned package export contract', () => {
