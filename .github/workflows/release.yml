@@ -142,6 +142,10 @@ jobs:
               echo "::error::existing release $RELEASE_TAG is not a published immutable release"
               exit 1
             fi
+            if [[ "$RELEASE_MODE" == "recover-first-publication" ]]; then
+              echo "::error::first-publication recovery requires the Release to be absent"
+              exit 1
+            fi
             echo "exists=true" >>"$GITHUB_OUTPUT"
           elif grep -q 'HTTP 404' "$release_error"; then
             if [[ "$RELEASE_MODE" != "publish" && "$RELEASE_MODE" != "recover-first-publication" ]]; then

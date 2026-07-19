@@ -231,6 +231,15 @@ describe('distribution workflow trust root', () => {
 		);
 
 		const steps = workflowSteps(workflow);
+		const releaseState = steps.find((step) =>
+			/^\s*-\s+name:\s*Detect exact-tag release state\s*$/mu.test(step),
+		);
+		expect(releaseState, 'release-state detection must reject recovery after publication').toBeDefined();
+		const recoveryAfterPublication =
+			releaseState?.indexOf('if [[ "$RELEASE_MODE" == "recover-first-publication" ]]') ?? -1;
+		const existingReleaseOutput = releaseState?.indexOf('echo "exists=true"') ?? -1;
+		expect(recoveryAfterPublication).toBeGreaterThanOrEqual(0);
+		expect(existingReleaseOutput).toBeGreaterThan(recoveryAfterPublication);
 		for (const command of ['gh release create', 'gh release upload', 'gh release edit']) {
 			const step = steps.find((candidate) => candidate.includes(command));
 			expect(step, `${command} must have one explicit first-publication gate`).toBeDefined();
