@@ -27,6 +27,8 @@ function write(path: string, content: string): void {
 
 function makeSource(root: string): void {
 	write(join(root, 'LICENSE'), 'test license\n');
+	write(join(root, 'tools', 'adopt.ts'), "export * from './adopt/runtime.js';\n");
+	write(join(root, 'tools', 'adopt', 'runtime.ts'), "export const schema = 2;\n");
 	for (const name of ['tokens', 'motion', 'gates', 'ui']) {
 		const dependencies = name === 'ui' ? { '@yesid/motion': 'workspace:*' } : undefined;
 		const exports = {
@@ -76,11 +78,35 @@ describe('adoptFromSource', () => {
 			commit: '0123456789abcdef0123456789abcdef01234567',
 		});
 
-		expect(manifest.tag).toBe('v9.8.7');
-		expect(manifest.commit).toBe('0123456789abcdef0123456789abcdef01234567');
-		expect(manifest.treeHash).toMatch(/^[0-9a-f]{64}$/);
+		expect(Object.keys(manifest)).toEqual([
+			'schema',
+			'repository',
+			'provenance',
+			'packages',
+			'exclusionPolicyDigest',
+			'toolDigest',
+			'treeHash',
+		]);
+		expect(manifest).toMatchObject({
+			schema: 2,
+			repository: 'github.com/mgkdante/yesid.dev-design',
+			provenance: {
+				mode: 'worktree',
+				tag: {
+					name: 'v9.8.7',
+					object: '0123456789abcdef0123456789abcdef01234567',
+					peeledCommit: '0123456789abcdef0123456789abcdef01234567',
+				},
+				asset: null,
+			},
+		});
+		expect(manifest.exclusionPolicyDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
+		expect(manifest.toolDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
+		expect(manifest.treeHash).toMatch(/^sha256:[0-9a-f]{64}$/);
 		expect(manifest.packages).toEqual(['tokens', 'motion', 'gates', 'ui']);
 		expect(readFileSync(join(dest, 'LICENSE'), 'utf-8')).toBe('test license\n');
+		expect(readFileSync(join(dest, 'tools', 'adopt.ts'), 'utf-8')).toContain("./adopt/runtime.js");
+		expect(existsSync(join(dest, 'tools', 'adopt', 'runtime.ts'))).toBe(true);
 		expect(existsSync(join(dest, 'ui', 'src', 'runtime.ts'))).toBe(true);
 		expect(existsSync(join(dest, 'ui', 'src', 'runtime.test.ts'))).toBe(false);
 		expect(existsSync(join(dest, 'ui', 'src', '__tests__', 'hidden.ts'))).toBe(false);
