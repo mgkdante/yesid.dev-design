@@ -59,6 +59,21 @@ describe('prefersReducedMotion store', () => {
 		unsub();
 		expect(mql.removeEventListener).toHaveBeenCalledWith('change', expect.any(Function));
 	});
+
+	it('refreshes the OS preference when the first subscriber returns', async () => {
+		const mql = mockMatchMedia(false);
+		vi.resetModules();
+		const { prefersReducedMotion } = await import('./reducedMotion.js');
+
+		const first = prefersReducedMotion.subscribe(() => {});
+		first();
+		mql.matches = true;
+
+		const values: boolean[] = [];
+		const second = prefersReducedMotion.subscribe((value) => values.push(value));
+		expect(values.at(-1)).toBe(true);
+		second();
+	});
 });
 
 describe('isPrefersReducedMotion helper', () => {
