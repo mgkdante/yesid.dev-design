@@ -1,16 +1,6 @@
 #!/usr/bin/env bun
 
-import {
-	copyFileSync,
-	existsSync,
-	lstatSync,
-	mkdirSync,
-	readFileSync,
-	readdirSync,
-	writeFileSync,
-} from 'node:fs';
-import { homedir } from 'node:os';
-import { dirname, join, parse as parsePath, relative, resolve, sep } from 'node:path';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
 	acquireArchive,
@@ -19,26 +9,21 @@ import {
 } from './adopt/acquisition.js';
 import {
 	MANIFEST_SCHEMA,
-	PACKAGE_EXCLUDE,
 	PACKAGE_NAMES,
-	REPOSITORY_ID,
-	WORKTREE_EXCLUDE,
 	assertTag,
-	exclusionPolicyDigest,
-	parseManifest,
 	parsePackages,
-	parseProvenance,
-	pathInside,
-	toolDigest,
 	treeHash,
 	type AdoptManifest,
-	type AdoptProvenance,
 	type PackageName,
 } from './adopt/contract.js';
 import {
+	adoptFromSource,
+	checkAdoption,
+	type AdoptFromSourceOptions,
+} from './adopt/payload.js';
+import {
 	ADOPT_EXIT,
 	AdoptError,
-	installAdoption,
 	type AdoptResult,
 	type AdoptRuntime,
 } from './adopt/transaction.js';
@@ -59,14 +44,7 @@ export {
 	type AdoptRuntime,
 	type AdoptTransactionPaths,
 } from './adopt/transaction.js';
-
-export interface AdoptFromSourceOptions {
-	source: string;
-	dest: string;
-	packages: PackageName[];
-	provenance: AdoptProvenance;
-	runtime?: AdoptRuntime;
-}
+export { adoptFromSource, checkAdoption, type AdoptFromSourceOptions } from './adopt/payload.js';
 
 export type ParsedArgs =
 	| { mode: 'help' }
@@ -136,182 +114,6 @@ export function parseArgs(argv: string[]): ParsedArgs {
 	return parsed;
 }
 
-function assertSafeDestination(dest: string, source?: string): void {
-	const resolvedDest = resolve(dest);
-	const forbidden = new Set([parsePath(resolvedDest).root, resolve(process.cwd()), resolve(homedir())]);
-	if (forbidden.has(resolvedDest)) {
-		throw new Error(`refusing unsafe destination ${resolvedDest}`);
-	}
-	if (source) {
-		const resolvedSource = resolve(source);
-		if (pathInside(resolvedDest, resolvedSource) || pathInside(resolvedSource, resolvedDest)) {
-			throw new Error('destination and source must not contain one another');
-		}
-	}
-}
-
-function assertReplaceableDestination(dest: string): void {
-	if (!existsSync(dest)) return;
-	if (!lstatSync(dest).isDirectory()) {
-		throw new Error(`refusing to replace a non-adoption destination at ${dest}`);
-	}
-	if (readdirSync(dest).length === 0) return;
-	try {
-		readManifest(dest);
-	} catch (error) {
-		const detail = error instanceof Error ? error.message : String(error);
-		throw new Error(
-			`refusing to replace a non-adoption destination at ${dest}; ` +
-				`expected an empty directory or a valid yesid.dev-design manifest (${detail})`,
-		);
-	}
-}
-
-function normalizedRelative(root: string, path: string): string {
-	return relative(root, path).split(sep).join('/');
-}
-
-function walkSourceFiles(root: string, current = root, out: string[] = []): string[] {
-	for (const entry of readdirSync(current).sort()) {
-		const path = join(current, entry);
-		const rel = normalizedRelative(root, path);
-		if (WORKTREE_EXCLUDE.test(rel)) continue;
-		const stat = lstatSync(path);
-		if (stat.isSymbolicLink()) throw new Error(`refusing symbolic link ${path}`);
-		if (stat.isDirectory()) walkSourceFiles(root, path, out);
-		else if (stat.isFile()) out.push(path);
-	}
-	return out;
-}
-
-function readPackageJson(path: string): Record<string, unknown> {
-	try {
-		return JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>;
-	} catch (error) {
-		throw new Error(`cannot read ${path}: ${error instanceof Error ? error.message : String(error)}`);
-	}
-}
-
-function internalWorkspaceDependencies(packageJson: Record<string, unknown>): PackageName[] {
-	const found = new Set<PackageName>();
-	for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
-		const dependencies = packageJson[field];
-		if (!dependencies || typeof dependencies !== 'object') continue;
-		for (const [name, version] of Object.entries(dependencies)) {
-			if (!name.startsWith('@yesid/') || version !== 'workspace:*') continue;
-			const sibling = name.slice('@yesid/'.length);
-			if (!PACKAGE_NAMES.includes(sibling as PackageName)) {
-				throw new Error(`cannot vendor unresolved workspace dependency ${name}`);
-			}
-			found.add(sibling as PackageName);
-		}
-	}
-	return [...found];
-}
-
-function validatePackageClosure(source: string, packages: PackageName[]): void {
-	for (const name of packages) {
-		const packageJsonPath = join(source, 'packages', name, 'package.json');
-		if (!existsSync(packageJsonPath)) throw new Error(`package ${name} not found at ${packageJsonPath}`);
-		for (const sibling of internalWorkspaceDependencies(readPackageJson(packageJsonPath))) {
-			if (!packages.includes(sibling)) {
-				throw new Error(`${name} requires ${sibling}; include both packages`);
-			}
-		}
-	}
-}
-
-function copyPackage(source: string, dest: string): void {
-	mkdirSync(dest, { recursive: true });
-	for (const path of walkSourceFiles(source)) {
-		const rel = normalizedRelative(source, path);
-		if (PACKAGE_EXCLUDE.test(rel)) continue;
-		const target = join(dest, ...rel.split('/'));
-		mkdirSync(dirname(target), { recursive: true });
-		copyFileSync(path, target);
-	}
-}
-
-function copyToolBundle(source: string, dest: string): void {
-	const toolRoot = join(source, 'tools');
-	const entrypoint = join(toolRoot, 'adopt.ts');
-	const moduleRoot = join(toolRoot, 'adopt');
-	if (!existsSync(entrypoint) || !existsSync(moduleRoot)) {
-		throw new Error(`self-vendored adopt tool is incomplete under ${toolRoot}`);
-	}
-	const files = [entrypoint, ...walkSourceFiles(moduleRoot)];
-	for (const path of files) {
-		const rel = normalizedRelative(source, path);
-		const target = join(dest, ...rel.split('/'));
-		mkdirSync(dirname(target), { recursive: true });
-		copyFileSync(path, target);
-	}
-}
-
-function rewriteInternalWorkspaceDependencies(packageRoot: string): void {
-	const packageJsonPath = join(packageRoot, 'package.json');
-	const source = readFileSync(packageJsonPath, 'utf-8');
-	const rewritten = source.replace(
-		/("@yesid\/([^"]+)"\s*:\s*)"workspace:\*"/g,
-		(_match, prefix: string, sibling: string) => `${prefix}"file:../${sibling}"`,
-	);
-	if (rewritten !== source) writeFileSync(packageJsonPath, rewritten, 'utf-8');
-}
-
-export function adoptFromSource(options: AdoptFromSourceOptions): AdoptResult {
-	const source = resolve(options.source);
-	const dest = resolve(options.dest);
-	const provenance = parseProvenance(options.provenance, 'adoption source');
-	assertSafeDestination(dest, source);
-	assertReplaceableDestination(dest);
-	validatePackageClosure(source, options.packages);
-	const license = join(source, 'LICENSE');
-	if (!existsSync(license)) throw new Error(`LICENSE not found at ${license}`);
-
-	return installAdoption(
-		{
-			dest,
-			build(stage) {
-				copyFileSync(license, join(stage, 'LICENSE'));
-				copyToolBundle(source, stage);
-				for (const name of options.packages) {
-					const packageDest = join(stage, name);
-					copyPackage(join(source, 'packages', name), packageDest);
-					rewriteInternalWorkspaceDependencies(packageDest);
-				}
-				const manifest: AdoptManifest = {
-					schema: MANIFEST_SCHEMA,
-					repository: REPOSITORY_ID,
-				provenance: {
-					mode: provenance.mode,
-					tag: { ...provenance.tag },
-					asset: provenance.asset ? { ...provenance.asset } : null,
-				},
-					packages: [...options.packages],
-					exclusionPolicyDigest: exclusionPolicyDigest(),
-					toolDigest: toolDigest(stage),
-					treeHash: treeHash(stage),
-				};
-				writeFileSync(
-					join(stage, 'manifest.json'),
-					`${JSON.stringify(manifest, null, '\t')}\n`,
-					'utf-8',
-				);
-				return manifest;
-			},
-			inspect: checkAdoption,
-			recognize(path) {
-				try {
-					readManifest(path);
-					return true;
-				} catch {
-					return false;
-				}
-			},
-		},
-		options.runtime,
-	);
-}
 
 export async function adopt(
 	options: Extract<ParsedArgs, { mode: 'adopt' }>,
@@ -344,33 +146,6 @@ export async function adopt(
 			{ cause: error },
 		);
 	}
-}
-
-function readManifest(dest: string): AdoptManifest {
-	const path = join(dest, 'manifest.json');
-	if (!existsSync(path)) throw new Error(`no manifest at ${path}`);
-	return parseManifest(readPackageJson(path), path);
-}
-
-export function checkAdoption(destInput: string): AdoptManifest {
-	const dest = resolve(destInput);
-	assertSafeDestination(dest);
-	const manifest = readManifest(dest);
-	const actualToolDigest = toolDigest(dest);
-	if (actualToolDigest !== manifest.toolDigest) {
-		throw new Error(`adopt tool digest mismatch in ${dest}`);
-	}
-	if (manifest.exclusionPolicyDigest !== exclusionPolicyDigest()) {
-		throw new Error(`adoption exclusion policy differs from this tool`);
-	}
-	const actual = treeHash(dest);
-	if (actual !== manifest.treeHash) {
-		throw new Error(
-			`vendor tree hash mismatch\n  manifest: ${manifest.treeHash}\n  actual:   ${actual}\n` +
-				'Vendored design files changed after adoption. Upstream the change and bump the pinned tag.',
-		);
-	}
-	return manifest;
 }
 
 function usage(): string {
