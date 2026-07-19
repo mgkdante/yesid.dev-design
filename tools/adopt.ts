@@ -329,41 +329,56 @@ function readCommit(source: string): string {
 	return commit;
 }
 
-export function adopt(options: Extract<ParsedArgs, { mode: 'adopt' }>): AdoptResult {
-	const dest = resolve(options.dest);
-	if (options.source) {
-		const source = resolve(options.source);
-		return adoptFromSource({
-			source,
-			dest,
-			tag: options.tag,
-			packages: options.packages,
-			commit: readCommit(source),
-		});
-	}
-
-	const cloneRoot = mkdtempSync(join(tmpdir(), 'yesid-adopt-source-'));
-	const source = join(cloneRoot, 'yesid.dev-design');
+export function adopt(
+	options: Extract<ParsedArgs, { mode: 'adopt' }>,
+	runtime: AdoptRuntime = {},
+): AdoptResult {
 	try {
-		runGit([
-			'clone',
-			'--depth',
-			'1',
-			'--single-branch',
-			'--branch',
-			options.tag,
-			DESIGN_REPO_URL,
-			source,
-		]);
-		return adoptFromSource({
-			source,
-			dest,
-			tag: options.tag,
-			packages: options.packages,
-			commit: readCommit(source),
-		});
-	} finally {
-		rmSync(cloneRoot, { recursive: true, force: true });
+		const dest = resolve(options.dest);
+		if (options.source) {
+			const source = resolve(options.source);
+			return adoptFromSource({
+				source,
+				dest,
+				tag: options.tag,
+				packages: options.packages,
+				commit: readCommit(source),
+				runtime,
+			});
+		}
+
+		const cloneRoot = mkdtempSync(join(tmpdir(), 'yesid-adopt-source-'));
+		const source = join(cloneRoot, 'yesid.dev-design');
+		try {
+			runGit([
+				'clone',
+				'--depth',
+				'1',
+				'--single-branch',
+				'--branch',
+				options.tag,
+				DESIGN_REPO_URL,
+				source,
+			]);
+			return adoptFromSource({
+				source,
+				dest,
+				tag: options.tag,
+				packages: options.packages,
+				commit: readCommit(source),
+				runtime,
+			});
+		} finally {
+			rmSync(cloneRoot, { recursive: true, force: true });
+		}
+	} catch (error) {
+		if (error instanceof AdoptError) throw error;
+		const detail = error instanceof Error ? error.message : String(error);
+		throw new AdoptError(
+			ADOPT_EXIT.PRECONDITION,
+			`adoption precondition failed: ${detail}`,
+			{ cause: error },
+		);
 	}
 }
 
@@ -403,21 +418,33 @@ function usage(): string {
 	].join('\n');
 }
 
-export function main(argv = process.argv.slice(2)): number {
+export function main(argv = process.argv.slice(2), runtime: AdoptRuntime = {}): number {
+	let args: ParsedArgs;
 	try {
-		const args = parseArgs(argv);
-		if (args.mode === 'help') {
-			console.log(usage());
-			return 0;
-		}
-		if (args.mode === 'check') {
+		args = parseArgs(argv);
+	} catch (error) {
+		console.error(`✗ ${error instanceof Error ? error.message : String(error)}`);
+		console.error(usage());
+		return ADOPT_EXIT.USAGE;
+	}
+	if (args.mode === 'help') {
+		console.log(usage());
+		return ADOPT_EXIT.OK;
+	}
+	if (args.mode === 'check') {
+		try {
 			const manifest = checkAdoption(args.dest);
 			console.log(
 				`✓ ${args.dest} matches ${manifest.provenance.tag.name} @ ${manifest.provenance.tag.peeledCommit.slice(0, 9)}`,
 			);
-			return 0;
+			return ADOPT_EXIT.OK;
+		} catch (error) {
+			console.error(`✗ ${error instanceof Error ? error.message : String(error)}`);
+			return ADOPT_EXIT.CHECK_FAILED;
 		}
-		const result = adopt(args);
+	}
+	try {
+		const result = adopt(args, runtime);
 		const { manifest } = result;
 		if (args.source) {
 			console.log('i local --source mode records the current checkout; verify the tag separately before release');
@@ -427,11 +454,10 @@ export function main(argv = process.argv.slice(2)): number {
 		);
 		console.log(`  treeHash ${manifest.treeHash}`);
 		if (result.outcome === 'noop') console.log('= unchanged');
-		return 0;
+		return ADOPT_EXIT.OK;
 	} catch (error) {
 		console.error(`✗ ${error instanceof Error ? error.message : String(error)}`);
 		if (error instanceof AdoptError) return error.code;
-		console.error(usage());
 		return ADOPT_EXIT.INTERNAL;
 	}
 }
