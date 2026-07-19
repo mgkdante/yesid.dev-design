@@ -4,6 +4,7 @@ import {
 	existsSync,
 	fsyncSync,
 	linkSync,
+	lstatSync,
 	mkdirSync,
 	openSync,
 	readFileSync,
@@ -44,19 +45,25 @@ export class AdoptError extends Error {
 }
 
 export type AdoptCheckpoint =
+	| 'lock.reclaim.guard.acquired'
 	| 'lock.acquired'
 	| 'recovery.checked'
+	| 'stage.durable'
 	| 'stage.ready'
 	| 'noop'
 	| 'backup.durable'
 	| 'destination.installed'
 	| 'postverify.passed'
+	| 'commit.durable'
+	| 'tombstone.cleanup'
 	| 'rollback.started';
 
 export interface AdoptTransactionPaths {
 	dest: string;
 	lock: string;
+	reclaim: string;
 	backup: string;
+	tombstone: string;
 	stage: string;
 }
 
@@ -78,6 +85,10 @@ interface LockOwner {
 	startedAt: string;
 }
 
+interface LockAcquisition {
+	reclaimedTokens: string[];
+}
+
 interface InstallOptions {
 	dest: string;
 	build(stage: string): AdoptManifest;
@@ -93,6 +104,27 @@ function syncDirectory(path: string): void {
 	} finally {
 		closeSync(descriptor);
 	}
+}
+
+function syncFile(path: string): void {
+	const descriptor = openSync(path, 'r');
+	try {
+		fsyncSync(descriptor);
+	} finally {
+		closeSync(descriptor);
+	}
+}
+
+function syncTree(path: string): void {
+	const stat = lstatSync(path);
+	if (stat.isSymbolicLink()) throw new Error(`refusing to sync symbolic link ${path}`);
+	if (stat.isFile()) {
+		syncFile(path);
+		return;
+	}
+	if (!stat.isDirectory()) throw new Error(`refusing to sync non-regular entry ${path}`);
+	for (const entry of readdirSync(path)) syncTree(join(path, entry));
+	syncDirectory(path);
 }
 
 function writeDurably(path: string, content: string): void {
@@ -112,10 +144,14 @@ function transactionPaths(destInput: string, token: string): AdoptTransactionPat
 	return {
 		dest,
 		lock: join(parent, `${prefix}.lock`),
+		reclaim: join(parent, `${prefix}.lock.reclaim`),
 		backup: join(parent, `${prefix}.backup`),
+		tombstone: join(parent, `${prefix}.tombstone-${token}`),
 		stage: join(parent, `${prefix}.stage-${token}`),
 	};
 }
+
+const TOKEN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function parseLock(path: string): LockOwner {
 	let value: unknown;
@@ -133,6 +169,7 @@ function parseLock(path: string): LockOwner {
 	if (
 		owner.schema !== 1 ||
 		typeof owner.token !== 'string' ||
+		!TOKEN.test(owner.token) ||
 		!Number.isSafeInteger(owner.pid) ||
 		(owner.pid ?? 0) <= 0 ||
 		typeof owner.hostname !== 'string' ||
@@ -160,7 +197,92 @@ function createLockCandidate(path: string, owner: LockOwner): void {
 	writeDurably(path, `${JSON.stringify(owner)}\n`);
 }
 
-function acquireLock(paths: AdoptTransactionPaths, token: string): LockOwner {
+function assertLockDestination(owner: LockOwner, paths: AdoptTransactionPaths, path: string): void {
+	if (owner.dest !== paths.dest) {
+		throw new AdoptError(
+			ADOPT_EXIT.RECOVERY_REQUIRED,
+			`adoption lock destination mismatch at ${path}`,
+		);
+	}
+}
+
+function lockIsActive(owner: LockOwner): boolean {
+	return owner.hostname !== hostname() || processIsAlive(owner.pid);
+}
+
+function parseReclaimGuard(path: string): LockOwner {
+	if (!lstatSync(path).isFile()) {
+		throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, `malformed reclaim guard at ${path}`);
+	}
+	return parseLock(path);
+}
+
+function acquireReclaimGuard(
+	paths: AdoptTransactionPaths,
+	owner: LockOwner,
+	candidate: string,
+): void {
+	for (;;) {
+		try {
+			linkSync(candidate, paths.reclaim);
+			syncDirectory(dirname(paths.reclaim));
+			return;
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+		}
+
+		const current = parseReclaimGuard(paths.reclaim);
+		assertLockDestination(current, paths, paths.reclaim);
+		if (lockIsActive(current)) {
+			throw new AdoptError(
+				ADOPT_EXIT.LOCKED,
+				`adoption lock reclamation is already running for ${paths.dest}`,
+			);
+		}
+
+		const stale = `${paths.reclaim}.stale-${current.token}`;
+		if (existsSync(stale)) {
+			throw new AdoptError(
+				ADOPT_EXIT.RECOVERY_REQUIRED,
+				`stale reclaim guard requires manual recovery at ${stale}`,
+			);
+		}
+		try {
+			renameSync(paths.reclaim, stale);
+			syncDirectory(dirname(paths.reclaim));
+		} catch (moveError) {
+			if (!existsSync(paths.reclaim)) continue;
+			const latest = parseReclaimGuard(paths.reclaim);
+			assertLockDestination(latest, paths, paths.reclaim);
+			if (lockIsActive(latest)) {
+				throw new AdoptError(
+					ADOPT_EXIT.LOCKED,
+					`adoption lock reclamation is already running for ${paths.dest}`,
+				);
+			}
+			throw moveError;
+		}
+	}
+}
+
+function releaseReclaimGuard(paths: AdoptTransactionPaths, token: string): void {
+	if (!existsSync(paths.reclaim)) return;
+	const owner = parseReclaimGuard(paths.reclaim);
+	if (owner.token !== token) {
+		throw new AdoptError(
+			ADOPT_EXIT.RECOVERY_REQUIRED,
+			`reclaim guard ownership changed at ${paths.reclaim}`,
+		);
+	}
+	unlinkSync(paths.reclaim);
+	syncDirectory(dirname(paths.reclaim));
+}
+
+function acquireLock(
+	paths: AdoptTransactionPaths,
+	token: string,
+	runtime: AdoptRuntime,
+): LockAcquisition {
 	const candidate = `${paths.lock}.candidate-${token}`;
 	const owner: LockOwner = {
 		schema: 1,
@@ -171,40 +293,41 @@ function acquireLock(paths: AdoptTransactionPaths, token: string): LockOwner {
 		startedAt: new Date().toISOString(),
 	};
 	createLockCandidate(candidate, owner);
+	let guardAcquired = false;
+	let lockAcquired = false;
 	try {
-		for (;;) {
-			try {
-				linkSync(candidate, paths.lock);
-				unlinkSync(candidate);
-				syncDirectory(dirname(paths.lock));
-				return owner;
-			} catch (error) {
-				if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-				const current = parseLock(paths.lock);
-				if (current.dest !== paths.dest) {
-					throw new AdoptError(
-						ADOPT_EXIT.RECOVERY_REQUIRED,
-						`adoption lock destination mismatch at ${paths.lock}`,
-					);
-				}
-				if (current.hostname !== hostname() || processIsAlive(current.pid)) {
-					throw new AdoptError(
-						ADOPT_EXIT.LOCKED,
-						`adoption is already running for ${paths.dest} (pid ${current.pid} on ${current.hostname})`,
-					);
-				}
-				const stale = `${paths.lock}.stale-${current.token}`;
-				try {
-					renameSync(paths.lock, stale);
-				} catch (moveError) {
-					if (!existsSync(paths.lock)) continue;
-					throw moveError;
-				}
-				rmSync(stale, { force: true });
+		acquireReclaimGuard(paths, owner, candidate);
+		guardAcquired = true;
+		runtime.checkpoint?.('lock.reclaim.guard.acquired', paths);
+		const reclaimedTokens: string[] = [];
+		if (existsSync(paths.lock)) {
+			const current = parseLock(paths.lock);
+			assertLockDestination(current, paths, paths.lock);
+			if (lockIsActive(current)) {
+				throw new AdoptError(
+					ADOPT_EXIT.LOCKED,
+					`adoption is already running for ${paths.dest} (pid ${current.pid} on ${current.hostname})`,
+				);
 			}
+			unlinkSync(paths.lock);
+			syncDirectory(dirname(paths.lock));
+			reclaimedTokens.push(current.token);
 		}
+		linkSync(candidate, paths.lock);
+		lockAcquired = true;
+		unlinkSync(candidate);
+		syncDirectory(dirname(paths.lock));
+		return { reclaimedTokens };
 	} finally {
 		if (existsSync(candidate)) rmSync(candidate, { force: true });
+		if (guardAcquired) {
+			try {
+				releaseReclaimGuard(paths, token);
+			} catch (error) {
+				if (lockAcquired) releaseLock(paths.lock, token);
+				throw error;
+			}
+		}
 	}
 }
 
@@ -226,20 +349,70 @@ function isRecognized(path: string, recognize: (path: string) => boolean): boole
 	return isEmptyDirectory(path) || recognize(path);
 }
 
-function removeStaleStages(paths: AdoptTransactionPaths): void {
-	const parent = dirname(paths.dest);
-	const prefix = `.${basename(paths.dest)}.yesid-adopt.stage-`;
-	for (const entry of readdirSync(parent)) {
-		if (!entry.startsWith(prefix)) continue;
-		const path = join(parent, entry);
-		if (path !== paths.stage) rmSync(path, { recursive: true, force: true });
+function removeStaleStages(paths: AdoptTransactionPaths, reclaimedTokens: readonly string[]): void {
+	let changed = false;
+	for (const token of new Set(reclaimedTokens)) {
+		const path = transactionPaths(paths.dest, token).stage;
+		if (!existsSync(path)) continue;
+		if (!lstatSync(path).isDirectory()) {
+			throw new AdoptError(
+				ADOPT_EXIT.RECOVERY_REQUIRED,
+				`stale transaction stage is not a directory at ${path}`,
+			);
+		}
+		rmSync(path, { recursive: true });
+		changed = true;
 	}
+	if (changed) syncDirectory(dirname(paths.dest));
+}
+
+function tombstones(paths: AdoptTransactionPaths): string[] {
+	const parent = dirname(paths.dest);
+	const prefix = `.${basename(paths.dest)}.yesid-adopt.tombstone-`;
+	return readdirSync(parent)
+		.filter((entry) => entry.startsWith(prefix) && TOKEN.test(entry.slice(prefix.length)))
+		.map((entry) => join(parent, entry));
+}
+
+function cleanupTombstone(
+	paths: AdoptTransactionPaths,
+	tombstone: string,
+	runtime: AdoptRuntime,
+): void {
+	try {
+		runtime.checkpoint?.('tombstone.cleanup', { ...paths, tombstone });
+		rmSync(tombstone, { recursive: true, force: true });
+		syncDirectory(dirname(paths.dest));
+	} catch {
+		// A committed destination does not depend on retired backup cleanup.
+	}
+}
+
+function removeCommittedTombstones(
+	paths: AdoptTransactionPaths,
+	inspect: (path: string) => AdoptManifest,
+	runtime: AdoptRuntime,
+): void {
+	const found = tombstones(paths);
+	if (found.length === 0) return;
+	try {
+		inspect(paths.dest);
+	} catch (error) {
+		throw new AdoptError(
+			ADOPT_EXIT.RECOVERY_REQUIRED,
+			`cannot clean committed tombstones while destination is invalid at ${paths.dest}`,
+			{ cause: error },
+		);
+	}
+	for (const tombstone of found) cleanupTombstone(paths, tombstone, runtime);
 }
 
 function recover(
 	paths: AdoptTransactionPaths,
 	inspect: (path: string) => AdoptManifest,
 	recognize: (path: string) => boolean,
+	reclaimedTokens: readonly string[],
+	runtime: AdoptRuntime,
 ): void {
 	if (existsSync(paths.backup)) {
 		if (!isRecognized(paths.backup, recognize)) {
@@ -264,8 +437,22 @@ function recover(
 				currentIsValid = false;
 			}
 			if (currentIsValid) {
-				rmSync(paths.backup, { recursive: true });
-				syncDirectory(dirname(paths.dest));
+				if (existsSync(paths.tombstone)) {
+					throw new AdoptError(
+						ADOPT_EXIT.RECOVERY_REQUIRED,
+						`recovery tombstone collision at ${paths.tombstone}`,
+					);
+				}
+				try {
+					renameSync(paths.backup, paths.tombstone);
+					syncDirectory(dirname(paths.dest));
+				} catch (error) {
+					throw new AdoptError(
+						ADOPT_EXIT.RECOVERY_REQUIRED,
+						`could not durably retire recovered backup at ${paths.backup}`,
+						{ cause: error },
+					);
+				}
 			} else if (isRecognized(paths.dest, recognize)) {
 				rmSync(paths.dest, { recursive: true });
 				renameSync(paths.backup, paths.dest);
@@ -281,7 +468,8 @@ function recover(
 			}
 		}
 	}
-	removeStaleStages(paths);
+	removeCommittedTombstones(paths, inspect, runtime);
+	removeStaleStages(paths, reclaimedTokens);
 }
 
 function verifiedManifest(
@@ -305,9 +493,17 @@ function rollback(
 ): void {
 	runtime.checkpoint?.('rollback.started', paths);
 	if (installed && existsSync(paths.dest)) rmSync(paths.dest, { recursive: true });
-	if (existsSync(paths.backup)) {
+	if (existsSync(paths.backup) && existsSync(paths.tombstone)) {
+		throw new Error(`rollback found both a backup and tombstone`);
+	}
+	const restore = existsSync(paths.backup)
+		? paths.backup
+		: existsSync(paths.tombstone)
+			? paths.tombstone
+			: null;
+	if (restore) {
 		if (existsSync(paths.dest)) rmSync(paths.dest, { recursive: true });
-		renameSync(paths.backup, paths.dest);
+		renameSync(restore, paths.dest);
 	}
 	if (existsSync(paths.stage)) rmSync(paths.stage, { recursive: true, force: true });
 	syncDirectory(dirname(paths.dest));
@@ -327,14 +523,20 @@ export function installAdoption(
 	const token = randomUUID();
 	const paths = transactionPaths(options.dest, token);
 	mkdirSync(dirname(paths.dest), { recursive: true });
-	acquireLock(paths, token);
+	const acquisition = acquireLock(paths, token, runtime);
 	let oldExists = false;
 	let oldFingerprint: string | null = null;
 	let installed = false;
 	let manifest: AdoptManifest | undefined;
 	try {
 		runtime.checkpoint?.('lock.acquired', paths);
-		recover(paths, options.inspect, options.recognize);
+		recover(
+			paths,
+			options.inspect,
+			options.recognize,
+			acquisition.reclaimedTokens,
+			runtime,
+		);
 		runtime.checkpoint?.('recovery.checked', paths);
 		if (existsSync(paths.dest) && !isRecognized(paths.dest, options.recognize)) {
 			throw new AdoptError(
@@ -347,6 +549,8 @@ export function installAdoption(
 		mkdirSync(paths.stage);
 		manifest = options.build(paths.stage);
 		verifiedManifest(paths.stage, manifest, options.inspect);
+		syncTree(paths.stage);
+		runtime.checkpoint?.('stage.durable', paths);
 		runtime.checkpoint?.('stage.ready', paths);
 		if (existsSync(paths.dest)) {
 			try {
@@ -375,9 +579,15 @@ export function installAdoption(
 		const accepted = verifiedManifest(paths.dest, manifest, options.inspect);
 		runtime.checkpoint?.('postverify.passed', paths);
 		if (existsSync(paths.backup)) {
-			rmSync(paths.backup, { recursive: true });
+			renameSync(paths.backup, paths.tombstone);
 			syncDirectory(dirname(paths.dest));
 		}
+		try {
+			runtime.checkpoint?.('commit.durable', paths);
+		} catch {
+			// Commit is already durable; a checkpoint failure cannot roll it back.
+		}
+		if (existsSync(paths.tombstone)) cleanupTombstone(paths, paths.tombstone, runtime);
 		return { outcome: 'installed', manifest: accepted };
 	} catch (error) {
 		if (error instanceof AdoptError) throw error;
