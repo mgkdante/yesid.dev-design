@@ -31,7 +31,10 @@ for (const theme of GALLERY_THEMES) {
 		const combobox = page
 			.locator('[data-gallery-family="primitive:combobox"]')
 			.getByRole('combobox', { name: 'Choisir une vue opérationnelle' });
-		await combobox.click();
+		await page
+			.locator('[data-gallery-family="primitive:combobox"]')
+			.getByRole('button', { name: 'Choisir une vue opérationnelle' })
+			.click();
 		await expect(page.getByRole('listbox')).toBeVisible();
 		await scan(page, testInfo, `${theme}-combobox-open`);
 		await combobox.press('Escape');

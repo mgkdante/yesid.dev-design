@@ -22,6 +22,17 @@ test('renders the exact coverage matrix', async ({ page }) => {
 
 	expect(families).toEqual(expectedFamilyMarkers());
 	expect(states).toEqual([...GALLERY_COVERAGE.states].sort());
+
+	const containment = await page
+		.locator('[aria-label="Theme semantics"]')
+		.evaluate((section) => ({
+			childrenFit: [...section.children].every((child) => {
+				const { left, right } = child.getBoundingClientRect();
+				return left >= 0 && right <= window.innerWidth;
+			}),
+			pageFits: document.documentElement.scrollWidth <= window.innerWidth,
+		}));
+	expect(containment).toEqual({ childrenFit: true, pageFits: true });
 });
 
 type Interaction = Readonly<{
@@ -41,14 +52,21 @@ const INTERACTIONS: readonly Interaction[] = [
 		},
 	},
 	{
-		name: 'combobox keyboard selection',
+		name: 'combobox keyboard opening and filtered selection',
 		async run(page) {
 			const family = page.locator('[data-gallery-family="primitive:combobox"]');
 			const combobox = family.getByRole('combobox', { name: 'Choisir une vue opérationnelle' });
-			await combobox.fill('accessibilite');
-			await expect(page.getByRole('option', { name: /Accessibilité universelle/ })).toBeVisible();
+			await combobox.focus();
 			await combobox.press('ArrowDown');
+			await expect(page.getByRole('listbox')).toBeVisible();
+			await combobox.fill('accessibilite');
+			const option = page.getByRole('option', { name: /Accessibilité universelle/ });
+			await expect(option).toBeVisible();
+			const optionId = await option.getAttribute('id');
+			expect(optionId).not.toBeNull();
+			await expect(combobox).toHaveAttribute('aria-activedescendant', optionId!);
 			await combobox.press('Enter');
+			await expect(page.getByRole('listbox')).toBeHidden();
 			await expect(combobox).toHaveValue('Accessibilité universelle');
 			await expect(family).toContainText('Selected: accessibility');
 		},
@@ -123,13 +141,13 @@ const INTERACTIONS: readonly Interaction[] = [
 		name: 'toggle-group single selection',
 		async run(page) {
 			const family = page.locator('[data-gallery-family="primitive:toggle-group"]');
-			const summary = family.getByRole('button', { name: 'Summary' });
-			const timeline = family.getByRole('button', { name: 'Timeline' });
-			await expect(summary).toHaveAttribute('aria-pressed', 'true');
+			const summary = family.getByRole('radio', { name: 'Summary' });
+			const timeline = family.getByRole('radio', { name: 'Timeline' });
+			await expect(summary).toHaveAttribute('aria-checked', 'true');
 			await timeline.click();
-			await expect(summary).toHaveAttribute('aria-pressed', 'false');
-			await expect(timeline).toHaveAttribute('aria-pressed', 'true');
-			await expect(family.getByRole('button', { name: 'Map' })).toBeDisabled();
+			await expect(summary).toHaveAttribute('aria-checked', 'false');
+			await expect(timeline).toHaveAttribute('aria-checked', 'true');
+			await expect(family.getByRole('radio', { name: 'Map' })).toBeDisabled();
 		},
 	},
 ];
