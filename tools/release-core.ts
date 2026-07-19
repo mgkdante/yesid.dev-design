@@ -475,7 +475,7 @@ function renderFragment(fragment: ParsedChangeFragment): string {
 	);
 	const description = fragment.description
 		.split('\n')
-		.map((line, index) => (index === 0 ? line : `  ${line}`))
+		.map((line, index) => (index === 0 || line.length === 0 ? line : `  ${line}`))
 		.join('\n');
 	return `<!-- release-fragment: ${fragment.id} -->\n- ${packages.join(', ')}: ${description}`;
 }

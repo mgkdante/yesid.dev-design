@@ -192,7 +192,7 @@ describe('deterministic release preparation', () => {
 
 <!-- release-fragment: a-ui -->
 - \`@yesid/ui\` (minor): Add UI.
-  
+
   Keep it source shipped.
 
 <!-- release-fragment: z-motion -->
