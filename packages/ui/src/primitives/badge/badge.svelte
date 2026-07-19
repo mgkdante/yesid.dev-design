@@ -24,7 +24,7 @@
 					secondary:
 						'bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80 [a]:active:bg-secondary/70',
 					destructive:
-						'bg-destructive/10 [a]:hover:bg-destructive/20 [a]:active:bg-destructive/30 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 text-destructive dark:bg-destructive/20',
+						'bg-destructive/10 [a]:hover:bg-destructive/20 [a]:active:bg-destructive/30 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 text-destructive dark:bg-destructive/15',
 					outline:
 						'border-border-subtle text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground [a]:active:bg-muted [a]:active:text-muted-foreground',
 					ghost:

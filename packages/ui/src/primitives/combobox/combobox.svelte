@@ -69,8 +69,11 @@
 </script>
 
 <script lang="ts">
-	import { Combobox } from 'bits-ui';
+	import { Combobox as BitsCombobox } from 'bits-ui';
+	import { flushSync } from 'svelte';
 	import { cn } from '../../cn/index.js';
+
+	const listboxId = $props.id();
 
 	let {
 		options,
@@ -120,9 +123,14 @@
 		search = '';
 		commitValue(null);
 	}
+
+	function filterBeforeHighlight(event: Event): void {
+		const nextSearch = (event.currentTarget as HTMLInputElement).value;
+		flushSync(() => (search = nextSearch));
+	}
 </script>
 
-<Combobox.Root
+<BitsCombobox.Root
 	type="single"
 	value={value ?? ''}
 	bind:open
@@ -145,13 +153,14 @@
 	items={filtered.map((o) => ({ value: o.value, label: o.label }))}
 >
 	<div class={cn('combobox', className)} data-slot="combobox">
-		<Combobox.Input
+		<BitsCombobox.Input
 			data-slot="combobox-input"
 			class="combobox-input"
 			aria-label={label}
+			aria-controls={listboxId}
 			{placeholder}
 			defaultValue={selectedLabel}
-			oninput={(e) => (search = e.currentTarget.value)}
+			oninput={filterBeforeHighlight}
 		/>
 		{#if value}
 			<button
@@ -165,51 +174,57 @@
 				<span aria-hidden="true">✕</span>
 			</button>
 		{/if}
-		<Combobox.Trigger
+		<BitsCombobox.Trigger
 			data-slot="combobox-trigger"
 			class="combobox-trigger"
 			aria-label={label}
 		>
 			<span aria-hidden="true">⌄</span>
-		</Combobox.Trigger>
+		</BitsCombobox.Trigger>
 	</div>
 
-	<Combobox.Portal>
-		<Combobox.Content
+	<BitsCombobox.Portal>
+		<BitsCombobox.Content
 			data-slot="combobox-content"
 			class="combobox-content"
 			sideOffset={6}
 		>
-			<Combobox.Viewport class="combobox-viewport">
-				{#each filtered as option (option.value)}
-					<Combobox.Item
-						data-slot="combobox-item"
-						class="combobox-item"
-						value={option.value}
-						label={option.label}
-					>
-						{#snippet children({ selected })}
-							{#if option.glyph}
-								<span class="combobox-item-glyph" aria-hidden="true">{option.glyph}</span>
-							{/if}
-							<span class="combobox-item-body">
-								<span class="combobox-item-label">{option.label}</span>
-								{#if option.sublabel}
-									<span class="combobox-item-sub">{option.sublabel}</span>
-								{/if}
-							</span>
-							{#if selected}
-								<span class="combobox-item-check" aria-hidden="true">✓</span>
-							{/if}
-						{/snippet}
-					</Combobox.Item>
-				{:else}
-					<p class="combobox-empty">{emptyLabel}</p>
-				{/each}
-			</Combobox.Viewport>
-		</Combobox.Content>
-	</Combobox.Portal>
-</Combobox.Root>
+			{#snippet child({ props, wrapperProps })}
+				<div {...wrapperProps}>
+					<div {...props} id={listboxId} aria-label={label}>
+						<BitsCombobox.Viewport class="combobox-viewport">
+							{#each filtered as option (option.value)}
+								<BitsCombobox.Item
+									data-slot="combobox-item"
+									class="combobox-item"
+									value={option.value}
+									label={option.label}
+								>
+									{#snippet children({ selected })}
+										{#if option.glyph}
+											<span class="combobox-item-glyph" aria-hidden="true">{option.glyph}</span>
+										{/if}
+										<span class="combobox-item-body">
+											<span class="combobox-item-label">{option.label}</span>
+											{#if option.sublabel}
+												<span class="combobox-item-sub">{option.sublabel}</span>
+											{/if}
+										</span>
+										{#if selected}
+											<span class="combobox-item-check" aria-hidden="true">✓</span>
+										{/if}
+									{/snippet}
+								</BitsCombobox.Item>
+							{:else}
+								<p class="combobox-empty">{emptyLabel}</p>
+							{/each}
+						</BitsCombobox.Viewport>
+					</div>
+				</div>
+			{/snippet}
+		</BitsCombobox.Content>
+	</BitsCombobox.Portal>
+</BitsCombobox.Root>
 
 <style>
 	/* The trigger row: a mono input carrying the same card/border/focus chrome as

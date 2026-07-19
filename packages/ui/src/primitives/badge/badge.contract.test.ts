@@ -5,6 +5,14 @@ import Badge from './badge.svelte';
 afterEach(() => cleanup());
 
 describe('Badge element contract', () => {
+	it('keeps destructive text AA-safe on the dark tinted surface', () => {
+		const { container } = render(Badge, { props: { variant: 'destructive' } });
+		const badge = container.querySelector('[data-slot="badge"]');
+
+		expect(badge?.classList.contains('dark:bg-destructive/15')).toBe(true);
+		expect(badge?.classList.contains('dark:bg-destructive/20')).toBe(false);
+	});
+
 	it('renders an unlinked badge as a span', () => {
 		const { container } = render(Badge);
 		expect(container.querySelector('[data-slot="badge"]')?.tagName).toBe('SPAN');
@@ -18,4 +26,3 @@ describe('Badge element contract', () => {
 		expect(badge?.getAttribute('target')).toBe('_blank');
 	});
 });
-

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '../fonts.css';
 	import '../gallery.css';
 
 	let { children } = $props();

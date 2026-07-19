@@ -21,6 +21,13 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup
+      - name: API report approval
+        env:
+          API_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin "$API_BASE_SHA"
+          bun run api:approve -- --base "$API_BASE_SHA"
       - name: typecheck
         run: bun run check
       - name: tests
@@ -41,11 +48,40 @@ jobs:
       - name: build
         run: bun x turbo run build
 
+  browser-authority:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48
+      options: --init --ipc=host
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Install container setup prerequisite
+        run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends unzip
+          rm -rf /var/lib/apt/lists/*
+      - uses: ./.github/actions/setup
+      - name: Run browser authority
+        run: bun run test:browser
+      - name: Upload browser failure evidence
+        if: ${{ failure() && !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: browser-authority-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            apps/gallery/playwright-report/
+            apps/gallery/test-results/
+
   token-outputs-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup
+      - name: Check API reports
+        run: bun run api:check
       - name: Generate token outputs
         run: bun run tokens:build
       - name: Upload Windows token outputs

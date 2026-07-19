@@ -11,9 +11,14 @@
 	},
 	"workspaces": ["apps/*", "packages/*"],
 	"scripts": {
+		"api:approve": "bun tools/api-authority.ts approve",
+		"api:check": "bun tools/api-authority.ts check",
+		"api:report": "bun tools/api-authority.ts report",
 		"build": "bun run tokens:build && turbo run build",
 		"test": "turbo run test",
-		"check": "tsc --project tsconfig.tools.json && turbo run check",
+		"test:browser": "bun run --cwd apps/gallery test:browser",
+		"browser:install": "bun run --cwd apps/gallery browser:install",
+		"check": "bun run api:check && tsc --project tsconfig.tools.json && turbo run check",
 		"dev": "turbo run dev",
 		"tokens:build": "bun tools/build-tokens.ts",
 		"tokens:lint": "design.md lint DESIGN.md",
@@ -22,8 +27,13 @@
 	},
 	"devDependencies": {
 		"@google/design.md": "0.1.1",
+		"@microsoft/api-extractor": "7.58.11",
 		"@types/node": "^22.0.0",
-		"typescript": "^5.9.3",
-		"turbo": "^2.5.0"
+		"svelte2tsx": "0.7.58",
+		"turbo": "^2.5.0",
+		"typescript": "^5.9.3"
+	},
+	"patchedDependencies": {
+		"bits-ui@2.18.1": "patches/bits-ui@2.18.1.patch"
 	}
 }
