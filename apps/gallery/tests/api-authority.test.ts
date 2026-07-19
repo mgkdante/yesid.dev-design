@@ -116,4 +116,9 @@ describe('public symbol safety', () => {
 	it('accepts ordinary public values and types', () => {
 		expect(() => validatePublicSymbols([base, { ...base, name: 'TickerCallback' }])).not.toThrow();
 	});
+
+	it('keeps test reset seams out of the public motion ticker module', async () => {
+		const ticker = await import('@yesid/motion/utils/ticker');
+		expect(Object.keys(ticker)).toEqual(['subscribe', 'unsubscribe']);
+	});
 });
