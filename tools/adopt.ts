@@ -13,7 +13,6 @@ import {
 	PACKAGE_NAMES,
 	assertTag,
 	parsePackages,
-	treeHash,
 	type AdoptManifest,
 	type PackageName,
 } from './adopt/contract.js';
@@ -35,6 +34,7 @@ export {
 	treeHash,
 	type AdoptManifest,
 	type AdoptProvenance,
+	type AdoptTrustRecord,
 	type PackageName,
 } from './adopt/contract.js';
 export {

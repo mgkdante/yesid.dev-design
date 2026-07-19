@@ -24,6 +24,7 @@ import {
 	treeHash,
 	type AdoptManifest,
 	type AdoptProvenance,
+	type AdoptTrustRecord,
 	type PackageName,
 } from './contract.js';
 import {
@@ -190,10 +191,11 @@ export function checkAdoption(destInput: string): AdoptManifest {
 	if (manifest.exclusionPolicyDigest !== exclusionPolicyDigest()) {
 		throw new Error(`adoption exclusion policy differs from this tool`);
 	}
-	const actual = treeHash(dest);
-	if (actual !== manifest.treeHash) {
+	const { treeHash: expectedTreeHash, ...trust } = manifest;
+	const actual = treeHash(dest, trust);
+	if (actual !== expectedTreeHash) {
 		throw new Error(
-			`vendor tree hash mismatch\n  manifest: ${manifest.treeHash}\n  actual:   ${actual}\n` +
+			`vendor tree hash mismatch\n  manifest: ${expectedTreeHash}\n  actual:   ${actual}\n` +
 				'Vendored design files changed after adoption. Upstream the change and bump the pinned tag.',
 		);
 	}
@@ -221,7 +223,7 @@ export function adoptFromSource(options: AdoptFromSourceOptions): AdoptResult {
 					copyPackage(join(source, 'packages', name), packageDest);
 					rewriteInternalWorkspaceDependencies(packageDest);
 				}
-				const manifest: AdoptManifest = {
+				const trust: AdoptTrustRecord = {
 					schema: MANIFEST_SCHEMA,
 					repository: REPOSITORY_ID,
 					provenance: {
@@ -232,7 +234,10 @@ export function adoptFromSource(options: AdoptFromSourceOptions): AdoptResult {
 					packages: [...options.packages],
 					exclusionPolicyDigest: exclusionPolicyDigest(),
 					toolDigest: toolDigest(stage),
-					treeHash: treeHash(stage),
+				};
+				const manifest: AdoptManifest = {
+					...trust,
+					treeHash: treeHash(stage, trust),
 				};
 				writeFileSync(
 					join(stage, 'manifest.json'),

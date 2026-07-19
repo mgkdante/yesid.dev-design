@@ -42,6 +42,8 @@ export interface AdoptManifest {
 	treeHash: string;
 }
 
+export type AdoptTrustRecord = Omit<AdoptManifest, 'treeHash'>;
+
 function normalizedRelative(root: string, path: string): string {
 	return relative(root, path).split(sep).join('/');
 }
@@ -58,32 +60,78 @@ export function walkFiles(root: string, out: string[] = []): string[] {
 	return out;
 }
 
-function digestFiles(root: string, files: readonly string[]): string {
+interface DigestRecord {
+	path: Buffer;
+	content: Buffer;
+}
+
+function digestRecords(records: readonly DigestRecord[]): string {
 	const hash = createHash('sha256');
-	const ordered = [...files].sort((a, b) =>
-		Buffer.compare(Buffer.from(normalizedRelative(root, a)), Buffer.from(normalizedRelative(root, b))),
-	);
+	const ordered = [...records].sort((a, b) => Buffer.compare(a.path, b.path));
 	const length = (size: number): Buffer => {
 		const buffer = Buffer.allocUnsafe(8);
 		buffer.writeBigUInt64BE(BigInt(size));
 		return buffer;
 	};
-	for (const path of ordered) {
-		const relativePath = Buffer.from(normalizedRelative(root, path));
-		const content = readFileSync(path);
-		hash.update(length(relativePath.byteLength));
-		hash.update(relativePath);
-		hash.update(length(content.byteLength));
-		hash.update(content);
+	for (const record of ordered) {
+		hash.update(length(record.path.byteLength));
+		hash.update(record.path);
+		hash.update(length(record.content.byteLength));
+		hash.update(record.content);
 	}
 	return `sha256:${hash.digest('hex')}`;
 }
 
-export function treeHash(root: string): string {
-	return digestFiles(
-		root,
-		walkFiles(root).filter((path) => normalizedRelative(root, path) !== 'manifest.json'),
+function fileRecords(root: string, files: readonly string[]): DigestRecord[] {
+	return files.map((path) => ({
+		path: Buffer.from(normalizedRelative(root, path)),
+		content: readFileSync(path),
+	}));
+}
+
+function digestFiles(root: string, files: readonly string[]): string {
+	return digestRecords(fileRecords(root, files));
+}
+
+function canonicalTrustRecord(trust: AdoptTrustRecord): Buffer {
+	return Buffer.from(
+		JSON.stringify({
+			schema: trust.schema,
+			repository: trust.repository,
+			provenance: {
+				mode: trust.provenance.mode,
+				tag: {
+					name: trust.provenance.tag.name,
+					object: trust.provenance.tag.object,
+					peeledCommit: trust.provenance.tag.peeledCommit,
+				},
+				asset: trust.provenance.asset
+					? {
+							name: trust.provenance.asset.name,
+							size: trust.provenance.asset.size,
+							digest: trust.provenance.asset.digest,
+						}
+					: null,
+			},
+			packages: trust.packages,
+			exclusionPolicyDigest: trust.exclusionPolicyDigest,
+			toolDigest: trust.toolDigest,
+		}),
 	);
+}
+
+export function treeHash(root: string, trust: AdoptTrustRecord): string {
+	const files = walkFiles(root).filter(
+		(path) => normalizedRelative(root, path) !== 'manifest.json',
+	);
+	return digestRecords([
+		...fileRecords(root, files),
+		{
+			// NUL cannot occur in a filesystem path, so this record cannot collide with payload bytes.
+			path: Buffer.from('\0yesid-adopt/trust-v2'),
+			content: canonicalTrustRecord(trust),
+		},
+	]);
 }
 
 export function fullTreeHash(root: string): string {

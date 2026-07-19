@@ -21,9 +21,10 @@ import {
 	checkAdoption,
 	main,
 	parseArgs,
-	treeHash,
+	type AdoptManifest,
 	type AdoptProvenance,
 } from '../../../tools/adopt.js';
+import { fullTreeHash } from '../../../tools/adopt/contract.js';
 
 const scratch: string[] = [];
 const crashFixture = fileURLToPath(new URL('./fixtures/adopt-crash.ts', import.meta.url));
@@ -121,7 +122,7 @@ function adoptWithRuntime(
 function adoptionSnapshot(dest: string): { manifest: string; tree: string } {
 	return {
 		manifest: readFileSync(join(dest, 'manifest.json'), 'utf8'),
-		tree: treeHash(dest),
+		tree: fullTreeHash(dest),
 	};
 }
 
@@ -273,6 +274,59 @@ describe('adoptFromSource', () => {
 		write(manifestPath, `${JSON.stringify(manifest, null, '\t')}\n`);
 
 		expect(() => checkAdoption(dest)).toThrow(/manifest.*canonical/i);
+	});
+
+	it('binds provenance and package closure into the installed tree hash', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		const options: Parameters<typeof adoptFromSource>[0] = {
+			source,
+			dest,
+			packages: ['tokens'],
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+		};
+		const mutateAndReject = (mutate: (manifest: AdoptManifest) => void): void => {
+			adoptFromSource(options);
+			const manifestPath = join(dest, 'manifest.json');
+			const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as AdoptManifest;
+			mutate(manifest);
+			write(manifestPath, `${JSON.stringify(manifest, null, '\t')}\n`);
+			expect(() => checkAdoption(dest)).toThrow(/tree hash mismatch/);
+		};
+
+		mutateAndReject((manifest) => {
+			manifest.provenance.tag = {
+				name: 'v9.9.9',
+				object: NEW_COMMIT,
+				peeledCommit: NEW_COMMIT,
+			};
+		});
+		mutateAndReject((manifest) => {
+			manifest.provenance.mode = 'archive';
+		});
+		mutateAndReject((manifest) => {
+			manifest.packages = ['motion'];
+		});
+
+		adoptFromSource({
+			...options,
+			provenance: {
+				mode: 'release',
+				tag: { name: 'v1.0.0', object: OLD_COMMIT, peeledCommit: OLD_COMMIT },
+				asset: {
+					name: 'yesid.dev-design-v1.0.0.tar',
+					size: 1024,
+					digest: `sha256:${'a'.repeat(64)}`,
+				},
+			},
+		});
+		const manifestPath = join(dest, 'manifest.json');
+		const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as AdoptManifest;
+		manifest.provenance.asset!.size++;
+		write(manifestPath, `${JSON.stringify(manifest, null, '\t')}\n`);
+		expect(() => checkAdoption(dest)).toThrow(/tree hash mismatch/);
 	});
 
 	it('rejects a package set with an omitted internal dependency', () => {
@@ -572,7 +626,7 @@ describe('schema 2 hashing', () => {
 		writeFileSync(join(twoFiles, 'a'), 'b');
 		writeFileSync(join(twoFiles, 'c'), '');
 
-		expect(treeHash(oneFile)).not.toBe(treeHash(twoFiles));
+		expect(fullTreeHash(oneFile)).not.toBe(fullTreeHash(twoFiles));
 	});
 
 	it.skipIf(process.platform === 'win32')('rejects special filesystem nodes instead of omitting them', () => {
@@ -580,7 +634,7 @@ describe('schema 2 hashing', () => {
 		const fifo = join(root, 'hidden-fifo');
 		const created = spawnSync('mkfifo', [fifo], { encoding: 'utf8' });
 		expect(created.status, created.stderr).toBe(0);
-		expect(() => treeHash(root)).toThrow(/non-regular filesystem entry/);
+		expect(() => fullTreeHash(root)).toThrow(/non-regular filesystem entry/);
 	});
 });
 
