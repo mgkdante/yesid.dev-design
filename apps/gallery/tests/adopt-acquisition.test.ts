@@ -1,6 +1,13 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -57,7 +64,9 @@ function octal(value: number, width: number): string {
 	return value.toString(8).padStart(width - 1, '0') + '\0';
 }
 
-function tar(entries: ReadonlyArray<{ path: string; content: string; type?: '0' | '2' }>): Buffer {
+function tar(
+	entries: ReadonlyArray<{ path: string; content: string; type?: '0' | '2' | '5' }>,
+): Buffer {
 	const chunks: Buffer[] = [];
 	for (const entry of entries) {
 		const content = Buffer.from(entry.content);
@@ -84,7 +93,7 @@ function archiveFixture(
 	tag = TAG,
 	tagObject = TAG_OBJECT,
 	commit = COMMIT,
-	extra: ReadonlyArray<{ path: string; content: string; type?: '0' | '2' }> = [],
+	extra: ReadonlyArray<{ path: string; content: string; type?: '0' | '2' | '5' }> = [],
 ): Buffer {
 	const root = `yesid.dev-design-${tag}`;
 	const receipt = JSON.stringify({
@@ -152,7 +161,7 @@ function releaseFetch(
 		if (url.includes('/releases/tags/')) return Response.json(release);
 		if (url.includes('/git/ref/tags/')) return Response.json(ref);
 		if (url.includes('/git/tags/')) return Response.json(annotatedTag);
-		if (url.includes('/releases/assets/42')) return new Response(archive);
+		if (url.includes('/releases/assets/42')) return new Response(new Uint8Array(archive));
 		return new Response('not found', { status: 404 });
 	}) as typeof fetch;
 }
@@ -170,13 +179,55 @@ describe('worktree acquisition', () => {
 		const root = tempDir();
 		const expected = makeTaggedWorktree(root);
 		const acquired = acquireWorktree(root, TAG);
+		const snapshot = acquired.source;
 		try {
-			expect(acquired.source).toBe(root);
+			expect(snapshot).not.toBe(root);
 			expect(acquired.provenance).toEqual({
 				mode: 'worktree',
 				tag: { name: TAG, object: expected.tagObject, peeledCommit: expected.commit },
 				asset: null,
 			});
+		} finally {
+			close(acquired);
+		}
+		expect(existsSync(snapshot)).toBe(false);
+	});
+
+	it('excludes ignored files by snapshotting the peeled Git tree', () => {
+		const root = tempDir();
+		makeTaggedWorktree(root);
+		write(join(root, '.git', 'info', 'exclude'), 'ignored.txt\n');
+		write(join(root, 'ignored.txt'), 'not part of the tag\n');
+
+		const acquired = acquireWorktree(root, TAG);
+		try {
+			expect(existsSync(join(acquired.source, 'ignored.txt'))).toBe(false);
+		} finally {
+			close(acquired);
+		}
+	});
+
+	it('ignores assume-unchanged mutations by snapshotting the peeled Git tree', () => {
+		const root = tempDir();
+		makeTaggedWorktree(root);
+		git(root, 'update-index', '--assume-unchanged', 'LICENSE');
+		write(join(root, 'LICENSE'), 'hidden mutation\n');
+
+		const acquired = acquireWorktree(root, TAG);
+		try {
+			expect(readFileSync(join(acquired.source, 'LICENSE'), 'utf8')).toBe('license\n');
+		} finally {
+			close(acquired);
+		}
+	});
+
+	it('remains immutable when the originating worktree changes after acquisition', () => {
+		const root = tempDir();
+		makeTaggedWorktree(root);
+		const acquired = acquireWorktree(root, TAG);
+		try {
+			write(join(root, 'LICENSE'), 'later mutation\n');
+			expect(readFileSync(join(acquired.source, 'LICENSE'), 'utf8')).toBe('license\n');
 		} finally {
 			close(acquired);
 		}
@@ -223,6 +274,62 @@ describe('archive acquisition', () => {
 		writeFileSync(path, archiveFixture(TAG, TAG_OBJECT, COMMIT, entries));
 		expect(() => acquireArchive(path, TAG)).toThrow(/unsafe archive/i);
 	});
+
+	it('accepts canonical POSIX ustar root and directory entries with trailing slashes', () => {
+		const root = tempDir();
+		const path = join(root, 'directories.tar');
+		const archiveRoot = `yesid.dev-design-${TAG}`;
+		writeFileSync(
+			path,
+			archiveFixture(TAG, TAG_OBJECT, COMMIT, [
+				{ path: `${archiveRoot}/`, content: '', type: '5' },
+				{ path: `${archiveRoot}/tools/`, content: '', type: '5' },
+				{ path: `${archiveRoot}/packages/`, content: '', type: '5' },
+			]),
+		);
+		const acquired = acquireArchive(path, TAG);
+		close(acquired);
+	});
+
+	it.each([
+		['alternate data stream', `yesid.dev-design-${TAG}/tokens.json:secret`],
+		['reserved device name', `yesid.dev-design-${TAG}/CON.json`],
+		['trailing dot', `yesid.dev-design-${TAG}/tokens.`],
+		['trailing space', `yesid.dev-design-${TAG}/tokens `],
+	])('rejects Win32 %s path hazards', (_label, unsafePath) => {
+		const root = tempDir();
+		const path = join(root, 'win32-unsafe.tar');
+		writeFileSync(
+			path,
+			archiveFixture(TAG, TAG_OBJECT, COMMIT, [{ path: unsafePath, content: 'bad' }]),
+		);
+		expect(() => acquireArchive(path, TAG)).toThrow(/unsafe archive path/i);
+	});
+
+	it('rejects a non-POSIX ustar version', () => {
+		const root = tempDir();
+		const path = join(root, 'bad-version.tar');
+		const archive = archiveFixture();
+		archive.write('99', 263, 2, 'ascii');
+		archive.fill(0x20, 148, 156);
+		const checksum = archive.subarray(0, 512).reduce((sum, byte) => sum + byte, 0);
+		archive.write(`${checksum.toString(8).padStart(6, '0')}\0 `, 148, 8, 'ascii');
+		writeFileSync(path, archive);
+		expect(() => acquireArchive(path, TAG)).toThrow(/POSIX ustar version/i);
+	});
+
+	it('rejects nonzero file padding', () => {
+		const root = tempDir();
+		const path = join(root, 'bad-padding.tar');
+		const archive = archiveFixture();
+		const receiptSize = Number.parseInt(
+			archive.subarray(124, 136).toString('ascii').replace(/\0.*$/, '').trim(),
+			8,
+		);
+		archive[512 + receiptSize] = 1;
+		writeFileSync(path, archive);
+		expect(() => acquireArchive(path, TAG)).toThrow(/padding/i);
+	});
 });
 
 describe('immutable Release acquisition', () => {
@@ -261,9 +368,53 @@ describe('immutable Release acquisition', () => {
 		metadataArchive[513] = (metadataArchive[513] ?? 0) ^ 1;
 		const fetcher = releaseFetch(metadataArchive);
 		const tamperedFetch = (async (input: string | URL | Request, init?: RequestInit) => {
-			if (String(input).includes('/releases/assets/42')) return new Response(archive);
+			if (String(input).includes('/releases/assets/42')) {
+				return new Response(new Uint8Array(archive));
+			}
 			return fetcher(input, init);
 		}) as typeof fetch;
 		await expect(acquireRelease(TAG, { fetch: tamperedFetch })).rejects.toThrow(/digest/i);
 	});
+
+	it('rejects oversized GitHub JSON before parsing it', async () => {
+		const archive = archiveFixture();
+		const baseFetch = releaseFetch(archive);
+		const oversizedFetch = (async (input: string | URL | Request, init?: RequestInit) => {
+			if (String(input).endsWith('/repos/mgkdante/yesid.dev-design')) {
+				return new Response(JSON.stringify({ payload: 'x'.repeat(2 * 1024 * 1024) }));
+			}
+			return baseFetch(input, init);
+		}) as typeof fetch;
+
+		await expect(
+			acquireRelease(TAG, { fetch: oversizedFetch, timeoutMs: 250 }),
+		).rejects.toThrow(/API response exceeds size limit/i);
+	});
+
+	it(
+		'aborts a stalled asset stream at the acquisition deadline',
+		async () => {
+			const archive = archiveFixture();
+			const baseFetch = releaseFetch(archive);
+			let cancelled = false;
+			const stalledFetch = (async (input: string | URL | Request, init?: RequestInit) => {
+				if (String(input).includes('/releases/assets/42')) {
+					return new Response(
+						new ReadableStream({
+							cancel() {
+								cancelled = true;
+							},
+						}),
+					);
+				}
+				return baseFetch(input, init);
+			}) as typeof fetch;
+
+			await expect(
+				acquireRelease(TAG, { fetch: stalledFetch, timeoutMs: 25 }),
+			).rejects.toThrow(/timed out/i);
+			expect(cancelled).toBe(true);
+		},
+		1_000,
+	);
 });
