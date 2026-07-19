@@ -130,33 +130,45 @@ jobs:
         id: release-state
         run: |
           set -euo pipefail
+          release_pages="$RUNNER_TEMP/release-pages.json"
           release_json="$RUNNER_TEMP/existing-release.json"
-          release_error="$RUNNER_TEMP/existing-release.error"
-          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
-            >"$release_json" 2>"$release_error"; then
-            if jq -e '.draft == true' "$release_json" >/dev/null; then
-              echo "::error::existing draft release $RELEASE_TAG will not be mutated. Inspect and delete only that draft before rerunning the failed push or using proven recovery."
-              exit 1
-            fi
-            if ! jq -e '.draft == false and .immutable == true' "$release_json" >/dev/null; then
-              echo "::error::existing release $RELEASE_TAG is not a published immutable release"
-              exit 1
-            fi
-            if [[ "$RELEASE_MODE" == "recover-first-publication" ]]; then
-              echo "::error::first-publication recovery requires the Release to be absent"
-              exit 1
-            fi
-            echo "exists=true" >>"$GITHUB_OUTPUT"
-          elif grep -q 'HTTP 404' "$release_error"; then
+          gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            >"$release_pages"
+          jq --arg tag "$RELEASE_TAG" \
+            '[.[][] | select(.tag_name == $tag)]' \
+            "$release_pages" >"$release_json"
+          release_count="$(jq -r 'length' "$release_json")"
+
+          if (( release_count > 1 )); then
+            echo "::error::multiple Releases exist for exact tag $RELEASE_TAG; refusing ambiguous mutation"
+            exit 1
+          fi
+
+          if (( release_count == 0 )); then
             if [[ "$RELEASE_MODE" != "publish" && "$RELEASE_MODE" != "recover-first-publication" ]]; then
               echo "::error::workflow_dispatch verifies an existing exact-tag release only"
               exit 1
             fi
             echo "exists=false" >>"$GITHUB_OUTPUT"
-          else
-            cat "$release_error" >&2
+            exit 0
+          fi
+
+          release_id="$(jq -er '.[0].id | select(type == "number" and . > 0)' "$release_json")"
+          if jq -e '.[0].draft == true' "$release_json" >/dev/null; then
+            echo "::error::existing draft release $RELEASE_TAG (ID $release_id) will not be mutated. Inspect and delete only that draft before rerunning the failed push or using proven recovery."
             exit 1
           fi
+          if ! jq -e '.[0].draft == false and .[0].immutable == true' "$release_json" >/dev/null; then
+            echo "::error::existing release $RELEASE_TAG (ID $release_id) is not a published immutable release"
+            exit 1
+          fi
+          if [[ "$RELEASE_MODE" == "recover-first-publication" ]]; then
+            echo "::error::first-publication recovery requires the Release to be absent"
+            exit 1
+          fi
+          echo "exists=true" >>"$GITHUB_OUTPUT"
+          echo "release_id=$release_id" >>"$GITHUB_OUTPUT"
 
       - name: Build canonical archive
         if: steps.release-state.outputs.exists == 'false'
@@ -168,36 +180,75 @@ jobs:
             --output "$release_archive" \
             >"$RUNNER_TEMP/built-archive-evidence.json"
 
-      - name: Create draft release
+      - name: Create exact draft release
+        id: create-draft
         if: steps.release-state.outputs.exists == 'false'
         run: |
           set -euo pipefail
-          release_options=(
-            --draft
-            --verify-tag
-            --title "$RELEASE_TAG"
-            --notes "Canonical immutable release ${RELEASE_TAG}."
-          )
-          if [[ "$RELEASE_TAG" == *-* ]]; then
-            release_options+=(--prerelease)
+          release_version="${RELEASE_TAG#v}"
+          version_without_build="${release_version%%+*}"
+          prerelease=false
+          if [[ "$version_without_build" == *-* ]]; then
+            prerelease=true
           fi
-          gh release create "$RELEASE_TAG" "${release_options[@]}"
+          draft_json="$RUNNER_TEMP/created-draft-release.json"
+          gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/releases" \
+            -f tag_name="$RELEASE_TAG" \
+            -f name="$RELEASE_TAG" \
+            -f body="Canonical immutable release ${RELEASE_TAG}." \
+            -F draft=true \
+            -F prerelease="$prerelease" \
+            >"$draft_json"
+          jq -e \
+            --arg tag "$RELEASE_TAG" \
+            --argjson prerelease "$prerelease" '
+              .tag_name == $tag and
+              .draft == true and
+              .immutable == false and
+              .prerelease == $prerelease and
+              (.id | type == "number" and . > 0)
+            ' "$draft_json" >/dev/null
+          release_id="$(jq -r '.id' "$draft_json")"
+          echo "release_id=$release_id" >>"$GITHUB_OUTPUT"
 
       - name: Attach canonical archive
         if: steps.release-state.outputs.exists == 'false'
         run: |
           set -euo pipefail
           release_archive="$RUNNER_TEMP/yesid.dev-design-${RELEASE_TAG}.tar"
-          gh release upload "$RELEASE_TAG" "$release_archive"
+          asset_name="yesid.dev-design-${RELEASE_TAG}.tar"
+          asset_query="$(jq -rn --arg asset "$asset_name" '$asset | @uri')"
+          release_id="${{ steps.create-draft.outputs.release_id }}"
+          asset_json="$RUNNER_TEMP/uploaded-asset.json"
+          [[ "$release_id" =~ ^[1-9][0-9]*$ ]]
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --header "Content-Type: application/octet-stream" \
+            --data-binary @"$release_archive" \
+            "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?name=${asset_query}" \
+            >"$asset_json"
+          jq -e --arg asset "$asset_name" '
+            .name == $asset and
+            .state == "uploaded" and
+            .size > 0 and
+            (.id | type == "number" and . > 0)
+          ' "$asset_json" >/dev/null
 
       - name: Validate draft asset bytes
         if: steps.release-state.outputs.exists == 'false'
         run: |
           set -euo pipefail
           asset_name="yesid.dev-design-${RELEASE_TAG}.tar"
+          release_id="${{ steps.create-draft.outputs.release_id }}"
           draft_json="$RUNNER_TEMP/draft-release.json"
-          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" >"$draft_json"
-          jq -e --arg tag "$RELEASE_TAG" --arg asset "$asset_name" '
+          [[ "$release_id" =~ ^[1-9][0-9]*$ ]]
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" >"$draft_json"
+          jq -e --arg id "$release_id" --arg tag "$RELEASE_TAG" --arg asset "$asset_name" '
+            .id == ($id | tonumber) and
             .tag_name == $tag and
             .draft == true and
             .immutable == false and
@@ -216,7 +267,19 @@ jobs:
 
       - name: Publish immutable release
         if: steps.release-state.outputs.exists == 'false'
-        run: gh release edit "$RELEASE_TAG" --draft=false
+        run: |
+          set -euo pipefail
+          release_id="${{ steps.create-draft.outputs.release_id }}"
+          [[ "$release_id" =~ ^[1-9][0-9]*$ ]]
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
+            -F draft=false \
+            >"$RUNNER_TEMP/published-release-response.json"
+          jq -e --arg id "$release_id" --arg tag "$RELEASE_TAG" '
+            .id == ($id | tonumber) and
+            .tag_name == $tag and
+            .draft == false
+          ' "$RUNNER_TEMP/published-release-response.json" >/dev/null
 
       - name: Verify published release, attestation, tag, digest, and archive
         run: |

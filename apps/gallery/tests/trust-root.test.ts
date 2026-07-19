@@ -235,21 +235,86 @@ describe('distribution workflow trust root', () => {
 			/^\s*-\s+name:\s*Detect exact-tag release state\s*$/mu.test(step),
 		);
 		expect(releaseState, 'release-state detection must reject recovery after publication').toBeDefined();
+		expect(releaseState).toContain('--paginate --slurp');
+		expect(releaseState).toContain('releases?per_page=100');
+		expect(releaseState).toContain('select(.tag_name == $tag)');
+		expect(releaseState).toContain('release_count');
+		expect(releaseState).not.toContain('/releases/tags/${RELEASE_TAG}');
+		const draftPredicate = releaseState?.indexOf('.draft == true') ?? -1;
+		const draftRefusal = releaseState?.indexOf('existing draft release') ?? -1;
+		expect(draftPredicate).toBeGreaterThanOrEqual(0);
+		expect(draftRefusal).toBeGreaterThan(draftPredicate);
 		const recoveryAfterPublication =
 			releaseState?.indexOf('if [[ "$RELEASE_MODE" == "recover-first-publication" ]]') ?? -1;
 		const existingReleaseOutput = releaseState?.indexOf('echo "exists=true"') ?? -1;
 		expect(recoveryAfterPublication).toBeGreaterThanOrEqual(0);
 		expect(existingReleaseOutput).toBeGreaterThan(recoveryAfterPublication);
-		for (const command of ['gh release create', 'gh release upload', 'gh release edit']) {
-			const step = steps.find((candidate) => candidate.includes(command));
-			expect(step, `${command} must have one explicit first-publication gate`).toBeDefined();
+		for (const name of [
+			'Create exact draft release',
+			'Attach canonical archive',
+			'Validate draft asset bytes',
+			'Publish immutable release',
+		]) {
+			const step = steps.find((candidate) =>
+				new RegExp(`^\\s*-\\s+name:\\s*${name}\\s*$`, 'mu').test(candidate),
+			);
+			expect(step, `${name} must have one explicit first-publication gate`).toBeDefined();
 			expect(step).toMatch(
 				/^\s+if:\s*steps\.release-state\.outputs\.exists\s*==\s*'false'\s*$/mu,
 			);
 		}
+
+		const createDraft = steps.find((step) =>
+			/^\s*-\s+name:\s*Create exact draft release\s*$/mu.test(step),
+		);
+		expect(createDraft).toMatch(/^\s+id:\s*create-draft\s*$/mu);
+		expect(createDraft).toContain('--method POST');
+		expect(createDraft).toContain('repos/${GITHUB_REPOSITORY}/releases');
+		expect(createDraft).toContain('release_id=');
+		expect(createDraft).toContain('$GITHUB_OUTPUT');
+		expect(createDraft).toContain('release_version="${RELEASE_TAG#v}"');
+		expect(createDraft).toContain('version_without_build="${release_version%%+*}"');
+		expect(createDraft).toContain('[[ "$version_without_build" == *-* ]]');
+		expect(createDraft).not.toContain('[[ "$RELEASE_TAG" == *-* ]]');
+
+		const attachArchive = steps.find((step) =>
+			/^\s*-\s+name:\s*Attach canonical archive\s*$/mu.test(step),
+		);
+		expect(attachArchive).toContain(
+			'release_id="${{ steps.create-draft.outputs.release_id }}"',
+		);
+		expect(attachArchive).toContain(
+			"jq -rn --arg asset \"$asset_name\" '$asset | @uri'",
+		);
+		expect(attachArchive).toContain(
+			'uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?name=${asset_query}',
+		);
+		expect(attachArchive).not.toContain('assets?name=${asset_name}');
+		expect(attachArchive).toContain('--data-binary');
+		expect(attachArchive).not.toContain('gh release upload');
+
+		const validateDraft = steps.find((step) =>
+			/^\s*-\s+name:\s*Validate draft asset bytes\s*$/mu.test(step),
+		);
+		expect(validateDraft).toContain(
+			'release_id="${{ steps.create-draft.outputs.release_id }}"',
+		);
+		expect(validateDraft).toContain('releases/${release_id}');
+		expect(validateDraft).not.toContain('/releases/tags/${RELEASE_TAG}');
+
+		const publish = steps.find((step) =>
+			/^\s*-\s+name:\s*Publish immutable release\s*$/mu.test(step),
+		);
+		expect(publish).toContain('--method PATCH');
+		expect(publish).toContain('release_id="${{ steps.create-draft.outputs.release_id }}"');
+		expect(publish).toContain('releases/${release_id}');
+		expect(publish).toContain('-F draft=false');
+		expect(publish).not.toContain('gh release edit');
+
 		const verification = steps.find((step) => step.includes('bun tools/release-archive.ts verify'));
 		expect(verification).toBeDefined();
 		expect(verification).not.toContain("steps.release-state.outputs.exists == 'false'");
+		expect(verification).toContain('/releases/tags/${RELEASE_TAG}');
 		expect(verification).toContain('.immutable == true');
 		expect(verification).toContain('.draft == false');
 		expect(verification).toContain('.assets | length) == 1');
