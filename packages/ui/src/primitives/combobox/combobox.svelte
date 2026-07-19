@@ -70,6 +70,7 @@
 
 <script lang="ts">
 	import { Combobox } from 'bits-ui';
+	import { flushSync } from 'svelte';
 	import { cn } from '../../cn/index.js';
 
 	const listboxId = $props.id();
@@ -122,6 +123,11 @@
 		search = '';
 		commitValue(null);
 	}
+
+	function filterBeforeHighlight(event: Event): void {
+		const nextSearch = (event.currentTarget as HTMLInputElement).value;
+		flushSync(() => (search = nextSearch));
+	}
 </script>
 
 <Combobox.Root
@@ -154,7 +160,7 @@
 			aria-controls={listboxId}
 			{placeholder}
 			defaultValue={selectedLabel}
-			oninput={(e) => (search = e.currentTarget.value)}
+			oninput={filterBeforeHighlight}
 		/>
 		{#if value}
 			<button

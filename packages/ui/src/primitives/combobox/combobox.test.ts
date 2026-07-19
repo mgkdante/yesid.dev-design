@@ -94,4 +94,20 @@ describe('Combobox', () => {
 		await fireEvent.pointerDown(screen.getByRole('button', { name: 'Choose a product' }));
 		await waitFor(() => expect(screen.queryByText('No matching products')).toBeNull());
 	});
+
+	it('commits the filtered option with Enter', async () => {
+		render(ComboboxFixture, { props: { options } });
+		const input = screen.getByRole('combobox', { name: 'Choose a product' });
+
+		await fireEvent.pointerDown(screen.getByRole('button', { name: 'Choose a product' }));
+		await fireEvent.input(input, { target: { value: 'beta' } });
+		await screen.findByRole('option', { name: /Béta/i });
+		await fireEvent.keyDown(input, { key: 'Enter' });
+
+		await waitFor(() => {
+			expect(screen.getByTestId('combobox-value').textContent).toBe('beta');
+			expect((input as HTMLInputElement).value).toBe('Béta');
+			expect(input.getAttribute('aria-expanded')).toBe('false');
+		});
+	});
 });
