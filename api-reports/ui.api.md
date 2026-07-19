@@ -555,7 +555,7 @@ function createTwMergeConfig(vocab?: {
 }): {
     readonly extend: {
         readonly theme: {
-            readonly text: readonly ["hero", "hero-mobile", "display", "title", "heading", "subheading", "body", "small", "mono", "caption", "micro", ...string[]];
+            readonly text: readonly ["back-link", "body", "caption", "card-body", "card-meta", "card-title", "control", "detail-body-desktop", "detail-body-mobile", "detail-kicker", "detail-meta", "detail-subheading-desktop", "detail-subheading-mobile", "display", "heading", "hero", "hero-mobile", "menu-label-desktop", "menu-label-mobile", "menu-subtitle", "metric-value-default", "metric-value-desktop", "metric-value-mobile", "micro", "mono", "nav-brand-compact", "nav-brand-desktop", "nav-brand-mobile", "nav-link-compact", "nav-link-desktop", "nav-link-mobile", "small", "subheading", "tag", "title", ...string[]];
             readonly color: readonly ["signage-bg", "signage-text", "accent-text", "accent-hover", "primary-hover", "terminal", "manifesto", "success", "border-subtle", "border-strong", ...string[]];
         };
     };
@@ -1142,7 +1142,7 @@ default: string;
 sm: string;
 lg: string;
 };
-}, undefined, "hover:text-foreground hover:bg-muted aria-pressed:bg-primary/15 aria-pressed:text-primary aria-pressed:border-primary/30 data-[state=on]:bg-primary/15 data-[state=on]:text-primary data-[state=on]:border-primary/30 focus-visible:border-ring focus-visible:ring-ring/50 group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full font-mono text-small font-medium text-muted-foreground outline-none transition-all focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4", {
+}, undefined, "hover:text-foreground hover:bg-muted aria-pressed:bg-primary/10 aria-pressed:text-primary aria-pressed:border-primary/30 data-[state=on]:bg-primary/10 data-[state=on]:text-primary data-[state=on]:border-primary/30 focus-visible:border-ring focus-visible:ring-ring/50 group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full font-mono text-small font-medium text-muted-foreground outline-none transition-all focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4", {
 variant: {
 default: string;
 outline: string;
@@ -1162,7 +1162,7 @@ default: string;
 sm: string;
 lg: string;
 };
-}, undefined, "hover:text-foreground hover:bg-muted aria-pressed:bg-primary/15 aria-pressed:text-primary aria-pressed:border-primary/30 data-[state=on]:bg-primary/15 data-[state=on]:text-primary data-[state=on]:border-primary/30 focus-visible:border-ring focus-visible:ring-ring/50 group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full font-mono text-small font-medium text-muted-foreground outline-none transition-all focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4", unknown, unknown, undefined>>;
+}, undefined, "hover:text-foreground hover:bg-muted aria-pressed:bg-primary/10 aria-pressed:text-primary aria-pressed:border-primary/30 data-[state=on]:bg-primary/10 data-[state=on]:text-primary data-[state=on]:border-primary/30 focus-visible:border-ring focus-visible:ring-ring/50 group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full font-mono text-small font-medium text-muted-foreground outline-none transition-all focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4", unknown, unknown, undefined>>;
 
 // @public (undocumented)
 type ToggleVariants_2 = VariantProps<typeof toggleVariants>;
@@ -1174,7 +1174,7 @@ const Trigger: Component<Dialog.TriggerProps, {}, "ref">;
 const twMergeConfig: {
     readonly extend: {
         readonly theme: {
-            readonly text: readonly ["hero", "hero-mobile", "display", "title", "heading", "subheading", "body", "small", "mono", "caption", "micro", ...string[]];
+            readonly text: readonly ["back-link", "body", "caption", "card-body", "card-meta", "card-title", "control", "detail-body-desktop", "detail-body-mobile", "detail-kicker", "detail-meta", "detail-subheading-desktop", "detail-subheading-mobile", "display", "heading", "hero", "hero-mobile", "menu-label-desktop", "menu-label-mobile", "menu-subtitle", "metric-value-default", "metric-value-desktop", "metric-value-mobile", "micro", "mono", "nav-brand-compact", "nav-brand-desktop", "nav-brand-mobile", "nav-link-compact", "nav-link-desktop", "nav-link-mobile", "small", "subheading", "tag", "title", ...string[]];
             readonly color: readonly ["signage-bg", "signage-text", "accent-text", "accent-hover", "primary-hover", "terminal", "manifesto", "success", "border-subtle", "border-strong", ...string[]];
         };
     };
