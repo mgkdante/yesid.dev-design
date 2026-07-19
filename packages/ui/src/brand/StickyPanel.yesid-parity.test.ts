@@ -29,11 +29,11 @@ describe('StickyPanel yesid.dev wrapper parity', () => {
 		expect(panel?.classList).toContain('panel');
 		expect(panel?.classList).toContain('scrollbar-hidden');
 		expect(panel?.classList).toContain('yesid-sticky-panel');
-			expect(panel?.getAttribute('style')).toContain('top: 4rem');
-			expect(panel?.getAttribute('tabindex')).toBe('0');
-			expect(panel?.hasAttribute('data-lenis-prevent')).toBe(true);
-			expect(panel?.textContent).toContain('Sidebar');
-		});
+		expect(panel?.getAttribute('style')).toContain('top: 4rem');
+		expect(panel?.getAttribute('tabindex')).toBe('0');
+		expect(panel?.hasAttribute('data-lenis-prevent')).toBe(true);
+		expect(panel?.textContent).toContain('Sidebar');
+	});
 
 	it('wires and cleans up the app-local scrollChain action through the bindable ref', async () => {
 		// yesid.dev/apps/web/src/lib/components/brand/StickyPanel.svelte:8,26
