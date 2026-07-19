@@ -6,19 +6,24 @@
 	max-width: 34rem;
 }
 
-.gallery-sticky-yesid {
+@utility text-operational-label {
+	font-size: var(--text-small);
+	letter-spacing: 0.04em;
+}
+
+.gallery-sticky-configured {
 	background: var(--surface-3) !important;
 	box-shadow: none !important;
 }
 
-.gallery-terminal-yesid {
+.gallery-terminal-configured {
 	width: 8px !important;
 	height: 14px !important;
 	margin-left: 4px !important;
 	background: var(--accent) !important;
 }
 
-[data-theme='light'] .gallery-terminal-yesid,
-.theme-light .gallery-terminal-yesid {
+[data-theme='light'] .gallery-terminal-configured,
+.theme-light .gallery-terminal-configured {
 	background: var(--accent-text) !important;
 }
