@@ -212,13 +212,22 @@ describe('deterministic package API reports', () => {
 			expect(report).not.toContain('\r\n');
 		}
 
-		expect(first['@yesid/tokens']).toContain('`./tokens.json` — direct asset, sha256 `');
+		expect(first['@yesid/tokens']).toContain(
+			'`./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `',
+		);
 		expect(first['@yesid/tokens']).toContain('function parseTokens');
 		expect(first['@yesid/motion']).toContain('function subscribe');
 		expect(first['@yesid/motion']).not.toContain('_resetForTests');
 		expect(first['@yesid/gates']).toContain('function runContrastPairs');
 		expect(first['@yesid/ui']).toContain('type ButtonProps');
 		expect(first['@yesid/ui']).toContain('function configureUi');
+		expect(first['@yesid/ui']).toContain('import { Component } from \'svelte\';');
+		expect(first['@yesid/ui']).toContain('const Button: Component<ButtonProps, {}, "ref">;');
+		expect(first['@yesid/ui']).not.toContain('SvelteComponentTyped');
+		expect(first['@yesid/ui']).not.toContain('__propDef');
+		expect(readFileSync(join(REPOSITORY_ROOT, 'api-reports/ui.api.md'), 'utf8')).toBe(
+			first['@yesid/ui'],
+		);
 	}, 30_000);
 
 	it('detects TypeScript signatures, export shape, and direct asset byte mutations', async () => {
