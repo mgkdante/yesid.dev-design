@@ -48,6 +48,28 @@ jobs:
       - name: build
         run: bun x turbo run build
 
+  browser-authority:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48
+      options: --init --ipc=host
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: ./.github/actions/setup
+      - name: Run browser authority
+        run: bun run test:browser
+      - name: Upload browser failure evidence
+        if: ${{ failure() && !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: browser-authority-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            apps/gallery/playwright-report/
+            apps/gallery/test-results/
+
   token-outputs-windows:
     runs-on: windows-latest
     steps:

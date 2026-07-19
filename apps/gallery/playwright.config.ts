@@ -2,7 +2,10 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
 
 const host = '127.0.0.1';
-const port = 4173;
+const port = Number(process.env.GALLERY_BROWSER_PORT ?? 4173);
+if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+	throw new Error('GALLERY_BROWSER_PORT must be an integer from 1 through 65535');
+}
 const baseURL = `http://${host}:${port}`;
 
 export default defineConfig({
