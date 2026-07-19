@@ -5,6 +5,7 @@ import {
 	mkdtempSync,
 	readFileSync,
 	rmSync,
+	statSync,
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -57,6 +58,48 @@ function makeSource(root: string): void {
 		write(join(root, 'packages', name, 'vitest.config.ts'), 'test config\n');
 		write(join(root, 'packages', name, '.gitignore'), 'ignored\n');
 	}
+}
+
+type Checkpoint =
+	| 'lock.acquired'
+	| 'recovery.checked'
+	| 'stage.ready'
+	| 'noop'
+	| 'backup.durable'
+	| 'destination.installed'
+	| 'postverify.passed'
+	| 'rollback.started';
+
+interface TransactionPaths {
+	dest: string;
+	lock: string;
+	backup: string;
+	stage: string;
+}
+
+interface AdoptionResult {
+	outcome: 'installed' | 'noop';
+	manifest: ReturnType<typeof checkAdoption>;
+}
+
+function adoptWithRuntime(
+	options: Parameters<typeof adoptFromSource>[0],
+	checkpoint?: (point: Checkpoint, paths: Readonly<TransactionPaths>) => void,
+): AdoptionResult {
+	return (
+		adoptFromSource as unknown as (
+			input: Parameters<typeof adoptFromSource>[0] & {
+				runtime?: { checkpoint?: typeof checkpoint };
+			},
+		) => AdoptionResult
+	)({ ...options, runtime: checkpoint ? { checkpoint } : undefined });
+}
+
+function adoptionSnapshot(dest: string): { manifest: string; tree: string } {
+	return {
+		manifest: readFileSync(join(dest, 'manifest.json'), 'utf8'),
+		tree: treeHash(dest),
+	};
 }
 
 afterEach(() => {
@@ -224,6 +267,134 @@ describe('adoptFromSource', () => {
 			}),
 		).toThrow(/refusing to replace a non-adoption destination/);
 		expect(readFileSync(join(dest, 'keep.ts'), 'utf-8')).toBe('product source\n');
+	});
+
+	it('uses a sibling stage and leaves no transaction artifacts after an idempotent no-op', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'product', 'vendor', 'design');
+		makeSource(source);
+		const options: Parameters<typeof adoptFromSource>[0] = {
+			source,
+			dest,
+			tag: 'v1.0.0',
+			packages: ['tokens'],
+			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+		};
+		const first = adoptWithRuntime(options);
+		expect(first.outcome).toBe('installed');
+		const before = statSync(dest);
+		const checkpoints: Checkpoint[] = [];
+		let observedPaths: TransactionPaths | undefined;
+
+		const second = adoptWithRuntime(options, (point, paths) => {
+			checkpoints.push(point);
+			observedPaths = { ...paths };
+			if (point === 'stage.ready') expect(dirname(paths.stage)).toBe(dirname(dest));
+		});
+
+		expect(second.outcome).toBe('noop');
+		expect(second.manifest).toEqual(first.manifest);
+		expect(checkpoints).toContain('noop');
+		expect(checkpoints).not.toContain('backup.durable');
+		expect(statSync(dest).ino).toBe(before.ino);
+		expect(statSync(dest).mtimeMs).toBe(before.mtimeMs);
+		expect(observedPaths).toBeDefined();
+		for (const path of [observedPaths!.lock, observedPaths!.backup, observedPaths!.stage]) {
+			expect(existsSync(path), path).toBe(false);
+		}
+	});
+
+	it('rejects a concurrent adoption without touching the active transaction', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		const options: Parameters<typeof adoptFromSource>[0] = {
+			source,
+			dest,
+			tag: 'v1.0.0',
+			packages: ['tokens'],
+			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+		};
+		let concurrentError: unknown;
+
+		adoptWithRuntime(options, (point) => {
+			if (point !== 'lock.acquired') return;
+			try {
+				adoptWithRuntime(options);
+			} catch (error) {
+				concurrentError = error;
+			}
+		});
+
+		expect(concurrentError).toMatchObject({ code: 4 });
+		expect(checkAdoption(dest).schema).toBe(2);
+	});
+
+	it.each([
+		['stage.ready', Object.assign(new Error('disk full'), { code: 'ENOSPC' })],
+		['backup.durable', new Error('interrupted after backup')],
+	] as const)('restores the exact prior adoption when %s fails', (faultPoint, fault) => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		const base: Parameters<typeof adoptFromSource>[0] = {
+			source,
+			dest,
+			tag: 'v1.0.0',
+			packages: ['tokens'],
+			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+		};
+		adoptWithRuntime(base);
+		const before = adoptionSnapshot(dest);
+
+		expect(() =>
+			adoptWithRuntime(
+				{
+					...base,
+					tag: 'v1.0.1',
+					commit: '0123456789abcdef0123456789abcdef01234567',
+				},
+				(point) => {
+					if (point === faultPoint) throw fault;
+				},
+			),
+		).toThrow(/adoption transaction failed/i);
+		expect(adoptionSnapshot(dest)).toEqual(before);
+	});
+
+	it('rolls back when post-install verification detects corruption', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		const base: Parameters<typeof adoptFromSource>[0] = {
+			source,
+			dest,
+			tag: 'v1.0.0',
+			packages: ['tokens'],
+			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+		};
+		adoptWithRuntime(base);
+		const before = adoptionSnapshot(dest);
+
+		expect(() =>
+			adoptWithRuntime(
+				{
+					...base,
+					tag: 'v1.0.1',
+					commit: '0123456789abcdef0123456789abcdef01234567',
+				},
+				(point, paths) => {
+					if (point === 'destination.installed') {
+						write(join(paths.dest, 'tokens', 'src', 'runtime.ts'), 'corrupted\n');
+					}
+				},
+			),
+		).toThrow(/adoption transaction failed/i);
+		expect(adoptionSnapshot(dest)).toEqual(before);
 	});
 });
 
