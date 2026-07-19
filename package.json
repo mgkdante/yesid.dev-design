@@ -11,9 +11,12 @@
 	},
 	"workspaces": ["apps/*", "packages/*"],
 	"scripts": {
+		"api:approve": "bun tools/api-authority.ts approve",
+		"api:check": "bun tools/api-authority.ts check",
+		"api:report": "bun tools/api-authority.ts report",
 		"build": "bun run tokens:build && turbo run build",
 		"test": "turbo run test",
-		"check": "tsc --project tsconfig.tools.json && turbo run check",
+		"check": "bun run api:check && tsc --project tsconfig.tools.json && turbo run check",
 		"dev": "turbo run dev",
 		"tokens:build": "bun tools/build-tokens.ts",
 		"tokens:lint": "design.md lint DESIGN.md",

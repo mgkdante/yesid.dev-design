@@ -21,6 +21,13 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup
+      - name: API report approval
+        env:
+          API_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin "$API_BASE_SHA"
+          bun run api:approve -- --base "$API_BASE_SHA"
       - name: typecheck
         run: bun run check
       - name: tests

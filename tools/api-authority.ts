@@ -1,16 +1,19 @@
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import {
 	cpSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
+	readdirSync,
 	rmSync,
 	symlinkSync,
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Extractor, ExtractorConfig, ExtractorLogLevel } from '@microsoft/api-extractor';
 import { emitDts } from 'svelte2tsx/index.mjs';
 import ts from 'typescript';
@@ -69,6 +72,13 @@ const RELEASED_PACKAGE_CONFIG: readonly ReleasedPackage[] = [
 	{ name: '@yesid/gates', directory: 'gates' },
 	{ name: '@yesid/ui', directory: 'ui' },
 ];
+
+export const API_REPORT_PATHS: Readonly<Record<ReleasedPackageName, string>> = {
+	'@yesid/tokens': 'api-reports/tokens.api.md',
+	'@yesid/motion': 'api-reports/motion.api.md',
+	'@yesid/gates': 'api-reports/gates.api.md',
+	'@yesid/ui': 'api-reports/ui.api.md',
+};
 
 const DIRECT_ASSET = /\.(?:css|json)$/u;
 
@@ -160,7 +170,12 @@ async function emitPackageDeclarations(
 		await emitDts({
 			declarationDir: packageOutput,
 			libRoot: sourcePackage,
-			svelteShimsPath: join(repositoryRoot, 'node_modules', 'svelte2tsx', 'svelte-shims.d.ts'),
+			svelteShimsPath: join(
+				repositoryRoot,
+				'node_modules',
+				'svelte2tsx',
+				'svelte-shims-v4.d.ts',
+			),
 			tsconfig: 'tsconfig.json',
 		});
 		return;
@@ -381,6 +396,136 @@ export async function createApiReports(
 	} finally {
 		rmSync(workspaceRoot, { recursive: true, force: true });
 	}
+}
+
+export function writeApiReports(
+	repositoryRootInput: string,
+	reports: Readonly<Record<ReleasedPackageName, string>>,
+): void {
+	const repositoryRoot = resolve(repositoryRootInput);
+	for (const packageName of RELEASED_PACKAGES) {
+		const path = join(repositoryRoot, API_REPORT_PATHS[packageName]);
+		mkdirSync(dirname(path), { recursive: true });
+		writeFileSync(path, reports[packageName], 'utf8');
+	}
+}
+
+export function checkApiReports(
+	repositoryRootInput: string,
+	reports: Readonly<Record<ReleasedPackageName, string>>,
+): void {
+	const repositoryRoot = resolve(repositoryRootInput);
+	const stale = RELEASED_PACKAGES.filter((packageName) => {
+		const path = join(repositoryRoot, API_REPORT_PATHS[packageName]);
+		return !existsSync(path) || readFileSync(path, 'utf8') !== reports[packageName];
+	}).map((packageName) => API_REPORT_PATHS[packageName]);
+	if (stale.length > 0) {
+		throw new Error(`API reports are stale: ${stale.join(', ')}. Run bun run api:report.`);
+	}
+}
+
+function git(
+	repositoryRoot: string,
+	args: readonly string[],
+	allowFailure = false,
+): string | undefined {
+	const result = spawnSync('git', args, { cwd: repositoryRoot, encoding: 'utf8' });
+	if (result.status === 0) return result.stdout;
+	if (allowFailure) return undefined;
+	throw new Error(result.stderr.trim() || `git ${args.join(' ')} failed`);
+}
+
+function readCurrentReports(repositoryRoot: string): Partial<Record<ReleasedPackageName, string>> {
+	return Object.fromEntries(
+		RELEASED_PACKAGES.flatMap((packageName) => {
+			const path = join(repositoryRoot, API_REPORT_PATHS[packageName]);
+			return existsSync(path) ? [[packageName, readFileSync(path, 'utf8')]] : [];
+		}),
+	) as Partial<Record<ReleasedPackageName, string>>;
+}
+
+function readBaseReports(
+	repositoryRoot: string,
+	base: string,
+): Partial<Record<ReleasedPackageName, string>> {
+	return Object.fromEntries(
+		RELEASED_PACKAGES.flatMap((packageName) => {
+			const source = git(repositoryRoot, ['show', `${base}:${API_REPORT_PATHS[packageName]}`], true);
+			return source === undefined ? [] : [[packageName, source]];
+		}),
+	) as Partial<Record<ReleasedPackageName, string>>;
+}
+
+function readCurrentFragments(repositoryRoot: string): Record<string, string> {
+	const directory = join(repositoryRoot, '.changes');
+	if (!existsSync(directory)) return {};
+	return Object.fromEntries(
+		readdirSync(directory, { withFileTypes: true })
+			.filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
+			.map((entry) => {
+				const path = `.changes/${entry.name}`;
+				return [path, readFileSync(join(directory, entry.name), 'utf8')];
+			}),
+	);
+}
+
+function readBaseFragments(repositoryRoot: string, base: string): Record<string, string> {
+	const paths =
+		git(repositoryRoot, ['ls-tree', '-r', '--name-only', base, '--', '.changes'], true)
+			?.split(/\r?\n/u)
+			.filter((path) => /^\.changes\/[^/]+\.md$/u.test(path)) ?? [];
+	return Object.fromEntries(
+		paths.map((path) => [path, git(repositoryRoot, ['show', `${base}:${path}`]) ?? '']),
+	);
+}
+
+function parseBase(args: readonly string[]): string {
+	const normalized = args.filter((argument) => argument !== '--');
+	const index = normalized.indexOf('--base');
+	const base = index === -1 ? undefined : normalized[index + 1];
+	if (!base || !/^[0-9a-f]{40}$/u.test(base)) {
+		throw new Error('approve requires --base followed by an exact 40-character lowercase Git SHA');
+	}
+	return base;
+}
+
+export async function main(args = process.argv.slice(2)): Promise<void> {
+	const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+	const [command, ...rest] = args;
+	if (command === 'report') {
+		writeApiReports(repositoryRoot, await createApiReports(repositoryRoot));
+		console.log('API reports updated');
+		return;
+	}
+	if (command === 'check') {
+		checkApiReports(repositoryRoot, await createApiReports(repositoryRoot));
+		console.log('API reports current');
+		return;
+	}
+	if (command === 'approve') {
+		const base = parseBase(rest);
+		git(repositoryRoot, ['cat-file', '-e', `${base}^{commit}`]);
+		const result = authorizeApiChanges({
+			baseReports: readBaseReports(repositoryRoot, base),
+			currentReports: readCurrentReports(repositoryRoot),
+			baseFragments: readBaseFragments(repositoryRoot, base),
+			currentFragments: readCurrentFragments(repositoryRoot),
+		});
+		console.log(
+			result.changedPackages.length === 0
+				? 'API report approval: no post-baseline changes'
+				: `API report approval: ${result.changedPackages.join(', ')} authorized by ${result.newFragments.join(', ')}`,
+		);
+		return;
+	}
+	throw new Error('usage: bun tools/api-authority.ts <report|check|approve --base SHA>');
+}
+
+if (import.meta.main) {
+	main().catch((error: unknown) => {
+		console.error(error instanceof Error ? error.message : String(error));
+		process.exitCode = 1;
+	});
 }
 
 function isReleasedPackage(value: string): value is ReleasedPackageName {
