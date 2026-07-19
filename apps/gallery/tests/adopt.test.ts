@@ -10,7 +10,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-import { adoptFromSource, checkAdoption, parseArgs } from '../../../tools/adopt.js';
+import { adoptFromSource, checkAdoption, parseArgs, treeHash } from '../../../tools/adopt.js';
 
 const scratch: string[] = [];
 
@@ -168,6 +168,29 @@ describe('adoptFromSource', () => {
 		expect(() => checkAdoption(dest)).toThrow(/tree hash mismatch/);
 	});
 
+	it('rejects unrecognized nested manifest fields', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		adoptFromSource({
+			source,
+			dest,
+			tag: 'v1.0.0',
+			packages: ['tokens'],
+			commit: 'fedcba9876543210fedcba9876543210fedcba98',
+		});
+
+		const manifestPath = join(dest, 'manifest.json');
+		const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+			provenance: Record<string, unknown>;
+		};
+		manifest.provenance.timestamp = 'not allowed';
+		write(manifestPath, `${JSON.stringify(manifest, null, '\t')}\n`);
+
+		expect(() => checkAdoption(dest)).toThrow(/manifest.*canonical/i);
+	});
+
 	it('rejects a package set with an omitted internal dependency', () => {
 		const root = tempDir();
 		const source = join(root, 'source');
@@ -201,6 +224,21 @@ describe('adoptFromSource', () => {
 			}),
 		).toThrow(/refusing to replace a non-adoption destination/);
 		expect(readFileSync(join(dest, 'keep.ts'), 'utf-8')).toBe('product source\n');
+	});
+});
+
+describe('schema 2 hashing', () => {
+	it('length-prefixes records so NUL bytes cannot create structural collisions', () => {
+		const root = tempDir();
+		const oneFile = join(root, 'one-file');
+		const twoFiles = join(root, 'two-files');
+		mkdirSync(oneFile);
+		mkdirSync(twoFiles);
+		writeFileSync(join(oneFile, 'a'), Buffer.from([0x62, 0x00, 0x63, 0x00]));
+		writeFileSync(join(twoFiles, 'a'), 'b');
+		writeFileSync(join(twoFiles, 'c'), '');
+
+		expect(treeHash(oneFile)).not.toBe(treeHash(twoFiles));
 	});
 });
 
