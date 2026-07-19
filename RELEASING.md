@@ -83,6 +83,8 @@ VERSION=0.7.0-rc.1
 TAG="v${VERSION}"
 git tag -a "$TAG" -m "$TAG"
 bun run release:check -- --version "$VERSION" --tag "$TAG"
+test "$(gh api repos/mgkdante/yesid.dev-design/immutable-releases \
+  --jq 'select(.enabled == true) | .enabled')" = true
 git push origin "refs/tags/${TAG}"
 ```
 
@@ -91,6 +93,13 @@ pending fragments or duplicate consumed identities. The archive check also
 requires an annotated tag, a clean tagged tree, and a peeled commit contained in
 `origin/main`. A lightweight tag, mismatched version, or off-main commit fails
 closed.
+
+The immutable-settings check is an owner-authenticated preflight. GitHub requires
+repository `Administration (read)` for that endpoint, and the standard Actions
+`GITHUB_TOKEN` cannot receive that permission. Run the preflight immediately
+before every release-tag push. The workflow independently requires the
+published Release to report `immutable: true`; neither check substitutes for
+the other.
 
 Repository policy treats a pushed release tag as write-once even if publication
 fails: fixes use a new version and tag, and force-push is never a recovery
@@ -101,8 +110,10 @@ published successfully.
 
 The tag push automatically starts `.github/workflows/release.yml` through its
 `push.tags: v*` trigger. Do not manually dispatch first publication and do not
-push the tag again. `workflow_dispatch` is verification-only: it accepts an
-exact `tag` input after publication and rejects a missing Release.
+push the tag again. Normal `workflow_dispatch` runs are verification-only: mode
+`verify` accepts an exact `tag` after publication and rejects a missing Release.
+The only exception is the bounded `recover-first-publication` mode described
+below.
 
 The workflow builds the archive outside the repository:
 
@@ -128,10 +139,34 @@ output name, output inside the repository, and overwrite of an existing file.
 For a new tag, the workflow creates a draft, uploads exactly the canonical
 asset, validates its uploaded state, size, and digest against the locally built
 archive, and only then publishes the immutable Release. If that first run leaves
-an existing draft, every rerun refuses to mutate it. Inspect the failure, delete
-only that draft, and rerun the original tag-push workflow. Manual dispatch does
-not resume first publication. A failed run is never authority to edit a
-published object.
+an existing draft, every rerun refuses to mutate it. Inspect the failure and
+delete only that draft before retrying. A failed run is never authority to edit
+a published object.
+
+If the exact tag-push release run failed and no Release exists, a workflow fix
+cannot be picked up by rerunning the old tag event. Do not move or repush the
+tag. The repository owner may dispatch the repaired workflow from current
+`main` only after repeating the live immutable-settings preflight:
+
+```sh
+FAILED_RUN_ID=123456789
+TAG_OBJECT="$(gh api \
+  "repos/mgkdante/yesid.dev-design/git/ref/tags/${TAG}" \
+  --jq 'select(.object.type == "tag") | .object.sha')"
+test "$(gh api repos/mgkdante/yesid.dev-design/immutable-releases \
+  --jq 'select(.enabled == true) | .enabled')" = true
+gh workflow run release.yml --ref main \
+  -f tag="$TAG" \
+  -f mode=recover-first-publication \
+  -f recovery_run_id="$FAILED_RUN_ID" \
+  -f immutable_settings_tag_object="$TAG_OBJECT"
+```
+
+Recovery fails closed unless the actor is the repository owner, the supplied run
+is a completed failed tag-push execution of this release workflow for the same
+tag and peeled commit, the settings receipt equals the remote annotated tag
+object, and no Release exists. It still uses the exact tagged source and the
+normal draft, byte validation, immutable publication, and attestation checks.
 
 ## 4. Verify publication and reruns
 
@@ -155,7 +190,7 @@ closed.
 Trigger one exact-tag rerun after first publication:
 
 ```sh
-gh workflow run release.yml -f tag="$TAG"
+gh workflow run release.yml --ref main -f tag="$TAG" -f mode=verify
 ```
 
 Keep the successful workflow URL, tag object, peeled commit, asset name, asset

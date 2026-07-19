@@ -52,7 +52,9 @@ describe('repository governance contract', () => {
 		expect(releasing).toContain('.yesid-release.json');
 		expect(releasing).toContain('Do not move, replace, delete, or recreate a published tag');
 		expect(releasing).toContain('The tag push automatically starts');
-		expect(releasing).toContain('workflow_dispatch` is verification-only');
+		expect(releasing).toContain('Normal `workflow_dispatch` runs are verification-only');
+		expect(releasing).toContain('recover-first-publication');
+		expect(releasing).toContain('Administration (read)');
 		expect(releasing).toContain('Platform-enforced immutability begins only after');
 		expect(releasing).toContain('byte-for-byte');
 		expect(releasing).toMatch(/delete\s+only that draft/u);

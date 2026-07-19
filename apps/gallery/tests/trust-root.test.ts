@@ -193,10 +193,11 @@ describe('distribution workflow trust root', () => {
 		expect(fullHistory).not.toContain('--log-opts');
 	});
 
-	it('publishes one canonical immutable asset and makes every exact-tag rerun read-only', () => {
+	it('publishes one canonical immutable asset and keeps normal exact-tag reruns read-only', () => {
 		const workflow = readText(RELEASE_WORKFLOW_PATH);
 		const permissions = topLevelBlock(workflow, 'permissions');
 		expect(permissions).toMatch(/^\s+contents:\s*write\s*$/mu);
+		expect(permissions).toMatch(/^\s+actions:\s*read\s*$/mu);
 		expect(permissions).not.toMatch(/^\s+(?!contents:)[\w-]+:\s*write\s*$/mu);
 		const triggers = topLevelBlock(workflow, 'on');
 		expect(triggers).toMatch(/^\s+push:\s*$/mu);
@@ -206,7 +207,17 @@ describe('distribution workflow trust root', () => {
 		expect(workflow).toContain('bun tools/release-archive.ts verify');
 		expect(workflow).toContain('bun run release:check -- --version "$release_version" --tag "$RELEASE_TAG"');
 		expect(workflow).toContain('yesid.dev-design-${RELEASE_TAG}.tar');
-		expect(workflow).toContain('repos/${GITHUB_REPOSITORY}/immutable-releases');
+		expect(workflow).not.toContain('repos/${GITHUB_REPOSITORY}/immutable-releases');
+		expect(workflow).toContain('recover-first-publication');
+		expect(workflow).toContain('RECOVERY_RUN_ID');
+		expect(workflow).toContain('IMMUTABLE_SETTINGS_TAG_OBJECT');
+		expect(workflow).toContain('GITHUB_ACTOR');
+		expect(workflow).toContain('GITHUB_REPOSITORY_OWNER');
+		expect(workflow).toContain('.event == "push"');
+		expect(workflow).toContain('.path == ".github/workflows/release.yml"');
+		expect(workflow).toContain('.head_branch == $tag');
+		expect(workflow).toContain('.head_sha == $commit');
+		expect(workflow).toContain('.conclusion == "failure"');
 		expect(workflow).toContain('existing draft release');
 		expect(workflow).not.toContain('--clobber');
 		expect(workflow).not.toMatch(/\bgit\s+tag\b/u);

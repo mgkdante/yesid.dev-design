@@ -9,8 +9,25 @@ on:
         description: Existing annotated release tag (vX.Y.Z or prerelease)
         required: true
         type: string
+      mode:
+        description: Verify an immutable release or recover a failed first publication
+        required: true
+        default: verify
+        type: choice
+        options:
+          - verify
+          - recover-first-publication
+      recovery_run_id:
+        description: Failed tag-push release run ID (recovery only)
+        required: false
+        type: string
+      immutable_settings_tag_object:
+        description: Owner-confirmed exact tag object after the immutable-settings preflight (recovery only)
+        required: false
+        type: string
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -24,6 +41,9 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      RELEASE_MODE: ${{ github.event_name == 'push' && 'publish' || inputs.mode }}
+      RECOVERY_RUN_ID: ${{ inputs.recovery_run_id || '' }}
+      IMMUTABLE_SETTINGS_TAG_OBJECT: ${{ inputs.immutable_settings_tag_object || '' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -44,14 +64,67 @@ jobs:
             echo "::error::invalid release tag: $RELEASE_TAG"
             exit 1
           fi
-          gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" \
-            | jq -e '.enabled == true' >/dev/null
           git fetch --no-tags origin \
             refs/heads/main:refs/remotes/origin/main
           git rev-parse --verify "refs/remotes/origin/main^{commit}" >/dev/null
-          git rev-parse --verify "refs/tags/${RELEASE_TAG}^{tag}" >/dev/null
+          tag_object="$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{tag}")"
+          peeled_commit="$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}")"
+          git merge-base --is-ancestor "$peeled_commit" refs/remotes/origin/main
+          remote_tag_object="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" \
+            --jq 'select(.object.type == "tag") | .object.sha')"
+          test "$remote_tag_object" = "$tag_object"
           release_version="${RELEASE_TAG#v}"
           bun run release:check -- --version "$release_version" --tag "$RELEASE_TAG"
+
+          case "$RELEASE_MODE" in
+            publish)
+              if [[ "$GITHUB_EVENT_NAME" != "push" || -n "$RECOVERY_RUN_ID" || -n "$IMMUTABLE_SETTINGS_TAG_OBJECT" ]]; then
+                echo "::error::publish mode is reserved for the exact tag-push event"
+                exit 1
+              fi
+              ;;
+            verify)
+              if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" || -n "$RECOVERY_RUN_ID" || -n "$IMMUTABLE_SETTINGS_TAG_OBJECT" ]]; then
+                echo "::error::verify mode does not accept recovery evidence"
+                exit 1
+              fi
+              ;;
+            recover-first-publication)
+              if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]]; then
+                echo "::error::recovery requires workflow_dispatch"
+                exit 1
+              fi
+              if [[ "$GITHUB_ACTOR" != "$GITHUB_REPOSITORY_OWNER" ]]; then
+                echo "::error::first-publication recovery is restricted to the repository owner"
+                exit 1
+              fi
+              if [[ ! "$RECOVERY_RUN_ID" =~ ^[1-9][0-9]*$ ]]; then
+                echo "::error::recovery requires the failed tag-push release run ID"
+                exit 1
+              fi
+              if [[ "$IMMUTABLE_SETTINGS_TAG_OBJECT" != "$tag_object" ]]; then
+                echo "::error::immutable-settings receipt must equal the exact annotated tag object"
+                exit 1
+              fi
+              recovery_run="$RUNNER_TEMP/recovery-run.json"
+              gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RECOVERY_RUN_ID}" >"$recovery_run"
+              jq -e \
+                --arg tag "$RELEASE_TAG" \
+                --arg commit "$peeled_commit" '
+                  .event == "push" and
+                  .path == ".github/workflows/release.yml" and
+                  .head_branch == $tag and
+                  .head_sha == $commit and
+                  .status == "completed" and
+                  .conclusion == "failure"
+                ' "$recovery_run" >/dev/null
+              ;;
+            *)
+              echo "::error::invalid release mode: $RELEASE_MODE"
+              exit 1
+              ;;
+          esac
 
       - name: Detect exact-tag release state
         id: release-state
@@ -62,7 +135,7 @@ jobs:
           if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
             >"$release_json" 2>"$release_error"; then
             if jq -e '.draft == true' "$release_json" >/dev/null; then
-              echo "::error::existing draft release $RELEASE_TAG will not be mutated by a rerun. Inspect and delete only that draft, then rerun the original tag-push workflow."
+              echo "::error::existing draft release $RELEASE_TAG will not be mutated. Inspect and delete only that draft before rerunning the failed push or using proven recovery."
               exit 1
             fi
             if ! jq -e '.draft == false and .immutable == true' "$release_json" >/dev/null; then
@@ -71,7 +144,7 @@ jobs:
             fi
             echo "exists=true" >>"$GITHUB_OUTPUT"
           elif grep -q 'HTTP 404' "$release_error"; then
-            if [[ "$GITHUB_EVENT_NAME" != "push" ]]; then
+            if [[ "$RELEASE_MODE" != "publish" && "$RELEASE_MODE" != "recover-first-publication" ]]; then
               echo "::error::workflow_dispatch verifies an existing exact-tag release only"
               exit 1
             fi
