@@ -172,7 +172,15 @@ describe('public symbol safety', () => {
 	});
 
 	it('accepts ordinary public values and types', () => {
-		expect(() => validatePublicSymbols([base, { ...base, name: 'TickerCallback' }])).not.toThrow();
+		expect(() =>
+			validatePublicSymbols([
+				base,
+				{ ...base, name: 'TickerCallback' },
+				{ ...base, name: 'contestWinner' },
+				{ ...base, name: 'internalizeState' },
+				{ ...base, name: 'testingMode' },
+			]),
+		).not.toThrow();
 	});
 
 	it('keeps test reset seams out of the public motion ticker module', async () => {

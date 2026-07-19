@@ -659,13 +659,22 @@ export function authorizeApiChanges(input: ApiApprovalInput): ApiApprovalResult 
 	return { changedPackages, newFragments };
 }
 
+function usesNonPublicSymbolName(name: string): boolean {
+	if (name.startsWith('_')) return true;
+	if (name.split(/[_-]/u).some((part) => /^(?:tests?|internal)$/iu.test(part))) return true;
+	return (
+		/^(?:tests?|internal)(?:$|[A-Z])/u.test(name) ||
+		/(?:^|[a-z0-9])(?:Tests?|Internal)(?:$|[A-Z])/u.test(name)
+	);
+}
+
 export function validatePublicSymbols(symbols: readonly PublicSymbol[]): void {
 	for (const symbol of symbols) {
 		const context = `${symbol.packageName}${symbol.subpath === '.' ? '' : `/${symbol.subpath.slice(2)}`}`;
 		if (symbol.releaseTag?.toLowerCase() === 'internal') {
 			throw new Error(`${context} export ${symbol.name} is marked @internal`);
 		}
-		if (symbol.name.startsWith('_') || /(?:for|onlyfor)tests?$/iu.test(symbol.name)) {
+		if (usesNonPublicSymbolName(symbol.name)) {
 			throw new Error(`${context} export ${symbol.name} uses a test/internal public name`);
 		}
 	}
