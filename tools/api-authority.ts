@@ -419,15 +419,35 @@ async function createPackageReport(
 	);
 }
 
+function createApiWorkspace(repositoryRoot: string): string {
+	const nodeModules = join(repositoryRoot, 'node_modules');
+	if (!existsSync(nodeModules)) throw new Error('node_modules is required; run bun install first');
+	const workspaceRoot = mkdtempSync(join(tmpdir(), 'yesid-api-authority-'));
+	symlinkSync(nodeModules, join(workspaceRoot, 'node_modules'), 'junction');
+	return workspaceRoot;
+}
+
+export async function createApiReport(
+	repositoryRootInput: string,
+	packageName: ReleasedPackageName,
+): Promise<string> {
+	const repositoryRoot = resolve(repositoryRootInput);
+	const config = RELEASED_PACKAGE_CONFIG.find((candidate) => candidate.name === packageName);
+	if (!config) throw new Error(`Unknown released package ${packageName}`);
+	const workspaceRoot = createApiWorkspace(repositoryRoot);
+	try {
+		return await createPackageReport(repositoryRoot, workspaceRoot, config);
+	} finally {
+		rmSync(workspaceRoot, { recursive: true, force: true });
+	}
+}
+
 export async function createApiReports(
 	repositoryRootInput: string,
 ): Promise<Record<ReleasedPackageName, string>> {
 	const repositoryRoot = resolve(repositoryRootInput);
-	const workspaceRoot = mkdtempSync(join(tmpdir(), 'yesid-api-authority-'));
+	const workspaceRoot = createApiWorkspace(repositoryRoot);
 	try {
-		const nodeModules = join(repositoryRoot, 'node_modules');
-		if (!existsSync(nodeModules)) throw new Error('node_modules is required; run bun install first');
-		symlinkSync(nodeModules, join(workspaceRoot, 'node_modules'), 'junction');
 		const reports = {} as Record<ReleasedPackageName, string>;
 		for (const config of RELEASED_PACKAGE_CONFIG) {
 			reports[config.name] = await createPackageReport(repositoryRoot, workspaceRoot, config);
