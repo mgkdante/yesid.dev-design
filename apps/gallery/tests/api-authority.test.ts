@@ -1,14 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
 	authorizeApiChanges,
+	checkApiReports,
 	createApiReports,
 	parseChangeFragment,
 	validatePublicSymbols,
+	writeApiReports,
 	type PublicSymbol,
 } from '../../../tools/api-authority.js';
-import { fileURLToPath } from 'node:url';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
+const scratch: string[] = [];
+
+afterEach(() => {
+	for (const directory of scratch.splice(0)) rmSync(directory, { recursive: true, force: true });
+});
 
 const BASE_REPORTS = {
 	'@yesid/tokens': 'tokens-v1',
@@ -151,4 +161,35 @@ describe('deterministic package API reports', () => {
 		expect(first['@yesid/ui']).toContain('type ButtonProps');
 		expect(first['@yesid/ui']).toContain('function configureUi');
 	}, 30_000);
+
+	it('writes exact report paths and fails closed on stale committed bytes', () => {
+		const root = mkdtempSync(join(tmpdir(), 'yesid-api-report-test-'));
+		scratch.push(root);
+		writeApiReports(root, BASE_REPORTS);
+
+		expect(readFileSync(join(root, 'api-reports', 'tokens.api.md'), 'utf8')).toBe('tokens-v1');
+		expect(readFileSync(join(root, 'api-reports', 'motion.api.md'), 'utf8')).toBe('motion-v1');
+		expect(readFileSync(join(root, 'api-reports', 'gates.api.md'), 'utf8')).toBe('gates-v1');
+		expect(readFileSync(join(root, 'api-reports', 'ui.api.md'), 'utf8')).toBe('ui-v1');
+		expect(() => checkApiReports(root, BASE_REPORTS)).not.toThrow();
+
+		writeFileSync(join(root, 'api-reports', 'ui.api.md'), 'stale-ui');
+		expect(() => checkApiReports(root, BASE_REPORTS)).toThrow(
+			'API reports are stale: api-reports/ui.api.md. Run bun run api:report.',
+		);
+	});
+
+	it('wires report, freshness, and approval commands into repository authority', () => {
+		const manifest = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'package.json'), 'utf8')) as {
+			scripts: Record<string, string>;
+		};
+		expect(manifest.scripts['api:report']).toBe('bun tools/api-authority.ts report');
+		expect(manifest.scripts['api:check']).toBe('bun tools/api-authority.ts check');
+		expect(manifest.scripts['api:approve']).toBe('bun tools/api-authority.ts approve');
+		expect(manifest.scripts.check).toContain('bun run api:check');
+
+		const workflow = readFileSync(join(REPOSITORY_ROOT, '.github/workflows/ci.yml'), 'utf8');
+		expect(workflow).toContain('name: API report approval');
+		expect(workflow).toContain('bun run api:approve -- --base "$API_BASE_SHA"');
+	});
 });
