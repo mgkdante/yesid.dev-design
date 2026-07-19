@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
+import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 
 import { GALLERY_COVERAGE } from '../src/lib/gallery/coverage.js';
+import GalleryPage from '../src/routes/+page.svelte';
 
 type PackageManifest = { exports?: Record<string, unknown> };
 
@@ -59,5 +61,23 @@ describe('Gallery coverage authority', () => {
 			'desktop',
 			'mobile',
 		]);
+	});
+
+	it('server-renders every family and state scenario from the executable matrix', () => {
+		const { body } = render(GalleryPage);
+		for (const family of GALLERY_COVERAGE.primitives) {
+			expect(body, `primitive:${family}`).toContain(
+				`data-gallery-family="primitive:${family}"`,
+			);
+		}
+		for (const family of GALLERY_COVERAGE.brand) {
+			expect(body, `brand:${family}`).toContain(`data-gallery-family="brand:${family}"`);
+		}
+		for (const family of GALLERY_COVERAGE.motion) {
+			expect(body, `motion:${family}`).toContain(`data-gallery-family="motion:${family}"`);
+		}
+		for (const state of GALLERY_COVERAGE.states) {
+			expect(body, `state:${state}`).toContain(`data-gallery-state="${state}"`);
+		}
 	});
 });
