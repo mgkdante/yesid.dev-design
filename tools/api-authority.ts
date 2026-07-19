@@ -1,3 +1,5 @@
+/// <reference path="./svelte2tsx-mjs.d.ts" />
+
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import {
