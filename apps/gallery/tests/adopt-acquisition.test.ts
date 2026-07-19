@@ -6,11 +6,14 @@ import {
 	mkdtempSync,
 	readFileSync,
 	rmSync,
+	statSync,
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { main } from '../../../tools/adopt.js';
 
 import {
 	REPOSITORY_ID,
@@ -417,4 +420,38 @@ describe('immutable Release acquisition', () => {
 		},
 		1_000,
 	);
+});
+
+describe('CLI composition', () => {
+	it('installs a local archive, checks it offline, and converges to an exact no-op', async () => {
+		const root = tempDir();
+		const archivePath = join(root, 'release.tar');
+		const dest = join(root, 'vendor', 'design');
+		writeFileSync(archivePath, archiveFixture());
+		const adoptArgs = [
+			'--tag',
+			TAG,
+			'--packages',
+			'tokens',
+			'--dest',
+			dest,
+			'--archive',
+			archivePath,
+		];
+		const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+		const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+		try {
+			expect(await main(adoptArgs)).toBe(0);
+			const firstManifest = readFileSync(join(dest, 'manifest.json'), 'utf8');
+			const firstStat = statSync(dest);
+			expect(await main(['--check', '--dest', dest])).toBe(0);
+			expect(await main(adoptArgs)).toBe(0);
+			expect(readFileSync(join(dest, 'manifest.json'), 'utf8')).toBe(firstManifest);
+			expect(statSync(dest).ino).toBe(firstStat.ino);
+			expect(statSync(dest).mtimeMs).toBe(firstStat.mtimeMs);
+		} finally {
+			log.mockRestore();
+			error.mockRestore();
+		}
+	});
 });
