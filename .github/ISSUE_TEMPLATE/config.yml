@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/mgkdante/yesid.dev-design/security/advisories/new
+    about: Report vulnerabilities privately. Do not disclose them in a public issue.
+  - name: Support policy
+    url: https://github.com/mgkdante/yesid.dev-design/blob/main/SUPPORT.md
+    about: Check supported surfaces, required evidence, and consumer ownership boundaries.

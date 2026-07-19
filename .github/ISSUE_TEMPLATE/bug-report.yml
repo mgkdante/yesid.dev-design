@@ -1,0 +1,89 @@
+name: Bug report
+description: Report a reproducible defect in an exact yesid.dev-design release
+title: "[bug] "
+labels: []
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Reduce the failure to the upstream boundary. Do not patch `vendor/design`.
+        Security reports belong in private vulnerability reporting, not this form.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected surface
+      options:
+        - Adoption tool or schema-2 manifest
+        - Tokens
+        - Motion
+        - Gates
+        - UI
+        - Gallery or documentation
+    validations:
+      required: true
+  - type: input
+    id: tag
+    attributes:
+      label: Exact release tag
+      description: Use the immutable tag recorded in the adoption manifest, such as v0.7.0.
+      placeholder: vX.Y.Z
+    validations:
+      required: true
+  - type: dropdown
+    id: acquisition
+    attributes:
+      label: Acquisition mode
+      options:
+        - release
+        - archive (local development)
+        - worktree/source (local development)
+        - not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: check
+    attributes:
+      label: Vendor verification
+      description: Paste the complete output and exit code. Remove secrets.
+      render: shell
+      value: bun vendor/design/tools/adopt.ts --check --dest vendor/design
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: List the smallest deterministic steps, input, and repository or fixture needed to reproduce the defect.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected contract
+      description: Link the documented API, release note, or established behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Include exact errors, logs, screenshots, or failing assertions.
+    validations:
+      required: true
+  - type: input
+    id: consumer
+    attributes:
+      label: Consumer and revision
+      description: If applicable, name the consumer and exact commit where the defect was observed.
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Boundary checks
+      options:
+        - label: I reproduced this without hand-editing vendored package files.
+          required: true
+        - label: I used an exact tag, not a branch or floating reference.
+          required: true
+        - label: This report contains no secrets or private product data.
+          required: true

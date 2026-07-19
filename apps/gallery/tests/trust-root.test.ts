@@ -8,6 +8,7 @@ const GITHUB_DIRECTORY = join(REPOSITORY_ROOT, '.github');
 const CODEOWNERS_PATH = join(GITHUB_DIRECTORY, 'CODEOWNERS');
 const CI_WORKFLOW_PATH = join(GITHUB_DIRECTORY, 'workflows', 'ci.yml');
 const SECRET_SCAN_WORKFLOW_PATH = join(GITHUB_DIRECTORY, 'workflows', 'secret-scan.yml');
+const RELEASE_WORKFLOW_PATH = join(GITHUB_DIRECTORY, 'workflows', 'release.yml');
 
 function readText(path: string): string {
 	return readFileSync(path, 'utf-8');
@@ -190,5 +191,53 @@ describe('distribution workflow trust root', () => {
 		);
 		expect(fullHistory).toMatch(/^\s+run:\s*gitleaks detect --redact\s*$/mu);
 		expect(fullHistory).not.toContain('--log-opts');
+	});
+
+	it('publishes one canonical immutable asset and makes every exact-tag rerun read-only', () => {
+		const workflow = readText(RELEASE_WORKFLOW_PATH);
+		const permissions = topLevelBlock(workflow, 'permissions');
+		expect(permissions).toMatch(/^\s+contents:\s*write\s*$/mu);
+		expect(permissions).not.toMatch(/^\s+(?!contents:)[\w-]+:\s*write\s*$/mu);
+		const triggers = topLevelBlock(workflow, 'on');
+		expect(triggers).toMatch(/^\s+push:\s*$/mu);
+		expect(triggers).toMatch(/^\s+tags:\s*\[(['"]?)v\*\1\]\s*$/mu);
+		expect(triggers).toMatch(/^\s+workflow_dispatch:\s*$/mu);
+		expect(workflow).toContain('bun tools/release-archive.ts build');
+		expect(workflow).toContain('bun tools/release-archive.ts verify');
+		expect(workflow).toContain('bun run release:check -- --version "$release_version" --tag "$RELEASE_TAG"');
+		expect(workflow).toContain('yesid.dev-design-${RELEASE_TAG}.tar');
+		expect(workflow).toContain('repos/${GITHUB_REPOSITORY}/immutable-releases');
+		expect(workflow).toContain('existing draft release');
+		expect(workflow).not.toContain('--clobber');
+		expect(workflow).not.toMatch(/\bgit\s+tag\b/u);
+		expect(workflow).toContain("ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}");
+		expect(workflow).not.toMatch(/^\s+ref:\s*main\s*$/mu);
+		expect(workflow.indexOf('name: Validate draft asset bytes')).toBeLessThan(
+			workflow.indexOf('name: Publish immutable release'),
+		);
+		expect(workflow.indexOf('bun run release:check')).toBeLessThan(
+			workflow.indexOf('name: Detect exact-tag release state'),
+		);
+
+		const steps = workflowSteps(workflow);
+		for (const command of ['gh release create', 'gh release upload', 'gh release edit']) {
+			const step = steps.find((candidate) => candidate.includes(command));
+			expect(step, `${command} must have one explicit first-publication gate`).toBeDefined();
+			expect(step).toMatch(
+				/^\s+if:\s*steps\.release-state\.outputs\.exists\s*==\s*'false'\s*$/mu,
+			);
+		}
+		const verification = steps.find((step) => step.includes('bun tools/release-archive.ts verify'));
+		expect(verification).toBeDefined();
+		expect(verification).not.toContain("steps.release-state.outputs.exists == 'false'");
+		expect(verification).toContain('.immutable == true');
+		expect(verification).toContain('.draft == false');
+		expect(verification).toContain('.assets | length) == 1');
+		expect(verification).toContain('actual_size');
+		expect(verification).toContain('expected_size');
+		expect(verification).toContain('actual_digest');
+		expect(verification).toContain('expected_digest');
+		expect(verification).toContain('test "$actual_size" = "$expected_size"');
+		expect(verification).toContain('test "$actual_digest" = "$expected_digest"');
 	});
 });
