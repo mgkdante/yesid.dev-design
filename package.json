@@ -1,6 +1,6 @@
 {
 	"name": "yesid-dev-design",
-	"version": "0.7.0",
+	"version": "0.7.0-rc.1",
 	"private": true,
 	"type": "module",
 	"description": "yesid.dev brand foundation — tokens, motion, gates, UI, gallery. Parity anchor: yesid.dev @ 2bdb611d91749dc437c07586cb82129eabe9dfec.",
