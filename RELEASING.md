@@ -106,6 +106,27 @@ fails: fixes use a new version and tag, and force-push is never a recovery
 mechanism. Platform-enforced immutability begins only after the Release is
 published successfully.
 
+## Independent `@yesid/config` releases
+
+`@yesid/config` does not share the four-package `v*` version or adoption asset.
+Its fragments live in `.config-changes/`, its changelog is
+`packages/config/CHANGELOG.md`, and its annotated tags use `config-vX.Y.Z`.
+Prepare and verify that line independently:
+
+```sh
+bun run config:release:prepare -- --version 0.2.0
+bun run config:release:check -- --version 0.2.0
+git tag -a config-v0.2.0 -m config-v0.2.0
+bun run config:release:check -- --version 0.2.0 --tag config-v0.2.0
+```
+
+The `config-release.yml` tag workflow publishes only
+`yesid-config-vX.Y.Z.tgz` and its `.sha256` file. The npm-compatible archive is
+rooted at `package/`, follows the package's explicit file allowlist, and embeds
+the exact tag receipt. Repository tag rules must protect both `v*` and
+`config-v*` from update, deletion, and non-fast-forward changes before the
+first config tag is pushed.
+
 ## 3. Publish from the tag-push workflow
 
 The tag push automatically starts `.github/workflows/release.yml` through its

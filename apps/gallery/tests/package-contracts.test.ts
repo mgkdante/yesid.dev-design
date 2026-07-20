@@ -15,6 +15,10 @@ type PackageManifest = {
 	svelte?: unknown;
 	exports?: Record<string, PackageExport>;
 	scripts?: Record<string, string>;
+	dependencies?: Record<string, string>;
+	devDependencies?: Record<string, string>;
+	peerDependencies?: Record<string, string>;
+	optionalDependencies?: Record<string, string>;
 };
 
 type ReleasedPackageName =
@@ -33,6 +37,7 @@ const RELEASED_MANIFESTS: ReadonlySet<ReleasedPackageName> = new Set([
 const ROOT_MANIFEST_URL = new URL('../../../package.json', import.meta.url);
 const REPOSITORY_PATH = fileURLToPath(new URL('../../../', import.meta.url));
 const GALLERY_MANIFEST_URL = new URL('../package.json', import.meta.url);
+const CONFIG_MANIFEST_URL = new URL('../../../packages/config/package.json', import.meta.url);
 const RELEASED_MANIFEST_URLS: Record<ReleasedPackageName, URL> = {
 	'@yesid/tokens': new URL('../../../packages/tokens/package.json', import.meta.url),
 	'@yesid/motion': new URL('../../../packages/motion/package.json', import.meta.url),
@@ -216,6 +221,27 @@ describe('prospective package release contract', () => {
 			manifest.version,
 			`${packageName} must match root canonical version ${String(rootManifest.version)}`,
 		).toBe(rootManifest.version);
+	});
+
+	it('keeps @yesid/config independently versioned and outside the four-package release closure', () => {
+		const configManifest = readManifest(CONFIG_MANIFEST_URL);
+		expect(isStrictSemVer(configManifest.version)).toBe(true);
+		expect(new Set(RELEASED_MANIFESTS)).toEqual(
+			new Set(['@yesid/tokens', '@yesid/motion', '@yesid/gates', '@yesid/ui']),
+		);
+		expect(isReleasedManifestName(configManifest.name)).toBe(false);
+
+		for (const packageName of RELEASED_MANIFESTS) {
+			const manifest = readManifest(RELEASED_MANIFEST_URLS[packageName]);
+			for (const dependencies of [
+				manifest.dependencies,
+				manifest.devDependencies,
+				manifest.peerDependencies,
+				manifest.optionalDependencies,
+			]) {
+				expect(dependencies?.['@yesid/config']).toBeUndefined();
+			}
+		}
 	});
 
 	it('keeps the gallery private and outside the released manifest set', () => {

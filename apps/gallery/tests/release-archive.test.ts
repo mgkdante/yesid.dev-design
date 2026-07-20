@@ -10,6 +10,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
@@ -20,6 +21,7 @@ import {
 
 const TAG = 'v1.2.3-rc.1';
 const VERSION = '1.2.3-rc.1';
+const ADOPT_TOOL = fileURLToPath(new URL('../../../tools/adopt.ts', import.meta.url));
 const scratch: string[] = [];
 
 function tempDir(prefix = 'yesid-release-test-'): string {
@@ -56,12 +58,15 @@ function repository(options: { lightweight?: boolean; version?: string } = {}): 
 	git(root, 'config', 'user.email', 'release-test@example.com');
 	write(join(root, 'package.json'), manifest('yesid-dev-design', options.version));
 	write(join(root, 'LICENSE'), 'MIT\n');
+	write(join(root, 'README.md'), 'repository-only documentation\n');
 	write(join(root, 'tools', 'adopt.ts'), 'export {};\n');
 	write(join(root, 'tools', 'adopt', 'contract.ts'), 'export {};\n');
 	for (const name of ['tokens', 'motion', 'gates', 'ui']) {
 		write(join(root, 'packages', name, 'package.json'), manifest(`@yesid/${name}`, options.version));
 		write(join(root, 'packages', name, 'src', 'index.ts'), `export const name = '${name}';\n`);
 	}
+	write(join(root, 'packages', 'config', 'package.json'), manifest('@yesid/config', '0.1.0'));
+	write(join(root, 'packages', 'config', '.env'), 'DO_NOT_SHIP=secret\n');
 	git(root, 'add', '.');
 	git(root, 'commit', '-qm', 'release fixture');
 	if (options.lightweight) git(root, 'tag', TAG);
@@ -168,6 +173,8 @@ describe('immutable release archive', () => {
 		expect(entries.length).toBeGreaterThan(10);
 		expect(entries.every((entry) => entry.startsWith(`yesid.dev-design-${TAG}/`))).toBe(true);
 		expect(entries).not.toContain('.git');
+		expect(entries.some((entry) => entry.includes('/packages/config/'))).toBe(false);
+		expect(entries.some((entry) => entry.endsWith('/README.md'))).toBe(false);
 		expect(entries.filter((entry) => entry.endsWith('/.yesid-release.json'))).toHaveLength(1);
 		expect(tarMtimes(readFileSync(firstPath))).not.toHaveLength(0);
 		expect(tarMtimes(readFileSync(firstPath)).every((mtime) => mtime === source.commitTime)).toBe(
@@ -196,6 +203,28 @@ describe('immutable release archive', () => {
 			tag: TAG,
 			archive: firstPath,
 		})).toEqual(first);
+
+		const adoption = join(tempDir(), 'vendor', 'design');
+		const adopted = spawnSync(
+			'bun',
+			[
+				ADOPT_TOOL,
+				'--tag',
+				TAG,
+				'--packages',
+				'tokens,motion,gates,ui',
+				'--dest',
+				adoption,
+				'--archive',
+				firstPath,
+			],
+			{ encoding: 'utf8' },
+		);
+		expect(adopted.status, `${adopted.stdout}\n${adopted.stderr}`).toBe(0);
+		const checked = spawnSync('bun', [ADOPT_TOOL, '--check', '--dest', adoption], {
+			encoding: 'utf8',
+		});
+		expect(checked.status, `${checked.stdout}\n${checked.stderr}`).toBe(0);
 	});
 
 	it('fails closed before writing for dirty, lightweight, or version-mismatched trust roots', () => {
@@ -251,10 +280,10 @@ describe('immutable release archive', () => {
 		write(join(unsafe.root, 'outside.txt'), 'target\n');
 		git(unsafe.root, 'add', 'outside.txt');
 		git(unsafe.root, 'commit', '-qm', 'target');
-		const symlink = join(unsafe.root, 'unsafe-link');
-		const linkResult = spawnSync('ln', ['-s', 'outside.txt', symlink]);
+		const symlink = join(unsafe.root, 'packages', 'ui', 'unsafe-link');
+		const linkResult = spawnSync('ln', ['-s', '../../../outside.txt', symlink]);
 		if (linkResult.status !== 0) throw new Error('could not create symlink fixture');
-		git(unsafe.root, 'add', 'unsafe-link');
+		git(unsafe.root, 'add', 'packages/ui/unsafe-link');
 		git(unsafe.root, 'commit', '-qm', 'unsafe symlink');
 		git(unsafe.root, 'tag', '-a', 'v1.2.4', '-m', 'v1.2.4');
 		git(unsafe.root, 'update-ref', 'refs/remotes/origin/main', 'HEAD');
