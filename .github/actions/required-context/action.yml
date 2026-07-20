@@ -1,0 +1,21 @@
+name: Required context reporter
+description: >-
+  Dependency-free final CI gate. The caller job must declare if: always() and
+  list the classifier plus every reported work job as direct needs.
+
+inputs:
+  needs-json:
+    description: Exact toJSON(needs) value from the caller job.
+    required: true
+  classifier-job:
+    description: Direct-needs job id that emitted the classification receipt.
+    required: false
+    default: classify
+
+outputs:
+  report:
+    description: Compact versioned required-context report.
+
+runs:
+  using: node24
+  main: main.mjs
