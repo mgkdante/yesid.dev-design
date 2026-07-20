@@ -35,6 +35,7 @@
 		"@google/design.md": "0.1.1",
 		"@microsoft/api-extractor": "7.58.11",
 		"@types/node": "^22.0.0",
+		"@yesid/config": "workspace:0.2.0",
 		"svelte2tsx": "0.7.58",
 		"turbo": "^2.5.0",
 		"typescript": "^5.9.3"

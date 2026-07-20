@@ -1,15 +1,10 @@
 {
-  "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "esModuleInterop": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "noEmit": true,
-    "noUncheckedIndexedAccess": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ES2022",
-    "types": ["node"]
-  },
-  "include": ["tools/**/*.ts"]
+	"extends": "@yesid/config/tsconfig/library.json",
+	"compilerOptions": {
+		"esModuleInterop": true,
+		"module": "ESNext",
+		"noUncheckedIndexedAccess": true,
+		"types": ["node"]
+	},
+	"include": ["tools/**/*.ts"]
 }
