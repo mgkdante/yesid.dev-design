@@ -1,17 +1,14 @@
 # Consumers
 
-This registry records the starting state before the `v0.7.0` Release cascade.
-It is evidence, not a completion claim. A consumer becomes current only through
-its own reviewed bump, schema-2 receipt, checks, and product verification.
+This registry records Release-adoption facts observed at each repository's
+canonical `origin/main` on 2026-07-20. It does not infer product verification;
+that remains consumer-owned.
 
-Baseline refs were read from each repository's canonical `origin/main` on
-2026-07-18.
-
-| Consumer | Baseline ref | Starting distribution state | Required next transition |
+| Consumer | Observed ref | Release-adoption state | Required next transition |
 |---|---|---|---|
-| Transit | `aef4c722d4fbcf1f812c0c37a7e4c1881f68961a` | `apps/web/vendor/design` is pinned by a legacy manifest to `v0.6.0` at `317dd0386fe3e37372c11ece6eaedcdd170dd98a`. The app resolves all four `@yesid/*` packages through `file:vendor/design/*`, but the manifest predates schema 2. | Adopt an immutable `v0.7.0` Release asset with the schema-2 tool, move product policy out of the gates package, then prove vendor check, generated output, tests, build, and product/browser behavior in Transit. |
-| yesid.dev | `7767b729e01c73a3b85fc031d287de2cb9445cb1` | The monorepo still owns embedded workspace packages under `packages/{tokens,motion,gates,ui}` and resolves them through `workspace:*`. It has no `vendor/design/manifest.json` and has not yet adopted schema 2. | Replace the embedded copies through its staged cutover, preserve consumer-owned policy and composed components, then prove the exact Release receipt and yesid.dev's own tests/build/browser behavior. |
-| Gallery | yesid.dev-design `7c588672c4bea1ec9cd4051fe4f2d5a152a11114` | `apps/gallery` is the private workspace dogfood consumer. It resolves the released packages through `workspace:*`; it is not an external Release consumer and its `0.1.0` app version is outside package lockstep. | Continue to exercise package integration and browser authority in this repository. Do not treat Gallery success as proof of either external consumer's cascade. |
+| Transit | `105893db42d9e9fd3f182de1534f34236dc3ef72` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.7.1`, peeled commit `c0188172f07e6c4238b3397aa7e1b0d4ff154ee9`, containing `tokens,motion,gates,ui`. | Future changes use a reviewed exact-tag adoption PR, followed by Transit's own vendor, generated-output, test, build, and product/browser verification. |
+| yesid.dev | `4ddfc5f934e31c9446f8014d0ae80e1fdb9a8fa6` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.7.1`, peeled commit `c0188172f07e6c4238b3397aa7e1b0d4ff154ee9`, containing `tokens,motion,gates,ui`. The former embedded package copies are no longer present. | Future changes use a reviewed exact-tag adoption PR, followed by yesid.dev's own vendor, generated-output, test, build, and product/browser verification. |
+| Gallery | yesid.dev-design `c0188172f07e6c4238b3397aa7e1b0d4ff154ee9` | `apps/gallery` is the private workspace dogfood consumer. It resolves packages through `workspace:*`; it is not an external Release consumer and its app version remains outside package lockstep. | Continue exercising package integration and browser authority here. Do not treat Gallery success as proof of an external consumer's product verification. |
 
 ## State vocabulary
 

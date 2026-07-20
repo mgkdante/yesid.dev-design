@@ -28,7 +28,7 @@ notion:
 
 ## Project
 
-**yesid.dev-design** — the yesid brand's styling foundation as a standalone bun+turbo monorepo: `packages/tokens` (DTCG source of truth + generators), `packages/motion` (the pure Snappy-Doctrine actions), `packages/gates` (neutral brand-quality engines; product policy stays consumer-side), `apps/gallery` (the living brand gallery). Extracted byte-faithful from yesid.dev @ `2bdb611d91749dc437c07586cb82129eabe9dfec`; `v0.1.0` is the immovable parity tag. Consumers: transit (live, vendored-sync @ v0.2.0), yesid.dev (later, via FLIP-THE-SWITCH.md).
+**yesid.dev-design** — the yesid brand's styling foundation as a standalone bun+turbo monorepo: `packages/tokens` (DTCG source of truth + generators), `packages/motion` (pure Snappy-Doctrine actions), `packages/gates` (neutral brand-quality engines; product policy stays consumer-side), `packages/ui` (source-shipped Svelte 5 primitives), and `apps/gallery` (the living brand gallery). Extracted byte-faithful from yesid.dev @ `2bdb611d91749dc437c07586cb82129eabe9dfec`; `v0.1.0` is the immovable parity tag. Current external-consumer receipts are recorded in `CONSUMERS.md`.
 
 ## Governance laws (constitutional — see README for the full text)
 
@@ -39,16 +39,18 @@ notion:
 
 ## Workflow
 
-workflow-overlord 3.x orchestrates Claude Code + Codex sessions via Notion shared state. **Notion is the canonical workflow state** (Roadmap / Slices / Sessions / Transcript Chunks under the repo's own subtree, a sibling of the Transit subtree). Long-form business + architecture context also lives there; repo prose stays short and practical (README = governance + layout + deviation register).
+workflow-overlord 4.x orchestrates Claude Code + Codex sessions via Notion shared state. **Notion is the canonical workflow state** (Roadmap / Slices / Sessions / Transcript Chunks under the repo's own subtree, a sibling of the Transit subtree). Long-form business + architecture context also lives there; repo prose stays short and practical (README = governance + layout + deviation register).
 
-## Core principles — the 6 mechanical guarantees
+## Core principles — the 5 mechanical guarantees
 
 1. **Sessions row exists at session start** — SessionStart hook
-2. **Sessions row backfilled on first prompt if SessionStart missed** — UserPromptSubmit hook
-3. **Sessions row gets transcript artifact + summary at stop** — Stop hook
-4. **No surgical Notion edits (Rule 2)** — PreToolUse hook
-5. **Refuse placeholder Notion config (Rule 6)** — PreToolUse hook
-6. **Cross-tool parity** — Claude and Codex use the same wrapper contract
+2. **Sessions row gets final transcript chunks + summary refresh on Stop** — the
+   plugin finalizer flushes readable evidence. `Ended` is not written because
+   sessions are resumable.
+3. **No surgical Notion edits (Rule 2)** — PreToolUse hook
+4. **Refuse placeholder Notion config (Rule 6)** — PreToolUse hook
+5. **Cross-tool parity** — Claude Code and Codex execute the same installed
+   plugin runtime; this repository contains no workflow-overlord mirrors.
 
 Everything else is instruction + AI nudge — user decides.
 
@@ -58,7 +60,7 @@ Everything else is instruction + AI nudge — user decides.
 <root_page_id> ("yesid.dev-design")
 ├── 🧭 Business          — mission, tier model, consumers, versioning promise
 ├── 🏗️ Architecture      — governance laws, extraction layer map, anti-drift stack
-├── 🔀 FLIP-THE-SWITCH   — the operator-run yesid.dev adoption handoff
+├── 🔀 FLIP-THE-SWITCH   — completed yesid.dev adoption record
 └── 🗂️ Canonical
     ├── Roadmap
     ├── Slices
@@ -96,4 +98,4 @@ Never recommend, never personalize, never auto-invoke. User decides.
 - **Anti-drift stack (do not weaken):** tokens.json → write-if-changed generators → `parity.test.ts` byte-compare → root `ci:tokens` git-diff gate → `.githooks/pre-commit` GUARD 1. `.gitattributes` LF enforcement is load-bearing for the byte-compares.
 - **Releases:** annotated git tags (`vX.Y.Z`). `v0.1.0` (parity) never moves; every brand change bumps past it. Update the push-to-figma count pin with a changelog comment whenever tokens.json gains/loses variables.
 - **No formatter by design** at the parity line (yesid.dev has none); adopting one is a deliberate post-parity decision.
-- **Consumers:** transit syncs via its `apps/web/tools/design-sync.ts` at a pinned tag; never edit transit's `vendor/design/` by hand. yesid.dev adopts via `FLIP-THE-SWITCH.md`.
+- **Consumers:** Transit and yesid.dev install exact immutable Releases through the self-vendored `tools/adopt.ts` bundle. Never edit either consumer's `vendor/design/` snapshot by hand; current receipts live in `CONSUMERS.md`.

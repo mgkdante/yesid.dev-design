@@ -4,9 +4,9 @@
 
 ## Project context
 
-- **Project:** yesid.dev-design — the yesid brand's styling foundation (tokens · motion · gates · gallery)
+- **Project:** yesid.dev-design — the yesid brand's styling foundation (tokens · motion · gates · UI · gallery)
 - **Stack:** bun 1.3.x · turbo 2.x · TypeScript · SvelteKit (gallery) · Tailwind v4 CSS-first
-- **Workflow:** workflow-overlord 3.x plugin (Notion-backed shared state)
+- **Workflow:** workflow-overlord 4.x plugin (Notion-backed shared state)
 - **Parity law:** `v0.1.0` = byte-faithful to yesid.dev @ `2bdb611d` and never moves; all changes bump past it. Governance laws in [README.md](README.md).
 
 ## Build commands

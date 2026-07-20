@@ -18,18 +18,17 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 ## Versioning + the parity contract
 
 - **`v0.1.0` — THE PARITY RELEASE.** Contents byte-faithful to yesid.dev at the
-  anchor SHA (deviations below are the exhaustive list). yesid.dev can adopt AT
-  this tag with **zero visual change**, at any time, regardless of what ships
-  after it.
+  anchor SHA (deviations below are the exhaustive list). It preserves the
+  original zero-visual-change baseline; yesid.dev now consumes `v0.7.1`.
 - Later brand changes bump PAST the parity tag (`v0.2.0` adds the dataviz
   scale; beautification-era changes go higher). The parity tag never moves.
-- **Prospective lockstep starts at `v0.7.0`.** The root manifest is canonical
+- **Lockstep started at `v0.7.0`.** The root manifest is canonical
   for `@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, and `@yesid/ui`; all
   four package versions move together from this release onward. Historical
   package-version skew and annotated tags `v0.1.0` through `v0.6.0` remain
   immutable. The private `@yesid/gallery` app is excluded from lockstep.
 - **Consumers pin exact versions.** A cascade is a deliberate bump-PR in the
-  consumer (re-run its design-sync against the new tag, review the diff) —
+  consumer (run `tools/adopt.ts` against the new exact tag, review the diff) —
   never an implicit float.
 
 ## Governance laws
@@ -112,11 +111,11 @@ use [`RELEASING.md`](RELEASING.md); compatibility follows
 
 ## Consumers
 
-The evidence-backed starting states and acceptance vocabulary live in
-[`CONSUMERS.md`](CONSUMERS.md). Transit begins from a legacy vendored pin,
-yesid.dev begins from embedded workspace packages, and Gallery is the private
-workspace dogfood consumer. None of those facts alone claims a `v0.7.0` cascade
-is complete.
+The current evidence-backed Release receipts live in
+[`CONSUMERS.md`](CONSUMERS.md). Transit and yesid.dev each adopt all four
+packages through an immutable schema-2 Release receipt. Gallery remains the
+private workspace dogfood consumer. Release adoption and product verification
+are separate gates; neither is inferred from an upstream tag.
 
 ## AI-accelerated, human-owned
 

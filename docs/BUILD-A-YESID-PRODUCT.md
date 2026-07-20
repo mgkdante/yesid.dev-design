@@ -242,9 +242,9 @@ product has custom vocabulary.
 
 This configuration is fixed application vocabulary. Never derive it from a
 request, tenant, user, locale, or other runtime-scoped value. Provider/context
-configuration is deferred and is not part of the prospective `v0.7.0` API.
-`ConfigureUiResult = 'initialized' | 'unchanged'` is an observable part of that
-prospective API, not an internal diagnostic.
+configuration is deferred and is not part of the v0.7 public API.
+`ConfigureUiResult = 'initialized' | 'unchanged'` is observable public API, not
+an internal diagnostic.
 
 ## 5. Apply the motion policy
 
