@@ -14,9 +14,21 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const CONFIG_TAG = 'config-v0.1.0';
-const CONFIG_VERSION = '0.1.0';
+const CONFIG_TAG = 'config-v0.2.0';
+const CONFIG_VERSION = '0.2.0';
+const CONFIG_FILES = [
+	'README.md',
+	'LICENSE',
+	'CHANGELOG.md',
+	'tsconfig/base.json',
+	'tsconfig/library.json',
+	'tsconfig/svelte-kit.json',
+	'turbo/base.json',
+	'svelte/project-runes.js',
+	'svelte/project-runes.d.ts',
+] as const;
 const CONFIG_MANIFEST_URL = new URL('../../../packages/config/package.json', import.meta.url);
+const CONFIG_ROOT = fileURLToPath(new URL('../../../packages/config/', import.meta.url));
 const ROOT_MANIFEST_URL = new URL('../../../package.json', import.meta.url);
 const CONFIG_WORKFLOW_URL = new URL('../../../.github/workflows/config-release.yml', import.meta.url);
 const CONFIG_RELEASE_TOOL = fileURLToPath(
@@ -41,14 +53,35 @@ function git(root: string, ...args: string[]): string {
 	return result.stdout.trim();
 }
 
-function manifest(name: string, version: string): string {
+function manifest(
+	name: string,
+	version: string,
+	files: readonly string[] = ['README.md', 'LICENSE', 'CHANGELOG.md'],
+): string {
+	const exports = Object.fromEntries([
+		['./package.json', './package.json'],
+		...files
+			.filter((path) => path.endsWith('.json'))
+			.map((path) => [`./${path}`, `./${path}`]),
+		...(files.includes('svelte/project-runes.js')
+			? [
+					[
+						'./svelte/project-runes.js',
+						{
+							types: './svelte/project-runes.d.ts',
+							default: './svelte/project-runes.js',
+						},
+					],
+				]
+			: []),
+	]);
 	return `${JSON.stringify({
 		name,
 		version,
 		private: true,
 		type: 'module',
-		files: ['README.md', 'LICENSE', 'CHANGELOG.md'],
-		exports: { './package.json': './package.json' },
+		files,
+		exports,
 	}, null, '\t')}\n`;
 }
 
@@ -63,10 +96,19 @@ function repository(configVersion = CONFIG_VERSION, tag = `config-v${configVersi
 	git(root, 'config', 'user.name', 'Config Release Test');
 	git(root, 'config', 'user.email', 'config-release-test@example.com');
 	write(join(root, 'package.json'), manifest('yesid-dev-design', '9.9.9'));
-	write(join(root, 'packages/config/package.json'), manifest('@yesid/config', configVersion));
+	write(
+		join(root, 'packages/config/package.json'),
+		manifest('@yesid/config', configVersion, CONFIG_FILES),
+	);
 	write(join(root, 'packages/config/README.md'), '# Config package\n');
 	write(join(root, 'packages/config/LICENSE'), 'MIT\n');
 	write(join(root, 'packages/config/CHANGELOG.md'), '# Changelog\n');
+	for (const path of CONFIG_FILES.slice(3)) {
+		write(
+			join(root, 'packages/config', path),
+			readFileSync(join(CONFIG_ROOT, path), 'utf8'),
+		);
+	}
 	write(join(root, 'packages/config/.env'), 'DO_NOT_SHIP=secret\n');
 	write(join(root, 'packages/config/secret.txt'), 'also excluded\n');
 	symlinkSync('secret.txt', join(root, 'packages/config/secret-link'));
@@ -118,7 +160,7 @@ afterEach(() => {
 });
 
 describe('@yesid/config distribution boundary', () => {
-	it('starts at 0.1.0 independently of the four-package release line', () => {
+	it('owns an independently versioned neutral configuration release line', () => {
 		expect(existsSync(CONFIG_MANIFEST_URL)).toBe(true);
 		const manifestValue = JSON.parse(readFileSync(CONFIG_MANIFEST_URL, 'utf8')) as {
 			name?: unknown;
@@ -128,8 +170,8 @@ describe('@yesid/config distribution boundary', () => {
 		};
 		expect(manifestValue).toMatchObject({
 			name: '@yesid/config',
-			version: '0.1.0',
-			files: ['README.md', 'LICENSE', 'CHANGELOG.md'],
+			version: CONFIG_VERSION,
+			files: CONFIG_FILES,
 			exports: { './package.json': './package.json' },
 		});
 		const rootManifest = JSON.parse(readFileSync(ROOT_MANIFEST_URL, 'utf8')) as {
@@ -211,7 +253,7 @@ describe('@yesid/config distribution boundary', () => {
 		const source = repository();
 		const firstRoot = tempDir();
 		const secondRoot = tempDir();
-		const assetName = 'yesid-config-v0.1.0.tgz';
+		const assetName = `yesid-${CONFIG_TAG}.tgz`;
 		const firstPath = join(firstRoot, assetName);
 		const secondPath = join(secondRoot, assetName);
 
@@ -239,9 +281,7 @@ describe('@yesid/config distribution boundary', () => {
 		expect(entries).toEqual([
 			'package/',
 			'package/package.json',
-			'package/README.md',
-			'package/LICENSE',
-			'package/CHANGELOG.md',
+			...CONFIG_FILES.map((path) => `package/${path}`),
 			'package/.yesid-config-release.json',
 		]);
 		expect(entries.join('\n')).not.toMatch(/(?:\.env|secret|symlink)/i);
@@ -266,7 +306,7 @@ describe('@yesid/config distribution boundary', () => {
 
 	it('installs and resolves the exact file asset in a clean consumer', () => {
 		const source = repository();
-		const asset = join(tempDir(), 'yesid-config-v0.1.0.tgz');
+		const asset = join(tempDir(), `yesid-${CONFIG_TAG}.tgz`);
 		const built = runTool('build', source.root, asset);
 		expect(built.status, `${built.stdout}\n${built.stderr}`).toBe(0);
 
@@ -293,11 +333,14 @@ describe('@yesid/config distribution boundary', () => {
 		expect(frozenInstall.status, `${frozenInstall.stdout}\n${frozenInstall.stderr}`).toBe(0);
 		const resolved = spawnSync(
 			'bun',
-			['-e', "const p=require('@yesid/config/package.json'); console.log(`${p.name}@${p.version}`)"],
+			[
+				'-e',
+				"const p=require('@yesid/config/package.json'); const b=require('@yesid/config/tsconfig/base.json'); const {projectRunes}=require('@yesid/config/svelte/project-runes.js'); const runes=projectRunes('/app'); console.log(`${p.name}@${p.version}:${b.compilerOptions.strict}:${runes({filename:'/app/src/a.svelte'})}:${runes({filename:'/app/node_modules/p/a.svelte'})}`)",
+			],
 			{ cwd: consumer, encoding: 'utf8' },
 		);
 		expect(resolved.status, `${resolved.stdout}\n${resolved.stderr}`).toBe(0);
-		expect(resolved.stdout.trim()).toBe('@yesid/config@0.1.0');
+		expect(resolved.stdout.trim()).toBe(`@yesid/config@${CONFIG_VERSION}:true:true:undefined`);
 	});
 
 	it('upgrades and downgrades config assets without changing the U4 release pin', () => {
@@ -349,15 +392,17 @@ describe('@yesid/config distribution boundary', () => {
 
 	it('fails closed on config version drift and tampered artifact or checksum bytes', () => {
 		const mismatched = repository('0.1.1', CONFIG_TAG);
-		const mismatchAsset = join(tempDir(), 'yesid-config-v0.1.0.tgz');
+		const mismatchAsset = join(tempDir(), `yesid-${CONFIG_TAG}.tgz`);
 		const mismatch = runTool('build', mismatched.root, mismatchAsset);
 		expect(mismatch.status).toBe(1);
-		expect(mismatch.stderr).toMatch(/tag config-v0\.1\.0 does not match.*0\.1\.1/i);
+		expect(mismatch.stderr).toContain(
+			`tag ${CONFIG_TAG} does not match @yesid/config version 0.1.1`,
+		);
 		expect(existsSync(mismatchAsset)).toBe(false);
 
 		const source = repository();
 		const builtRoot = tempDir();
-		const built = join(builtRoot, 'yesid-config-v0.1.0.tgz');
+		const built = join(builtRoot, `yesid-${CONFIG_TAG}.tgz`);
 		expect(runTool('build', source.root, built).status).toBe(0);
 		const bytes = readFileSync(built);
 		bytes[Math.floor(bytes.length / 2)] = (bytes[Math.floor(bytes.length / 2)] ?? 0) ^ 1;
@@ -366,9 +411,9 @@ describe('@yesid/config distribution boundary', () => {
 		expect(tampered.status).toBe(1);
 		expect(tampered.stderr).toMatch(/checksum|deterministic tagged package/i);
 
-		const checksumAsset = join(tempDir(), 'yesid-config-v0.1.0.tgz');
+		const checksumAsset = join(tempDir(), `yesid-${CONFIG_TAG}.tgz`);
 		expect(runTool('build', source.root, checksumAsset).status).toBe(0);
-		writeFileSync(`${checksumAsset}.sha256`, `${'0'.repeat(64)}  yesid-config-v0.1.0.tgz\n`);
+		writeFileSync(`${checksumAsset}.sha256`, `${'0'.repeat(64)}  yesid-${CONFIG_TAG}.tgz\n`);
 		const tamperedChecksum = runTool('verify', source.root, checksumAsset);
 		expect(tamperedChecksum.status).toBe(1);
 		expect(tamperedChecksum.stderr).toMatch(/checksum/i);
