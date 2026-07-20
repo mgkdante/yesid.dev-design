@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
 	SCORECARD_POLICY,
 	inventoryWorkflows,
@@ -82,6 +82,21 @@ afterEach(() => {
 });
 
 describe('Phase 2 scorecard measurement authority', () => {
+	it('uses host-independent ordering for receipt digests', () => {
+		const { root, head } = fixtureRepository();
+		const localeCompare = vi
+			.spyOn(String.prototype, 'localeCompare')
+			.mockImplementation(() => {
+				throw new Error('host collation must not participate in a receipt');
+			});
+		try {
+			expect(() => measureSourceTree({ repository: root, revision: head })).not.toThrow();
+			expect(() => inventoryWorkflows({ repository: root, revision: head })).not.toThrow();
+		} finally {
+			localeCompare.mockRestore();
+		}
+	});
+
 	it('replays one deterministic source/archive policy at arbitrary revisions', () => {
 		const { root, base, head } = fixtureRepository();
 		const before = measureSourceTree({ repository: root, revision: base });

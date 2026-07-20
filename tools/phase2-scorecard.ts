@@ -6,6 +6,10 @@ import { fileURLToPath } from 'node:url';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
+function compareText(left: string, right: string): number {
+	return left < right ? -1 : left > right ? 1 : 0;
+}
+
 const RAW_POLICY = {
 	schema: 1,
 	lineRule: 'trimmed-nonblank-lf-normalized',
@@ -118,7 +122,7 @@ function canonical(value: unknown): Json {
 	if (typeof value !== 'object') throw new Error(`Cannot canonicalize ${typeof value}`);
 	return Object.fromEntries(
 		Object.entries(value as Record<string, unknown>)
-			.sort(([left], [right]) => left.localeCompare(right))
+			.sort(([left], [right]) => compareText(left, right))
 			.map(([key, item]) => [key, canonical(item)]),
 	);
 }
@@ -393,7 +397,7 @@ export function inventoryWorkflows(input: SourceMeasurementInput) {
 		for (const name of secrets) secretReferences.push({ path: entry.path, name });
 	}
 	for (const values of [uncappedJobs, workflowDetails, sharedCallers, secretReferences]) {
-		values.sort((left, right) => canonicalJson(left).localeCompare(canonicalJson(right)));
+		values.sort((left, right) => compareText(canonicalJson(left), canonicalJson(right)));
 	}
 	const receipt = {
 		schema: 1 as const,
@@ -479,7 +483,9 @@ export function reduceRuns(runs: readonly NormalizedRun[]) {
 			);
 		}
 	}
-	const sortedConclusions = Object.fromEntries(Object.entries(conclusions).sort(([left], [right]) => left.localeCompare(right)));
+	const sortedConclusions = Object.fromEntries(
+		Object.entries(conclusions).sort(([left], [right]) => compareText(left, right)),
+	);
 	const receipt = {
 		schema: 1 as const,
 		method: 'wall=createdAt-to-updatedAt; queue=createdAt-to-earliest-job-start; nearest-rank; runner=sum-nonskipped-job-wall',
