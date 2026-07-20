@@ -64,15 +64,8 @@ SHA-256 digest, so changing a source and its generated target together still fai
 pin is deliberately reviewed. `bytes` compares one source and target byte-for-byte.
 `json-merge` recursively merges objects from left to right; arrays and scalar values are
 replaced by the later source. The checked-in target must equal that semantic result. An
-overlay is the explicit, reviewable consumer escape hatch. Downstream config package bases
-come from the exact immutable `@yesid/config` release selected by the consumer lockfile.
-
-The producer repository is the one deliberate self-canary exception: it consumes the exact
-`@yesid/config@0.2.0` workspace contract and binds `packages/config/turbo/base.json` directly.
-This avoids a same-name package acquisition loop and keeps the drift source a regular file
-instead of a workspace symlink. The config release contract separately proves those checked-in
-package bytes and version. Transit and yesid.dev must consume the immutable Release asset; they
-must not copy the producer-only source path.
+overlay is the explicit, reviewable consumer escape hatch. The config package base comes
+from the exact immutable `@yesid/config` release selected by the consumer lockfile.
 
 Every configured shared caller must appear exactly once as a literal `uses` value, at the
 manifest SHA. Undeclared references to the source repository fail. The gate also binds its

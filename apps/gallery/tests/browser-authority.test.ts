@@ -7,7 +7,7 @@ describe('browser accessibility authority', () => {
 	it('installs the container setup prerequisite before the shared action', () => {
 		const workflow = readFileSync(new URL('../../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 		const browserJob = workflow.match(
-			/^  browser-authority-work:\n[\s\S]*?^  token-outputs-windows-work:\n/m,
+			/^  browser-authority:\n[\s\S]*?^  token-outputs-windows:\n/m,
 		)?.[0];
 
 		expect(browserJob).toBeDefined();

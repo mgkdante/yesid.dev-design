@@ -370,7 +370,7 @@ describe('deterministic package API reports', () => {
 		expect(workflow).toContain('name: API report approval');
 		expect(workflow).toContain('bun run api:approve -- --base "$API_BASE_SHA"');
 		const windowsJob = workflow.match(
-			/^  token-outputs-windows-work:\n([\s\S]+?)^  token-byte-parity-work:/mu,
+			/^  token-outputs-windows:\n([\s\S]+?)^  token-byte-parity:/mu,
 		)?.[1];
 		expect(windowsJob).toContain('bun run api:check');
 

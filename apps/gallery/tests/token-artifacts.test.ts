@@ -55,7 +55,7 @@ describe('token artifact ownership', () => {
 		const workflow = readFileSync(new URL('../../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 
 		expect(workflow).toContain('runs-on: windows-latest');
-		expect(workflow).toContain('token-byte-parity-work:');
+		expect(workflow).toContain('token-byte-parity:');
 		expect(workflow).toContain('cmp --silent');
 		expect(workflow).toContain('run: bun run check');
 		for (const path of artifactPaths) expect(workflow, path).toContain(path);
