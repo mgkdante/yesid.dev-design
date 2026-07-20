@@ -1,11 +1,29 @@
 {
 	"name": "@yesid/config",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"private": true,
 	"type": "module",
 	"description": "Independently versioned shared-tooling configuration distribution boundary.",
-	"files": ["README.md", "LICENSE", "CHANGELOG.md"],
+	"files": [
+		"README.md",
+		"LICENSE",
+		"CHANGELOG.md",
+		"tsconfig/base.json",
+		"tsconfig/library.json",
+		"tsconfig/svelte-kit.json",
+		"turbo/base.json",
+		"svelte/project-runes.js",
+		"svelte/project-runes.d.ts"
+	],
 	"exports": {
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./tsconfig/base.json": "./tsconfig/base.json",
+		"./tsconfig/library.json": "./tsconfig/library.json",
+		"./tsconfig/svelte-kit.json": "./tsconfig/svelte-kit.json",
+		"./turbo/base.json": "./turbo/base.json",
+		"./svelte/project-runes.js": {
+			"types": "./svelte/project-runes.d.ts",
+			"default": "./svelte/project-runes.js"
+		}
 	}
 }
