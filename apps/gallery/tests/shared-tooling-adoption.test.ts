@@ -54,6 +54,7 @@ type ClassifierModule = Readonly<{
 
 const ROOT = realpathSync(new URL('../../../', import.meta.url).pathname);
 const CI_PATH = join(ROOT, '.github', 'workflows', 'ci.yml');
+const SETUP_PATH = join(ROOT, '.github', 'actions', 'setup', 'action.yml');
 const MANIFEST_PATH = join(ROOT, '.github', 'shared-tooling.json');
 const DRIFT_MODULE_URL = pathToFileURL(
 	join(ROOT, '.github', 'actions', 'shared-tooling-drift', 'main.mjs'),
@@ -159,6 +160,34 @@ function manifest(): Manifest {
 }
 
 describe('ST4 Design shared-tooling adoption', () => {
+	it('caches only the work product that each CI job can populate', () => {
+		const setup = text(SETUP_PATH);
+		expect(setup).toMatch(/^inputs:\s*$/mu);
+		expect(setup).toMatch(/^  cache-turbo:\s*$/mu);
+		expect(setup).toMatch(/^  cache-vitest:\s*$/mu);
+		expect(setup).toMatch(/^    default:\s*['"]false['"]\s*$/mu);
+		expect(setup).toMatch(/^      if:\s*inputs\.cache-turbo == ['"]true['"]\s*$/mu);
+		expect(setup).toMatch(/^    - name:\s*Cache Vitest\s*$/mu);
+		expect(setup).toMatch(/^      if:\s*inputs\.cache-vitest == ['"]true['"]\s*$/mu);
+		expect(setup).toMatch(/^        path:\s*apps\/gallery\/node_modules\/\.vite\/vitest\s*$/mu);
+		expect(setup).not.toContain('apps/gallery/.vitest/cache');
+
+		const jobs = jobBlocks(text(CI_PATH));
+		expect(jobs.get('ci-work')).toMatch(
+			/^ {8}with:\s*\n {10}cache-turbo:\s*['"]true['"]\s*\n {10}cache-vitest:\s*['"]true['"]\s*$/mu,
+		);
+		for (const id of ['browser-authority-work', 'token-outputs-windows-work']) {
+			expect(jobs.get(id), id).not.toContain('cache-turbo:');
+			expect(jobs.get(id), id).not.toContain('cache-vitest:');
+		}
+	});
+
+	it('caps every CI job with an explicit positive timeout', () => {
+		for (const [id, job] of jobBlocks(text(CI_PATH))) {
+			expect(job, id).toMatch(/^ {4}timeout-minutes:\s*[1-9][0-9]*\s*$/mu);
+		}
+	});
+
 	it('grants classifier read access without workflow-level path filters', () => {
 		const ci = text(CI_PATH);
 		expect(Object.fromEntries(directMapping(topLevelBlock(ci, 'permissions')))).toEqual({

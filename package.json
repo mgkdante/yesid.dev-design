@@ -20,6 +20,7 @@
 		"config:release:verify": "bun tools/config-release.ts verify",
 		"release:check": "bun tools/release.ts check",
 		"release:prepare": "bun tools/release.ts prepare",
+		"scorecard:measure": "bun tools/phase2-scorecard.ts",
 		"build": "bun run tokens:build && turbo run build",
 		"test": "turbo run test",
 		"test:browser": "bun run --cwd apps/gallery test:browser",
