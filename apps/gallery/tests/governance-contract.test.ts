@@ -83,16 +83,19 @@ describe('repository governance contract', () => {
 		expect(pullRequest).toContain('No consumer vendored files are patched');
 	});
 
-	it('records consumer baselines without claiming the v0.7 cutovers are complete', () => {
+	it('records the exact v0.7.1 consumer receipts without inferring product verification', () => {
 		const consumers = read('CONSUMERS.md');
 
-		expect(consumers).toContain('aef4c722d4fbcf1f812c0c37a7e4c1881f68961a');
-		expect(consumers).toContain('legacy manifest');
-		expect(consumers).toContain('v0.6.0');
-		expect(consumers).toContain('7767b729e01c73a3b85fc031d287de2cb9445cb1');
-		expect(consumers).toContain('embedded workspace packages');
-		expect(consumers).toContain('not yet adopted schema 2');
+		expect(consumers).toContain('105893db42d9e9fd3f182de1534f34236dc3ef72');
+		expect(consumers).toContain('4ddfc5f934e31c9446f8014d0ae80e1fdb9a8fa6');
+		expect(consumers.match(/schema-2 Release receipt for `v0\.7\.1`/gu)).toHaveLength(2);
+		expect(consumers.match(/c0188172f07e6c4238b3397aa7e1b0d4ff154ee9/gu)).toHaveLength(3);
+		expect(consumers.match(/containing `tokens,motion,gates,ui`/gu)).toHaveLength(2);
+		expect(consumers).toContain('former embedded package copies are no longer present');
 		expect(consumers).toContain('workspace dogfood consumer');
+		expect(consumers).toContain('does not infer product verification');
+		expect(consumers).not.toContain('legacy manifest');
+		expect(consumers).not.toContain('not yet adopted schema 2');
 	});
 
 	it('defines a bounded deprecation lifecycle for stable contracts', () => {
