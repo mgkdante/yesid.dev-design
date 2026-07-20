@@ -146,6 +146,28 @@ describe('Phase 2 scorecard measurement authority', () => {
 			'#!/usr/bin/env bash\n# Those files carry a GENERATED FILE - do not edit marker.\necho handwritten\n',
 		);
 		write(root, 'generated/real-generated.sh', '#!/usr/bin/env bash\n# GENERATED FILE - DO NOT EDIT\necho generated\n');
+		write(
+			root,
+			'generated/generated-manifest.ts',
+			'/**\n * Generated-content manifest helpers are handwritten.\n */\nexport const manifest = true;\n',
+		);
+		write(
+			root,
+			'generated/build-time.ts',
+			'// Generated at build time from live input.\nexport const buildTime = true;\n',
+		);
+		write(root, 'generated/from.ts', '// GENERATED FROM schema.json\nexport const from = true;\n');
+		write(root, 'generated/report.html', '<!-- GENERATED: API report -->\n<p>generated</p>\n');
+		write(
+			root,
+			'generated/frontmatter.md',
+			'---\ntitle: Generated artifact\nsource: tokens\nschema: 1\n---\n# GENERATED FROM packages/tokens/tokens.json — DO NOT EDIT\ncontent\n',
+		);
+		write(
+			root,
+			'generated/generator-source.ts',
+			"import { a } from './a';\nimport { b } from './b';\nimport { c } from './c';\n\nconst start = 'start';\nconst end = 'end';\n\nconst header = `\n// GENERATED FROM input.json\n`;\nexport { header, start, end };\n",
+		);
 		git(root, 'add', 'generated');
 		git(root, 'commit', '-m', 'exercise exact generated headers');
 		const receipt = measureSourceTree({
@@ -153,8 +175,8 @@ describe('Phase 2 scorecard measurement authority', () => {
 			revision: git(root, 'rev-parse', 'HEAD'),
 		});
 
-		expect(receipt.excluded.generated).toBe(2);
-		expect(receipt.files.code).toBe(3);
+		expect(receipt.excluded.generated).toBe(5);
+		expect(receipt.files.code).toBe(6);
 	});
 
 	it('inventories every workflow job, timeout, shared caller, and secret reference', () => {
@@ -206,19 +228,32 @@ jobs:
   first:
     timeout-minutes: 5
     runs-on: ubuntu-latest
+    env:
+      REAL_TOKEN: \${{ secrets.REAL_TOKEN }}
+      UPPER_TOKEN: \${{ SECRETS.upper_token }}
+      LITERAL: \${{ 'secrets.NOT_A_SECRET' }}
+      NESTED: \${{ github.event.secrets.NOT_ROOT_CONTEXT }}
     steps:
-      - run: echo first
+      - if: secrets.STEP_TOKEN != ''
+        run: echo first
 # A column-zero comment is still inside the jobs mapping.
   second:
     runs-on: ubuntu-latest
+    if: secrets.IF_TOKEN != ''
+    env:
+      uses: mgkdante/yesid.dev-design/.github/actions/classify-paths@${'e'.repeat(40)}
+      if: secrets.NOT_AN_IF_CONDITION
     steps:
       # uses: mgkdante/yesid.dev-design/.github/actions/classify-paths@${'a'.repeat(40)}
       - run: |
           echo "uses: mgkdante/yesid.dev-design/.github/actions/required-context@${'b'.repeat(40)}"
+          echo "Never write secrets.NOT_A_REFERENCE in docs"
   inline: { timeout-minutes: 7, runs-on: ubuntu-latest, steps: [{ uses: "mgkdante/yesid.dev-design/.github/actions/classify-paths@${'c'.repeat(40)}" }] }
   "quoted-job":
     timeout-minutes: 9
-    uses: "mgkdante/yesid.dev-design/.github/actions/required-context@${'d'.repeat(40)}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: "mgkdante/yesid.dev-design/.github/actions/required-context@${'d'.repeat(40)}"
 `,
 		);
 		git(root, 'add', '.github/workflows/ci.yml');
@@ -239,6 +274,12 @@ jobs:
 				path: '.github/workflows/ci.yml',
 				ref: 'd'.repeat(40),
 			},
+		]);
+		expect(receipt.secretReferences).toEqual([
+			{ name: 'IF_TOKEN', path: '.github/workflows/ci.yml' },
+			{ name: 'REAL_TOKEN', path: '.github/workflows/ci.yml' },
+			{ name: 'STEP_TOKEN', path: '.github/workflows/ci.yml' },
+			{ name: 'UPPER_TOKEN', path: '.github/workflows/ci.yml' },
 		]);
 	});
 
@@ -339,6 +380,34 @@ jobs:
 			missingJobTiming: 1,
 			wallSeconds: { p50: 1, p95: 1 },
 		});
+	});
+
+	it('reduces runner time identically regardless of normalized job order', () => {
+		const huge = {
+			name: 'huge',
+			conclusion: 'success',
+			startedAt: '2026-07-20T00:00:00.000Z',
+			completedAt: '2026-07-20T02:46:40.000Z',
+		};
+		const tiny = Array.from({ length: 10 }, (_, index) => ({
+			name: `tiny-${index}`,
+			conclusion: 'success',
+			startedAt: `2026-07-20T02:47:00.${String(index).padStart(3, '0')}Z`,
+			completedAt: `2026-07-20T02:47:00.${String(index + 1).padStart(3, '0')}Z`,
+		}));
+		const run = (jobs: typeof tiny) => ({
+			id: 99,
+			attempt: 1,
+			conclusion: 'success',
+			createdAt: '2026-07-20T00:00:00.000Z',
+			updatedAt: '2026-07-20T03:00:00.000Z',
+			jobs,
+		});
+
+		const hugeFirst = reduceRuns([run([huge, ...tiny])]);
+		const tinyFirst = reduceRuns([run([...tiny, huge])]);
+		expect(hugeFirst.runnerSeconds).toBe(10_000.01);
+		expect(tinyFirst).toEqual(hugeFirst);
 	});
 
 	it.each([

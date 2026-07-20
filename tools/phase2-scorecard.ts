@@ -14,6 +14,8 @@ function compareText(left: string, right: string): number {
 const RAW_POLICY = {
 	schema: 1,
 	lineRule: 'trimmed-nonblank-lf-normalized',
+	generatedHeaderScanLines: 5,
+	generatedFrontmatterMaxLines: 10,
 	archiveSegments: ['.archive', '_archive', 'archive', 'archived'],
 	dependencySegments: ['.venv', 'node_modules', 'venv'],
 	vendorSegments: ['third-party', 'third_party', 'vendor', 'vendors'],
@@ -93,7 +95,7 @@ const RAW_POLICY = {
 	],
 	patterns: {
 		generatedHeader: {
-			source: String.raw`^\s*(?:\/\/+|#+|\/\*+|\*+|<!--)\s*(?:@generated\b|auto(?:matically)?[- ]generated\b|code\s+generated\b|generated(?:\s+file|\s+by)?\b|do\s+not\s+edit\b)`,
+			source: String.raw`^\s*(?:\/\/+|#+|\/\*+|\*+|<!--)\s*(?:@generated\b|auto(?:matically)?[- ]generated\b|code\s+generated\b|generated(?:\s+(?:file|by|from)\b|:)|do\s+not\s+edit\b)`,
 			flags: 'imu',
 		},
 		testFilename: {
@@ -274,6 +276,16 @@ function sourceCategory(path: string): 'code' | 'configuration' | 'tests' {
 	return CODE_EXTENSIONS.has(extname(name)) ? 'code' : 'configuration';
 }
 
+function hasGeneratedHeader(source: string): boolean {
+	const lines = source.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
+	const scanLines =
+		lines[0]?.trim() === '---'
+			? SCORECARD_POLICY.generatedFrontmatterMaxLines
+			: SCORECARD_POLICY.generatedHeaderScanLines;
+	const candidates = lines.slice(0, scanLines);
+	return GENERATED_HEADER.test(candidates.join('\n'));
+}
+
 export interface SourceMeasurementInput {
 	repository: string;
 	revision: string;
@@ -304,7 +316,7 @@ export function measureSourceTree(input: SourceMeasurementInput) {
 			excluded.binary += 1;
 			continue;
 		}
-		if (GENERATED_HEADER.test(source.split(/\r?\n/u).slice(0, 5).join('\n'))) {
+		if (hasGeneratedHeader(source)) {
 			excluded.generated += 1;
 			continue;
 		}
@@ -387,6 +399,88 @@ function visitValues(
 	}
 }
 
+function visitWorkflowSteps(job: UnknownRecord, visitor: (step: UnknownRecord) => void): void {
+	if (!Object.hasOwn(job, 'steps')) return;
+	if (!Array.isArray(job.steps)) throw new Error('Workflow job steps must be an array');
+	for (const [index, value] of job.steps.entries()) {
+		visitor(record(value, `workflow step[${index}]`));
+	}
+}
+
+function quotedEnd(value: string, start: number): number {
+	const quote = value[start]!;
+	for (let index = start + 1; index < value.length; index += 1) {
+		if (value[index] !== quote) continue;
+		if (quote === "'" && value[index + 1] === "'") {
+			index += 1;
+			continue;
+		}
+		if (quote === '"' && value[index - 1] === '\\') continue;
+		return index + 1;
+	}
+	return value.length;
+}
+
+function githubExpressionBodies(value: string, implicit = false): string[] {
+	const bodies: string[] = [];
+	let search = 0;
+	while (search < value.length) {
+		const start = value.indexOf('${{', search);
+		if (start < 0) break;
+		let cursor = start + 3;
+		for (; cursor < value.length; cursor += 1) {
+			if (value[cursor] === "'" || value[cursor] === '"') {
+				cursor = quotedEnd(value, cursor) - 1;
+				continue;
+			}
+			if (value.startsWith('}}', cursor)) break;
+		}
+		if (cursor >= value.length) throw new Error('Unterminated GitHub expression');
+		bodies.push(value.slice(start + 3, cursor));
+		search = cursor + 2;
+	}
+	return bodies.length > 0 ? bodies : implicit ? [value] : [];
+}
+
+function secretNamesInExpression(expression: string): string[] {
+	const names: string[] = [];
+	for (let index = 0; index < expression.length; index += 1) {
+		if (expression[index] === "'" || expression[index] === '"') {
+			index = quotedEnd(expression, index) - 1;
+			continue;
+		}
+		if (
+			expression.slice(index, index + 'secrets'.length).toLowerCase() !== 'secrets' ||
+			/[A-Za-z0-9_.]/u.test(expression[index - 1] ?? '')
+		) {
+			continue;
+		}
+		let cursor = index + 'secrets'.length;
+		if (/[A-Za-z0-9_]/u.test(expression[cursor] ?? '')) continue;
+		while (/\s/u.test(expression[cursor] ?? '')) cursor += 1;
+		if (expression[cursor] === '.') {
+			cursor += 1;
+			while (/\s/u.test(expression[cursor] ?? '')) cursor += 1;
+			const match = expression.slice(cursor).match(/^([A-Za-z_][A-Za-z0-9_]*)/u);
+			if (match) names.push(match[1]!.toUpperCase());
+			continue;
+		}
+		if (expression[cursor] !== '[') continue;
+		cursor += 1;
+		while (/\s/u.test(expression[cursor] ?? '')) cursor += 1;
+		const quote = expression[cursor];
+		if (quote !== "'" && quote !== '"') continue;
+		const match = expression.slice(cursor + 1).match(/^([A-Za-z_][A-Za-z0-9_]*)/u);
+		if (!match) continue;
+		cursor += match[1]!.length + 1;
+		if (expression[cursor] !== quote) continue;
+		cursor += 1;
+		while (/\s/u.test(expression[cursor] ?? '')) cursor += 1;
+		if (expression[cursor] === ']') names.push(match[1]!.toUpperCase());
+	}
+	return names;
+}
+
 export function inventoryWorkflows(input: SourceMeasurementInput) {
 	const repository = resolve(input.repository);
 	const { exact, entries } = listTree(repository, input.revision);
@@ -420,30 +514,32 @@ export function inventoryWorkflows(input: SourceMeasurementInput) {
 			capped: cappedHere,
 			uncapped: jobs.length - cappedHere,
 		});
+		const secrets = new Set<string>();
+		const captureSecrets = (value: string, implicit = false): void => {
+			for (const expression of githubExpressionBodies(value, implicit)) {
+				for (const name of secretNamesInExpression(expression)) secrets.add(name);
+			}
+		};
+		visitValues(workflow, (value) => {
+			if (typeof value === 'string') captureSecrets(value);
+		});
 		for (const job of jobs) {
-			visitValues(job.value, (value, key) => {
-				if (key !== 'uses' || typeof value !== 'string') return;
-				const match = value.match(
-					/^mgkdante\/yesid\.dev-design\/\.github\/actions\/(classify-paths|required-context|shared-tooling-drift)@([A-Za-z0-9._/-]+)$/u,
-				);
-				if (match)
-					sharedCallers.push({
-						path: entry.path,
-						action: match[1]!,
-						ref: match[2]!,
-					});
+			if (typeof job.value.if === 'string') captureSecrets(job.value.if, true);
+			visitWorkflowSteps(job.value, (step) => {
+				if (typeof step.uses === 'string') {
+					const match = step.uses.match(
+						/^mgkdante\/yesid\.dev-design\/\.github\/actions\/(classify-paths|required-context|shared-tooling-drift)@([A-Za-z0-9._/-]+)$/u,
+					);
+					if (match)
+						sharedCallers.push({
+							path: entry.path,
+							action: match[1]!,
+							ref: match[2]!,
+						});
+				}
+				if (typeof step.if === 'string') captureSecrets(step.if, true);
 			});
 		}
-		const secrets = new Set<string>();
-		visitValues(workflow, (value) => {
-			if (typeof value !== 'string') return;
-			for (const match of value.matchAll(/\bsecrets\.([A-Za-z_][A-Za-z0-9_]*)/gu)) {
-				secrets.add(match[1]!);
-			}
-			for (const match of value.matchAll(/\bsecrets\[['"]([A-Za-z_][A-Za-z0-9_]*)['"]\]/gu)) {
-				secrets.add(match[1]!);
-			}
-		});
 		for (const name of secrets) secretReferences.push({ path: entry.path, name });
 	}
 	for (const values of [uncappedJobs, workflowDetails, sharedCallers, secretReferences]) {
@@ -596,9 +692,13 @@ function normalizedRun(value: unknown, index: number): NormalizedRun {
 	};
 }
 
-function seconds(start: number, end: number, label: string): number {
+function elapsedMilliseconds(start: number, end: number, label: string): number {
 	if (end < start) throw new Error(`${label} ends before it starts`);
-	return Math.round(((end - start) / 1000) * 1000) / 1000;
+	return end - start;
+}
+
+function seconds(start: number, end: number, label: string): number {
+	return elapsedMilliseconds(start, end, label) / 1000;
 }
 
 function nearestRank(values: readonly number[], percentile: number): number | null {
@@ -615,7 +715,7 @@ export function reduceRuns(input: readonly unknown[]) {
 	const queues: number[] = [];
 	const conclusions: Record<string, number> = {};
 	let reruns = 0;
-	let runnerSeconds = 0;
+	let runnerMilliseconds = 0;
 	let missingQueue = 0;
 	let missingJobTiming = 0;
 	for (const run of runs) {
@@ -640,7 +740,7 @@ export function reduceRuns(input: readonly unknown[]) {
 				missingJobTiming += 1;
 				continue;
 			}
-			runnerSeconds += seconds(
+			runnerMilliseconds += elapsedMilliseconds(
 				timestamp(job.startedAt, `${identity}/${job.name} startedAt`),
 				timestamp(job.completedAt, `${identity}/${job.name} completedAt`),
 				`${identity}/${job.name}`,
@@ -658,7 +758,7 @@ export function reduceRuns(input: readonly unknown[]) {
 		conclusions: sortedConclusions,
 		wallSeconds: { p50: nearestRank(walls, 0.5), p95: nearestRank(walls, 0.95) },
 		queueSeconds: { p50: nearestRank(queues, 0.5), p95: nearestRank(queues, 0.95) },
-		runnerSeconds,
+		runnerSeconds: runnerMilliseconds / 1000,
 		missingQueue,
 		missingJobTiming,
 	};
