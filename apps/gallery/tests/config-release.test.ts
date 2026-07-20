@@ -163,6 +163,50 @@ describe('@yesid/config distribution boundary', () => {
 		expect(workflow).not.toMatch(/tags:\s*\['v\*'\]/u);
 	});
 
+	it('recovers only an exact failed first publication without moving or deleting its tag', () => {
+		const workflow = readFileSync(CONFIG_WORKFLOW_URL, 'utf8');
+		expect(workflow).toMatch(/permissions:\n\s+contents: read/u);
+		expect(workflow).toMatch(
+			/config-release:\n\s+if: github\.event_name == 'push' \|\| inputs\.mode == 'recover-first-publication'[\s\S]*?permissions:\n\s+actions: read\n\s+contents: write/u,
+		);
+		expect(workflow).toMatch(
+			/config-verify:[\s\S]*?if: >-[\s\S]*?inputs\.mode == 'verify'[\s\S]*?permissions:\n\s+contents: read/u,
+		);
+		expect(workflow).toContain('recover-first-publication');
+		expect(workflow).toContain('recovery_run_id:');
+		expect(workflow).toContain('recovery_draft_id:');
+		expect(workflow).toContain('immutable_settings_tag_object:');
+		expect(workflow).toContain("RELEASE_MODE: ${{ github.event_name == 'push' && 'publish' || inputs.mode }}");
+		expect(workflow).toContain('GITHUB_ACTOR');
+		expect(workflow).toContain('GITHUB_TRIGGERING_ACTOR');
+		expect(workflow).toContain('recovery must execute from exact current main');
+		expect(workflow).toContain('actions/runs/${RECOVERY_RUN_ID}');
+		expect(workflow).toContain('.event == "push"');
+		expect(workflow).toContain('.path == ".github/workflows/config-release.yml"');
+		expect(workflow).toContain('.head_branch == $tag');
+		expect(workflow).toContain('.head_sha == $commit');
+		expect(workflow).toContain('.conclusion == "failure"');
+		expect(workflow).not.toContain('repos/${GITHUB_REPOSITORY}/immutable-releases');
+		expect(workflow).toContain('Protect release tags');
+		expect(workflow).toContain('gh api --paginate --slurp');
+		expect(workflow).toContain('draft_found=false');
+		expect(workflow).toContain('test "$draft_found" = true');
+		expect(workflow).toContain('draft-config-verification');
+		expect(workflow).toContain('cmp "$asset" "$draft_asset"');
+		expect(workflow).toContain('cmp "$asset.sha256" "$draft_checksum"');
+		expect(workflow).toContain('id: publication');
+		expect(workflow).toContain('RELEASE_ID: ${{ needs.config-release.outputs.release_id }}');
+		expect(workflow).toContain('test "$VERIFY_MODE" = "recover-first-publication"');
+		expect(workflow).toContain('test "$GITHUB_EVENT_NAME" = "push"');
+		expect(workflow).toContain('repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}');
+		expect(workflow).toContain('publication_visible=false');
+		expect(workflow).toContain('test "$publication_visible" = true');
+		expect(workflow).toMatch(
+			/cmp "\$draft_projection" "\$final_draft_projection"[\s\S]*?git\/ref\/tags\/\$\{RELEASE_TAG\}[\s\S]*?gh api --method PATCH/u,
+		);
+		expect(workflow).not.toMatch(/git\s+(?:push|update-ref)|gh\s+release\s+delete/u);
+	});
+
 	it('builds deterministic config-only npm artifacts with a checksum and exact tag receipt', () => {
 		const source = repository();
 		const firstRoot = tempDir();

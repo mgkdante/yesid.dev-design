@@ -6,12 +6,32 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing annotated config-vX.Y.Z tag to verify
+        description: Existing annotated config-vX.Y.Z tag
         required: true
+        type: string
+      mode:
+        description: Verify an immutable release or recover its failed first publication
+        required: true
+        default: verify
+        type: choice
+        options:
+          - verify
+          - recover-first-publication
+      recovery_run_id:
+        description: Failed tag-push config-release run ID (recovery only)
+        required: false
+        type: string
+      recovery_draft_id:
+        description: Exact draft Release ID created by the failed run (recovery only)
+        required: false
+        type: string
+      immutable_settings_tag_object:
+        description: Owner-confirmed exact tag object after immutable-settings preflight (recovery only)
+        required: false
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: config-release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
@@ -19,11 +39,20 @@ concurrency:
 
 jobs:
   config-release:
+    if: github.event_name == 'push' || inputs.mode == 'recover-first-publication'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    outputs:
+      release_id: ${{ steps.publication.outputs.release_id }}
     env:
-      GH_TOKEN: ${{ github.token }}
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      RELEASE_MODE: ${{ github.event_name == 'push' && 'publish' || inputs.mode }}
+      RECOVERY_RUN_ID: ${{ inputs.recovery_run_id || '' }}
+      RECOVERY_DRAFT_ID: ${{ inputs.recovery_draft_id || '' }}
+      IMMUTABLE_SETTINGS_TAG_OBJECT: ${{ inputs.immutable_settings_tag_object || '' }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -34,21 +63,119 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Prove exact annotated config release identity
+        id: identity
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = "mgkdante/yesid.dev-design"
           [[ "$RELEASE_TAG" =~ ^config-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]
           git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          main_commit="$(git rev-parse --verify 'refs/remotes/origin/main^{commit}')"
           tag_object="$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{tag}")"
           peeled_commit="$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}")"
-          git merge-base --is-ancestor "$peeled_commit" refs/remotes/origin/main
+          git merge-base --is-ancestor "$peeled_commit" "$main_commit"
           remote_tag_object="$(gh api \
             "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" \
             --jq 'select(.object.type == "tag") | .object.sha')"
           test "$remote_tag_object" = "$tag_object"
+          echo "tag_object=$tag_object" >>"$GITHUB_OUTPUT"
           bun run config:release:check -- \
             --version "${RELEASE_TAG#config-v}" \
             --tag "$RELEASE_TAG"
+
+          case "$RELEASE_MODE" in
+            publish)
+              if [[ "$GITHUB_EVENT_NAME" != "push" || -n "$RECOVERY_RUN_ID" || -n "$RECOVERY_DRAFT_ID" || -n "$IMMUTABLE_SETTINGS_TAG_OBJECT" ]]; then
+                echo "::error::publish mode is reserved for the exact tag-push event"
+                exit 1
+              fi
+              ;;
+            recover-first-publication)
+              if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]]; then
+                echo "::error::recovery requires workflow_dispatch"
+                exit 1
+              fi
+              if [[ "$GITHUB_REF" != "refs/heads/main" || "$GITHUB_SHA" != "$main_commit" ]]; then
+                echo "::error::recovery must execute from exact current main"
+                exit 1
+              fi
+              if [[ "$GITHUB_ACTOR" != "$GITHUB_REPOSITORY_OWNER" ]]; then
+                echo "::error::first-publication recovery is restricted to the repository owner"
+                exit 1
+              fi
+              if [[ ! "$RECOVERY_RUN_ID" =~ ^[1-9][0-9]*$ ]]; then
+                echo "::error::recovery requires the failed tag-push run ID"
+                exit 1
+              fi
+              if [[ ! "$RECOVERY_DRAFT_ID" =~ ^[1-9][0-9]*$ ]]; then
+                echo "::error::recovery requires the exact draft Release ID"
+                exit 1
+              fi
+              if [[ "$IMMUTABLE_SETTINGS_TAG_OBJECT" != "$tag_object" ]]; then
+                echo "::error::immutable-settings receipt must equal the exact annotated tag object"
+                exit 1
+              fi
+              recovery_run="$RUNNER_TEMP/config-recovery-run.json"
+              gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RECOVERY_RUN_ID}" >"$recovery_run"
+              jq -e \
+                --arg tag "$RELEASE_TAG" \
+                --arg commit "$peeled_commit" '
+                  .event == "push" and
+                  .path == ".github/workflows/config-release.yml" and
+                  .head_branch == $tag and
+                  .head_sha == $commit and
+                  .status == "completed" and
+                  .conclusion == "failure"
+                ' "$recovery_run" >/dev/null
+              recovery_jobs="$RUNNER_TEMP/config-recovery-jobs.json"
+              gh api --paginate --slurp \
+                "repos/${GITHUB_REPOSITORY}/actions/runs/${RECOVERY_RUN_ID}/jobs?filter=all&per_page=100" \
+                >"$recovery_jobs"
+              jq -e '
+                ([.[] | .jobs[] | select(
+                  .name == "config-release" and .conclusion == "failure"
+                )] | length) == 1 and
+                any(.[] | .jobs[] | .steps[];
+                  .name == "Prove exact annotated config release identity" and .conclusion == "success"
+                ) and
+                any(.[] | .jobs[] | .steps[];
+                  .name == "Build and self-verify deterministic package assets" and .conclusion == "success"
+                ) and
+                any(.[] | .jobs[] | .steps[];
+                  .name == "Publish immutable config release" and .conclusion == "failure"
+                )
+              ' "$recovery_jobs" >/dev/null
+              ;;
+            *)
+              echo "::error::invalid config release mode: $RELEASE_MODE"
+              exit 1
+              ;;
+          esac
+
+          if [[ "$GITHUB_ACTOR" != "$GITHUB_REPOSITORY_OWNER" || "$GITHUB_TRIGGERING_ACTOR" != "$GITHUB_REPOSITORY_OWNER" ]]; then
+            echo "::error::config release writes are restricted to the repository owner"
+            exit 1
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/rulesets" >"$RUNNER_TEMP/config-release-rulesets.json"
+          ruleset_id="$(jq -er '
+            [.[] | select(
+              .name == "Protect release tags" and
+              .target == "tag" and
+              .enforcement == "active"
+            )][0].id | select(type == "number" and . > 0)
+          ' "$RUNNER_TEMP/config-release-rulesets.json")"
+          gh api "repos/${GITHUB_REPOSITORY}/rulesets/${ruleset_id}" \
+            >"$RUNNER_TEMP/config-release-ruleset.json"
+          jq -e '
+            .name == "Protect release tags" and
+            .target == "tag" and
+            .enforcement == "active" and
+            (.bypass_actors == null or .bypass_actors == []) and
+            .conditions.ref_name.exclude == [] and
+            (.conditions.ref_name.include | index("refs/tags/config-v*")) != null and
+            ([.rules[].type] | sort) == (["deletion", "non_fast_forward", "update"] | sort)
+          ' "$RUNNER_TEMP/config-release-ruleset.json" >/dev/null
 
       - name: Build and self-verify deterministic package assets
         run: |
@@ -62,13 +189,13 @@ jobs:
           (cd "$RUNNER_TEMP" && sha256sum --check "yesid-${RELEASE_TAG}.tgz.sha256")
 
       - name: Publish immutable config release
-        if: github.event_name == 'push'
+        id: publication
+        if: env.RELEASE_MODE == 'publish' || env.RELEASE_MODE == 'recover-first-publication'
+        env:
+          EXPECTED_TAG_OBJECT: ${{ steps.identity.outputs.tag_object }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
-            echo "::error::release already exists for ${RELEASE_TAG}"
-            exit 1
-          fi
           asset="$RUNNER_TEMP/yesid-${RELEASE_TAG}.tgz"
           release_version="${RELEASE_TAG#config-v}"
           version_without_build="${release_version%%+*}"
@@ -78,33 +205,96 @@ jobs:
             prerelease=true
             prerelease_args+=(--prerelease)
           fi
-          gh release create "$RELEASE_TAG" \
-            "$asset" \
-            "$asset.sha256" \
-            --draft \
-            --verify-tag \
-            "${prerelease_args[@]}" \
-            --title "$RELEASE_TAG" \
-            --notes "Immutable @yesid/config release ${RELEASE_TAG}."
-          release_id="$(gh api \
-            "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
-            --jq ".[] | select(.tag_name == \"${RELEASE_TAG}\" and .draft == true) | .id")"
-          [[ "$release_id" =~ ^[1-9][0-9]*$ ]]
+
+          release_pages="$RUNNER_TEMP/config-release-pages.json"
+          release_matches="$RUNNER_TEMP/config-release-matches.json"
+          load_release_matches() {
+            gh api --paginate --slurp \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              >"$release_pages"
+            jq --arg tag "$RELEASE_TAG" \
+              '[.[][] | select(.tag_name == $tag)]' \
+              "$release_pages" >"$release_matches"
+          }
+
+          load_release_matches
+          release_count="$(jq -r 'length' "$release_matches")"
+          if [[ "$RELEASE_MODE" == "publish" ]]; then
+            if (( release_count != 0 )); then
+              echo "::error::an exact-tag release already exists for ${RELEASE_TAG}"
+              exit 1
+            fi
+            gh release create "$RELEASE_TAG" \
+              "$asset" \
+              "$asset.sha256" \
+              --draft \
+              --verify-tag \
+              "${prerelease_args[@]}" \
+              --title "$RELEASE_TAG" \
+              --notes "Immutable @yesid/config release ${RELEASE_TAG}."
+
+            draft_found=false
+            for attempt in {1..12}; do
+              load_release_matches
+              release_count="$(jq -r 'length' "$release_matches")"
+              if (( release_count > 1 )); then
+                echo "::error::multiple Releases exist for exact tag ${RELEASE_TAG}"
+                exit 1
+              fi
+              if (( release_count == 1 )); then
+                jq -e '.[0].draft == true and .[0].immutable == false' \
+                  "$release_matches" >/dev/null
+                draft_found=true
+                break
+              fi
+              if [[ "$attempt" -lt 12 ]]; then sleep 2; fi
+            done
+            test "$draft_found" = true
+          else
+            if (( release_count != 1 )); then
+              echo "::error::recovery requires exactly one exact-tag draft"
+              exit 1
+            fi
+            jq -e '.[0].draft == true and .[0].immutable == false' \
+              "$release_matches" >/dev/null
+            test "$(jq -r '.[0].id' "$release_matches")" = "$RECOVERY_DRAFT_ID"
+          fi
+
+          release_id="$(jq -er '.[0].id | select(type == "number" and . > 0)' "$release_matches")"
           draft_json="$RUNNER_TEMP/draft-config-release.json"
           gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" >"$draft_json"
           asset_name="yesid-${RELEASE_TAG}.tgz"
           checksum_name="${asset_name}.sha256"
           jq -e \
+            --arg id "$release_id" \
             --arg tag "$RELEASE_TAG" \
             --arg asset "$asset_name" \
             --arg checksum "$checksum_name" \
+            --arg owner "$GITHUB_REPOSITORY_OWNER" \
             --argjson prerelease "$prerelease" '
+              .id == ($id | tonumber) and
               .tag_name == $tag and
+              .target_commitish == "main" and
+              .name == $tag and
+              .body == ("Immutable @yesid/config release " + $tag + ".") and
               .draft == true and
+              .immutable == false and
               .prerelease == $prerelease and
+              .author.login == "github-actions[bot]" and
               (.assets | length) == 2 and
-              ([.assets[] | select(.name == $asset and .state == "uploaded" and .size > 0)] | length) == 1 and
-              ([.assets[] | select(.name == $checksum and .state == "uploaded" and .size > 0)] | length) == 1
+              ([.assets[] | select(
+                .name == $asset and
+                .state == "uploaded" and
+                .size > 0 and
+                .uploader.login == "github-actions[bot]"
+              )] | length) == 1 and
+              ([.assets[] | select(
+                .name == $checksum and
+                .state == "uploaded" and
+                .size > 0 and
+                .uploader.login == "github-actions[bot]"
+              )] | length) == 1 and
+              $owner == "mgkdante"
             ' "$draft_json" >/dev/null
           test "$(jq -r --arg asset "$asset_name" \
             '[.assets[] | select(.name == $asset)][0].size' "$draft_json")" = \
@@ -118,16 +308,196 @@ jobs:
           test "$(jq -r --arg asset "$checksum_name" \
             '[.assets[] | select(.name == $asset)][0].digest' "$draft_json")" = \
             "sha256:$(sha256sum "$asset.sha256" | cut -d ' ' -f 1)"
+
+          draft_verification="$RUNNER_TEMP/draft-config-verification"
+          mkdir -p "$draft_verification"
+          draft_asset="$draft_verification/$asset_name"
+          draft_checksum="$draft_verification/$checksum_name"
+          asset_id="$(jq -er --arg asset "$asset_name" \
+            '[.assets[] | select(.name == $asset)][0].id | select(type == "number" and . > 0)' \
+            "$draft_json")"
+          checksum_id="$(jq -er --arg asset "$checksum_name" \
+            '[.assets[] | select(.name == $asset)][0].id | select(type == "number" and . > 0)' \
+            "$draft_json")"
+          gh api -H 'Accept: application/octet-stream' \
+            "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" >"$draft_asset"
+          gh api -H 'Accept: application/octet-stream' \
+            "repos/${GITHUB_REPOSITORY}/releases/assets/${checksum_id}" >"$draft_checksum"
+          cmp "$asset" "$draft_asset"
+          cmp "$asset.sha256" "$draft_checksum"
+          bun run config:release:verify -- \
+            --tag "$RELEASE_TAG" \
+            --archive "$draft_asset" \
+            >"$RUNNER_TEMP/draft-config-evidence.json"
+
+          draft_projection="$RUNNER_TEMP/draft-config-projection.json"
+          final_draft_json="$RUNNER_TEMP/final-draft-config-release.json"
+          final_draft_projection="$RUNNER_TEMP/final-draft-config-projection.json"
+          jq -S '{
+            id,
+            tag_name,
+            target_commitish,
+            name,
+            body,
+            draft,
+            prerelease,
+            immutable,
+            author: .author.login,
+            assets: ([.assets[] | {
+              id,
+              name,
+              state,
+              size,
+              digest,
+              uploader: .uploader.login
+            }] | sort_by(.name))
+          }' "$draft_json" >"$draft_projection"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" >"$final_draft_json"
+          jq -S '{
+            id,
+            tag_name,
+            target_commitish,
+            name,
+            body,
+            draft,
+            prerelease,
+            immutable,
+            author: .author.login,
+            assets: ([.assets[] | {
+              id,
+              name,
+              state,
+              size,
+              digest,
+              uploader: .uploader.login
+            }] | sort_by(.name))
+          }' "$final_draft_json" >"$final_draft_projection"
+          cmp "$draft_projection" "$final_draft_projection"
+          test "$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{tag}")" = \
+            "$EXPECTED_TAG_OBJECT"
+          current_remote_tag_object="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" \
+            --jq 'select(.object.type == "tag") | .object.sha')"
+          test "$current_remote_tag_object" = "$EXPECTED_TAG_OBJECT"
           gh api --method PATCH \
             "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
             -F draft=false \
             >"$RUNNER_TEMP/published-config-release.json"
+          jq -e \
+            --arg id "$release_id" \
+            --arg tag "$RELEASE_TAG" '
+              .id == ($id | tonumber) and
+              .tag_name == $tag and
+              .draft == false
+            ' "$RUNNER_TEMP/published-config-release.json" >/dev/null
+          echo "release_id=$release_id" >>"$GITHUB_OUTPUT"
+
+  config-verify:
+    needs: config-release
+    if: >-
+      ${{ always() && (
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'verify') ||
+        needs.config-release.result == 'success'
+      ) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      RELEASE_ID: ${{ needs.config-release.outputs.release_id }}
+      VERIFY_MODE: ${{ inputs.mode || '' }}
+      VERIFY_RECOVERY_RUN_ID: ${{ inputs.recovery_run_id || '' }}
+      VERIFY_RECOVERY_DRAFT_ID: ${{ inputs.recovery_draft_id || '' }}
+      VERIFY_IMMUTABLE_SETTINGS_TAG_OBJECT: ${{ inputs.immutable_settings_tag_object || '' }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+
+      - name: Prove exact read-only config release identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "mgkdante/yesid.dev-design"
+          [[ "$RELEASE_TAG" =~ ^config-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]
+          if [[ -n "$RELEASE_ID" ]]; then
+            [[ "$RELEASE_ID" =~ ^[1-9][0-9]*$ ]]
+            if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+              test "$VERIFY_MODE" = "recover-first-publication"
+              [[ "$VERIFY_RECOVERY_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+              [[ "$VERIFY_RECOVERY_DRAFT_ID" =~ ^[1-9][0-9]*$ ]]
+              [[ "$VERIFY_IMMUTABLE_SETTINGS_TAG_OBJECT" =~ ^[0-9a-f]{40}$ ]]
+            else
+              test "$GITHUB_EVENT_NAME" = "push"
+              test -z "$VERIFY_MODE"
+              test -z "$VERIFY_RECOVERY_RUN_ID"
+              test -z "$VERIFY_RECOVERY_DRAFT_ID"
+              test -z "$VERIFY_IMMUTABLE_SETTINGS_TAG_OBJECT"
+            fi
+          else
+            test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+            test "$VERIFY_MODE" = "verify"
+            test -z "$VERIFY_RECOVERY_RUN_ID"
+            test -z "$VERIFY_RECOVERY_DRAFT_ID"
+            test -z "$VERIFY_IMMUTABLE_SETTINGS_TAG_OBJECT"
+          fi
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          tag_object="$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{tag}")"
+          peeled_commit="$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}")"
+          git merge-base --is-ancestor "$peeled_commit" refs/remotes/origin/main
+          remote_tag_object="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" \
+            --jq 'select(.object.type == "tag") | .object.sha')"
+          test "$remote_tag_object" = "$tag_object"
+          bun run config:release:check -- \
+            --version "${RELEASE_TAG#config-v}" \
+            --tag "$RELEASE_TAG"
+
+      - name: Rebuild deterministic package assets
+        run: |
+          set -euo pipefail
+          asset="$RUNNER_TEMP/yesid-${RELEASE_TAG}.tgz"
+          bun run config:release:build -- \
+            --tag "$RELEASE_TAG" \
+            --output "$asset" \
+            >"$RUNNER_TEMP/built-config-evidence.json"
+          bun run config:release:verify -- --tag "$RELEASE_TAG" --archive "$asset"
+          (cd "$RUNNER_TEMP" && sha256sum --check "yesid-${RELEASE_TAG}.tgz.sha256")
 
       - name: Verify published immutable assets
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           release_json="$RUNNER_TEMP/config-release.json"
-          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" >"$release_json"
+          publication_visible=false
+          for attempt in {1..12}; do
+            if [[ -n "$RELEASE_ID" ]]; then
+              release_endpoint="repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}"
+            else
+              release_endpoint="repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}"
+            fi
+            if gh api "$release_endpoint" >"$release_json" && jq -e \
+              --arg id "$RELEASE_ID" \
+              --arg tag "$RELEASE_TAG" '
+                (.id | type == "number") and
+                ($id == "" or .id == ($id | tonumber)) and
+                .tag_name == $tag and
+                .draft == false and
+                .immutable == true
+              ' "$release_json" >/dev/null; then
+              publication_visible=true
+              break
+            fi
+            if [[ "$attempt" -lt 12 ]]; then sleep 5; fi
+          done
+          test "$publication_visible" = true
           release_version="${RELEASE_TAG#config-v}"
           version_without_build="${release_version%%+*}"
           prerelease=false
@@ -142,11 +512,20 @@ jobs:
           ' "$release_json" >/dev/null
           verification_root="$RUNNER_TEMP/config-release-verification"
           mkdir -p "$verification_root"
-          gh release download "$RELEASE_TAG" \
-            --dir "$verification_root" \
-            --pattern "yesid-${RELEASE_TAG}.tgz*"
           downloaded_asset="$verification_root/yesid-${RELEASE_TAG}.tgz"
           downloaded_checksum="${downloaded_asset}.sha256"
+          asset_id="$(jq -er --arg asset "$(basename "$downloaded_asset")" \
+            '[.assets[] | select(.name == $asset)][0].id | select(type == "number" and . > 0)' \
+            "$release_json")"
+          checksum_id="$(jq -er --arg asset "$(basename "$downloaded_checksum")" \
+            '[.assets[] | select(.name == $asset)][0].id | select(type == "number" and . > 0)' \
+            "$release_json")"
+          gh api -H 'Accept: application/octet-stream' \
+            "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" >"$downloaded_asset"
+          gh api -H 'Accept: application/octet-stream' \
+            "repos/${GITHUB_REPOSITORY}/releases/assets/${checksum_id}" >"$downloaded_checksum"
+          cmp "$RUNNER_TEMP/yesid-${RELEASE_TAG}.tgz" "$downloaded_asset"
+          cmp "$RUNNER_TEMP/yesid-${RELEASE_TAG}.tgz.sha256" "$downloaded_checksum"
           bun run config:release:verify -- \
             --tag "$RELEASE_TAG" \
             --archive "$downloaded_asset" \
