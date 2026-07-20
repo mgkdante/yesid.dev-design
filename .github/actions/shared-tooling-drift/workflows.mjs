@@ -27,6 +27,13 @@ function stripYamlComment(line) {
 
 function yamlScalar(input, label) {
 	const value = stripYamlComment(input).trim();
+	const startsSingle = value.startsWith("'");
+	const endsSingle = value.endsWith("'");
+	const startsDouble = value.startsWith('"');
+	const endsDouble = value.endsWith('"');
+	if (startsSingle !== endsSingle || startsDouble !== endsDouble) {
+		fail(`${label} contains an unsupported multiline uses scalar`);
+	}
 	if (value.startsWith("'") && value.endsWith("'")) return value.slice(1, -1).replace(/''/gu, "'");
 	if (value.startsWith('"') && value.endsWith('"')) {
 		try {

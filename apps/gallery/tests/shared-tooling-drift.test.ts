@@ -344,6 +344,24 @@ describe('immutable workflow callers', () => {
 		expect(() => verify(subject, state)).toThrow(/undeclared\.yml.*untracked|untracked.*extra/iu);
 	});
 
+	it('rejects shared-action callers split across quoted YAML lines', async () => {
+		const subject = await modules();
+		const state = fixture();
+		write(
+			join(state.root, '.github', 'workflows', 'undeclared.yml'),
+			`name: undeclared
+on: push
+jobs:
+  hidden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: "example/shared-\\
+          tooling/.github/actions/undeclared@${SHA}"
+`,
+		);
+		expect(() => verify(subject, state)).toThrow(/multiline|quoted|unsupported/iu);
+	});
+
 	it.each([
 		`jobs: {verify: {steps: [{uses: ${REPOSITORY}/${GATE}@main}]}}`,
 		`jobs:\n  verify:\n    steps:\n      - "uses": ${REPOSITORY}/${GATE}@main`,
