@@ -100,6 +100,8 @@ and npm publication remains an optional later layer. The full decision is in
 Shared tooling uses the separate, independently versioned `@yesid/config`
 asset (`config-vX.Y.Z` / `yesid-config-vX.Y.Z.tgz`). It never enters the
 four-package `vX.Y.Z` adoption archive.
+The [shared CI contract](docs/SHARED-TOOLING-CI.md) documents immutable-SHA
+classifier, reporter, and configuration/caller drift actions.
 
 For a new product, follow [`docs/BUILD-A-YESID-PRODUCT.md`](docs/BUILD-A-YESID-PRODUCT.md).
 It covers adoption, token generation, Tailwind, fonts, UI configuration, motion,
