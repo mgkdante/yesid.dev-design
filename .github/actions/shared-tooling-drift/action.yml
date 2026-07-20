@@ -1,0 +1,22 @@
+name: Shared tooling drift gate
+description: Verify copied configuration and shared workflow callers against one immutable source SHA.
+inputs:
+  manifest:
+    description: Repository-relative path to the strict schema-1 drift manifest.
+    required: true
+outputs:
+  receipt:
+    description: Canonical schema-1 drift receipt.
+    value: ${{ steps.verify.outputs.receipt }}
+runs:
+  using: composite
+  steps:
+    - id: verify
+      name: Verify shared tooling drift
+      shell: bash
+      env:
+        INPUT_MANIFEST: ${{ inputs.manifest }}
+        YESID_ACTION_PATH: ${{ github.action_path }}
+        YESID_ACTION_REPOSITORY: ${{ github.action_repository }}
+        YESID_ACTION_REF: ${{ github.action_ref }}
+      run: node "$YESID_ACTION_PATH/main.mjs"
