@@ -10,13 +10,66 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  ci:
+  classify:
+    runs-on: ubuntu-latest
+    outputs:
+      classification: ${{ steps.classify.outputs.classification }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: mgkdante/yesid.dev-design/.github/actions/shared-tooling-drift@a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25
+        with:
+          manifest: .github/shared-tooling.json
+      - uses: mgkdante/yesid.dev-design/.github/actions/classify-paths@a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25
+        id: classify
+        with:
+          github-token: ${{ github.token }}
+          rules-json: >-
+            {
+              "schema": 1,
+              "always": {
+                "paths": [".bun-version", ".github/shared-tooling.json", "bun.lock", "package.json", "turbo.json"],
+                "prefixes": [".github/actions/", ".github/workflows/", "packages/config/", "patches/"]
+              },
+              "jobs": {
+                "ci-work": {
+                  "paths": ["DESIGN.md", "tsconfig.tools.json"],
+                  "prefixes": [".changes/", "api-reports/", "apps/", "packages/", "tools/"]
+                },
+                "browser-authority-work": {
+                  "paths": ["apps/gallery/package.json", "apps/gallery/playwright.config.ts", "apps/gallery/svelte.config.js", "apps/gallery/tsconfig.json", "apps/gallery/vite.config.ts", "packages/motion/package.json", "packages/motion/tsconfig.json", "packages/tokens/package.json", "packages/tokens/tokens.json", "packages/tokens/tsconfig.json", "packages/ui/package.json", "packages/ui/svelte.config.js", "packages/ui/tsconfig.json"],
+                  "prefixes": ["apps/gallery/src/", "apps/gallery/tests/browser/", "packages/motion/src/", "packages/tokens/src/", "packages/ui/src/"]
+                },
+                "token-outputs-windows-work": {
+                  "paths": ["DESIGN.md", "apps/gallery/src/app.css", "tools/api-authority.ts", "tools/build-tokens.ts", "tools/release-core.ts"],
+                  "prefixes": ["api-reports/", "packages/gates/", "packages/motion/", "packages/tokens/", "packages/ui/"]
+                },
+                "token-byte-parity-work": {
+                  "paths": ["DESIGN.md", "apps/gallery/src/app.css", "packages/motion/src/tokens.ts", "packages/tokens/package.json", "packages/tokens/tokens.css", "packages/tokens/tokens.json", "packages/tokens/tsconfig.json", "tools/build-tokens.ts"],
+                  "prefixes": ["packages/tokens/scripts/", "packages/tokens/src/"]
+                }
+              },
+              "ignore": {
+                "docs-only": {
+                  "paths": ["CODE_OF_CONDUCT.md", "CONTRIBUTING.md", "LICENSE", "README.md", "SECURITY.md"],
+                  "prefixes": ["docs/"]
+                },
+                "irrelevant": {
+                  "paths": [],
+                  "prefixes": [".idea/", ".vscode/"]
+                }
+              }
+            }
+
+  ci-work:
+    needs: [classify]
+    if: ${{ fromJSON(needs.classify.outputs.classification).relevant['ci-work'] }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -48,7 +101,9 @@ jobs:
       - name: build
         run: bun x turbo run build
 
-  browser-authority:
+  browser-authority-work:
+    needs: [classify]
+    if: ${{ fromJSON(needs.classify.outputs.classification).relevant['browser-authority-work'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
@@ -75,7 +130,9 @@ jobs:
             apps/gallery/playwright-report/
             apps/gallery/test-results/
 
-  token-outputs-windows:
+  token-outputs-windows-work:
+    needs: [classify]
+    if: ${{ fromJSON(needs.classify.outputs.classification).relevant['token-outputs-windows-work'] }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -96,8 +153,15 @@ jobs:
             packages/motion/src/tokens.ts
             packages/tokens/tokens.css
 
-  token-byte-parity:
-    needs: [ci, token-outputs-windows]
+  token-byte-parity-work:
+    needs: [classify, ci-work, token-outputs-windows-work]
+    if: >-
+      ${{
+        !cancelled() &&
+        fromJSON(needs.classify.outputs.classification).relevant['token-byte-parity-work'] &&
+        needs['ci-work'].result == 'success' &&
+        needs['token-outputs-windows-work'].result == 'success'
+      }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -124,3 +188,21 @@ jobs:
               exit 1
             fi
           done
+
+  required-contexts:
+    needs: [classify, ci-work, browser-authority-work, token-outputs-windows-work, token-byte-parity-work]
+    if: ${{ always() }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - context: ci
+          - context: browser-authority
+          - context: token-outputs-windows
+          - context: token-byte-parity
+    name: ${{ matrix.context }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mgkdante/yesid.dev-design/.github/actions/required-context@a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25
+        with:
+          needs-json: ${{ toJSON(needs) }}
