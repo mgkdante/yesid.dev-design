@@ -20,6 +20,7 @@
 		"config:release:verify": "bun tools/config-release.ts verify",
 		"release:check": "bun tools/release.ts check",
 		"release:prepare": "bun tools/release.ts prepare",
+		"scorecard:measure": "bun tools/phase2-scorecard.ts",
 		"build": "bun run tokens:build && turbo run build",
 		"test": "turbo run test",
 		"test:browser": "bun run --cwd apps/gallery test:browser",
@@ -38,7 +39,8 @@
 		"@yesid/config": "workspace:0.2.0",
 		"svelte2tsx": "0.7.58",
 		"turbo": "^2.5.0",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"yaml": "2.9.0"
 	},
 	"patchedDependencies": {
 		"bits-ui@2.18.1": "patches/bits-ui@2.18.1.patch"

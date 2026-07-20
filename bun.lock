@@ -12,6 +12,7 @@
         "svelte2tsx": "0.7.58",
         "turbo": "^2.5.0",
         "typescript": "^5.9.3",
+        "yaml": "2.9.0",
       },
     },
     "apps/gallery": {

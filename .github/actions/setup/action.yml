@@ -3,15 +3,20 @@ description: |
   Standard CI setup for this monorepo:
     1. setup-bun pinned via .bun-version
     2. Restore Bun deps cache (~/.bun/install/cache, keyed by bun.lock)
-    3. Restore Turbo cache (.turbo/cache, keyed by SHA with prefix
-       restore-keys so warm starts work)
-    4. Restore Vitest cache (apps/gallery/.vitest/cache — populated because
-       apps/gallery/vite.config.ts relocates Vitest's cacheDir there when
-       process.env.VITEST is set; apps/cms uses bun test, not Vitest,
-       so no cache there)
-    5. `bun install --frozen-lockfile`
+    3. Optionally restore Turbo and Vitest caches for jobs that populate them
+    4. `bun install --frozen-lockfile`
 
   Caller must run `actions/checkout@v4` first.
+
+inputs:
+  cache-turbo:
+    description: Restore and save .turbo/cache for a job that runs Turbo
+    required: false
+    default: 'false'
+  cache-vitest:
+    description: Restore and save the Gallery Vitest result cache for a job that runs it
+    required: false
+    default: 'false'
 
 runs:
   using: composite
@@ -30,6 +35,7 @@ runs:
           bun-${{ runner.os }}-
 
     - name: Cache Turbo
+      if: inputs.cache-turbo == 'true'
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: .turbo/cache
@@ -40,9 +46,10 @@ runs:
           turbo-${{ runner.os }}-
 
     - name: Cache Vitest
+      if: inputs.cache-vitest == 'true'
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
-        path: apps/gallery/.vitest/cache
+        path: apps/gallery/node_modules/.vite/vitest
         key: vitest-${{ runner.os }}-${{ hashFiles('bun.lock', 'apps/gallery/vite.config.ts') }}
         restore-keys: |
           vitest-${{ runner.os }}-
