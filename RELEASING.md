@@ -127,6 +127,24 @@ the exact tag receipt. Repository tag rules must protect both `v*` and
 `config-v*` from update, deletion, and non-fast-forward changes before the
 first config tag is pushed.
 
+If the tag-push run creates the exact draft and then fails, do not rerun the
+old event, delete the draft, or move the tag. After fixing the workflow on
+`main`, the repository owner may recover only that first publication:
+
+```sh
+gh workflow run config-release.yml --ref main \
+  -f tag="$TAG" \
+  -f mode=recover-first-publication \
+  -f recovery_run_id="$FAILED_RUN_ID" \
+  -f recovery_draft_id="$DRAFT_ID" \
+  -f immutable_settings_tag_object="$TAG_OBJECT"
+```
+
+Recovery requires the exact failed tag-push run, draft ID, annotated tag
+object, protected tag namespace, and live immutable-release setting. It
+rebuilds the tagged assets, downloads and compares both draft assets
+byte-for-byte, and publishes that draft only after every binding passes.
+
 ## 3. Publish from the tag-push workflow
 
 The tag push automatically starts `.github/workflows/release.yml` through its
