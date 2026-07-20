@@ -82,6 +82,14 @@ afterEach(() => {
 });
 
 describe('Phase 2 scorecard measurement authority', () => {
+	it('keeps every nested measurement-policy value immutable', () => {
+		expect(Object.isFrozen(SCORECARD_POLICY)).toBe(true);
+		expect(Object.isFrozen(SCORECARD_POLICY.lockfiles)).toBe(true);
+		expect(Object.isFrozen(SCORECARD_POLICY.patterns)).toBe(true);
+		expect(Object.isFrozen(SCORECARD_POLICY.patterns.generatedHeader)).toBe(true);
+		expect(() => (SCORECARD_POLICY.lockfiles as unknown as string[]).push('custom.lock')).toThrow();
+	});
+
 	it('uses host-independent ordering for receipt digests', () => {
 		const { root, head } = fixtureRepository();
 		const localeCompare = vi
@@ -130,6 +138,25 @@ describe('Phase 2 scorecard measurement authority', () => {
 		);
 	});
 
+	it('excludes exact generated headers without mistaking descriptive prose for one', () => {
+		const { root } = fixtureRepository();
+		write(
+			root,
+			'generated/descriptive.sh',
+			'#!/usr/bin/env bash\n# Those files carry a GENERATED FILE - do not edit marker.\necho handwritten\n',
+		);
+		write(root, 'generated/real-generated.sh', '#!/usr/bin/env bash\n# GENERATED FILE - DO NOT EDIT\necho generated\n');
+		git(root, 'add', 'generated');
+		git(root, 'commit', '-m', 'exercise exact generated headers');
+		const receipt = measureSourceTree({
+			repository: root,
+			revision: git(root, 'rev-parse', 'HEAD'),
+		});
+
+		expect(receipt.excluded.generated).toBe(2);
+		expect(receipt.files.code).toBe(3);
+	});
+
 	it('inventories every workflow job, timeout, shared caller, and secret reference', () => {
 		const { root, head } = fixtureRepository();
 		const receipt = inventoryWorkflows({ repository: root, revision: head });
@@ -166,6 +193,53 @@ describe('Phase 2 scorecard measurement authority', () => {
 		expect(inventoryWorkflows({ repository: clone, revision: head }).resultDigest).toBe(
 			receipt.resultDigest,
 		);
+	});
+
+	it('parses YAML jobs and live action callers without treating comments or scalars as code', () => {
+		const { root } = fixtureRepository();
+		write(
+			root,
+			'.github/workflows/ci.yml',
+			`name: yaml-structures
+on: pull_request
+jobs:
+  first:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo first
+# A column-zero comment is still inside the jobs mapping.
+  second:
+    runs-on: ubuntu-latest
+    steps:
+      # uses: mgkdante/yesid.dev-design/.github/actions/classify-paths@${'a'.repeat(40)}
+      - run: |
+          echo "uses: mgkdante/yesid.dev-design/.github/actions/required-context@${'b'.repeat(40)}"
+  inline: { timeout-minutes: 7, runs-on: ubuntu-latest, steps: [{ uses: "mgkdante/yesid.dev-design/.github/actions/classify-paths@${'c'.repeat(40)}" }] }
+  "quoted-job":
+    timeout-minutes: 9
+    uses: "mgkdante/yesid.dev-design/.github/actions/required-context@${'d'.repeat(40)}"
+`,
+		);
+		git(root, 'add', '.github/workflows/ci.yml');
+		git(root, 'commit', '-m', 'exercise valid yaml structures');
+		const head = git(root, 'rev-parse', 'HEAD');
+
+		const receipt = inventoryWorkflows({ repository: root, revision: head });
+		expect(receipt.jobs).toEqual({ total: 4, capped: 3, uncapped: 1 });
+		expect(receipt.uncappedJobs).toEqual(['.github/workflows/ci.yml:second']);
+		expect(receipt.sharedCallers).toEqual([
+			{
+				action: 'classify-paths',
+				path: '.github/workflows/ci.yml',
+				ref: 'c'.repeat(40),
+			},
+			{
+				action: 'required-context',
+				path: '.github/workflows/ci.yml',
+				ref: 'd'.repeat(40),
+			},
+		]);
 	});
 
 	it('reduces normalized run exports with nearest-rank percentiles and no hidden failures', () => {
@@ -238,5 +312,151 @@ describe('Phase 2 scorecard measurement authority', () => {
 			runnerSeconds: 23,
 		});
 		expect(receipt.digest).toMatch(/^sha256:[0-9a-f]{64}$/u);
+	});
+
+	it('accepts numeric-string run ids and explicit null job timing', () => {
+		const receipt = reduceRuns([
+			{
+				id: '42',
+				attempt: 1,
+				conclusion: 'cancelled',
+				createdAt: '2026-07-20T00:00:00.123Z',
+				updatedAt: '2026-07-20T00:00:01.123Z',
+				jobs: [
+					{
+						name: 'cancelled-before-start',
+						conclusion: 'cancelled',
+						startedAt: null,
+						completedAt: null,
+					},
+				],
+			},
+		]);
+
+		expect(receipt).toMatchObject({
+			runs: 1,
+			missingQueue: 1,
+			missingJobTiming: 1,
+			wallSeconds: { p50: 1, p95: 1 },
+		});
+	});
+
+	it.each([
+		[
+			'object id',
+			{
+				id: {},
+				attempt: 1,
+				conclusion: 'success',
+				createdAt: '2026-07-20T00:00:00Z',
+				updatedAt: '2026-07-20T00:00:01Z',
+				jobs: [],
+			},
+		],
+		[
+			'unknown conclusion',
+			{
+				id: 1,
+				attempt: 1,
+				conclusion: 'banana',
+				createdAt: '2026-07-20T00:00:00Z',
+				updatedAt: '2026-07-20T00:00:01Z',
+				jobs: [],
+			},
+		],
+		[
+			'missing job name',
+			{
+				id: 1,
+				attempt: 1,
+				conclusion: 'success',
+				createdAt: '2026-07-20T00:00:00Z',
+				updatedAt: '2026-07-20T00:00:01Z',
+				jobs: [{ conclusion: 'success', startedAt: null, completedAt: null }],
+			},
+		],
+		[
+			'non-array jobs',
+			{
+				id: 1,
+				attempt: 1,
+				conclusion: 'success',
+				createdAt: '2026-07-20T00:00:00Z',
+				updatedAt: '2026-07-20T00:00:01Z',
+				jobs: {},
+			},
+		],
+		[
+			'locale date',
+			{
+				id: 1,
+				attempt: 1,
+				conclusion: 'success',
+				createdAt: '07/20/2026 00:00:00',
+				updatedAt: '2026-07-20T00:00:01Z',
+				jobs: [],
+			},
+		],
+		[
+			'impossible RFC3339 date',
+			{
+				id: 1,
+				attempt: 1,
+				conclusion: 'success',
+				createdAt: '2026-02-30T00:00:00Z',
+				updatedAt: '2026-07-20T00:00:01Z',
+				jobs: [],
+			},
+		],
+		[
+			'unknown run field',
+			{
+				id: 1,
+				attempt: 1,
+				conclusion: 'success',
+				createdAt: '2026-07-20T00:00:00Z',
+				updatedAt: '2026-07-20T00:00:01Z',
+				jobs: [],
+				status: 'completed',
+			},
+		],
+		[
+			'unknown job conclusion',
+			{
+				id: 1,
+				attempt: 1,
+				conclusion: 'success',
+				createdAt: '2026-07-20T00:00:00Z',
+				updatedAt: '2026-07-20T00:00:01Z',
+				jobs: [
+					{
+						name: 'ci',
+						conclusion: 'banana',
+						startedAt: null,
+						completedAt: null,
+					},
+				],
+			},
+		],
+		[
+			'non-string job timing',
+			{
+				id: 1,
+				attempt: 1,
+				conclusion: 'success',
+				createdAt: '2026-07-20T00:00:00Z',
+				updatedAt: '2026-07-20T00:00:01Z',
+				jobs: [
+					{
+						name: 'ci',
+						conclusion: 'success',
+						startedAt: 1,
+						completedAt: null,
+					},
+				],
+			},
+		],
+	] as const)('rejects malformed normalized run input: %s', (_label, run) => {
+		expect(() => reduceRuns([run] as never)).toThrow();
 	});
 });

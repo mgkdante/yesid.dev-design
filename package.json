@@ -39,7 +39,8 @@
 		"@yesid/config": "workspace:0.2.0",
 		"svelte2tsx": "0.7.58",
 		"turbo": "^2.5.0",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"yaml": "2.9.0"
 	},
 	"patchedDependencies": {
 		"bits-ui@2.18.1": "patches/bits-ui@2.18.1.patch"

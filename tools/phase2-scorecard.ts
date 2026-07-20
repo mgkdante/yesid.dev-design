@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { basename, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseDocument } from 'yaml';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
@@ -92,7 +93,7 @@ const RAW_POLICY = {
 	],
 	patterns: {
 		generatedHeader: {
-			source: String.raw`^\s*(?:\/\/|#|\/\*|\*|<!--).*(?:@generated|auto-generated|automatically generated|generated file|do not edit)`,
+			source: String.raw`^\s*(?:\/\/+|#+|\/\*+|\*+|<!--)\s*(?:@generated\b|auto(?:matically)?[- ]generated\b|code\s+generated\b|generated(?:\s+file|\s+by)?\b|do\s+not\s+edit\b)`,
 			flags: 'imu',
 		},
 		testFilename: {
@@ -139,8 +140,16 @@ function resultDigest(receipt: Readonly<{ source: Readonly<{ revision: string }>
 	return sha256(canonicalJson({ ...receipt, source: { revision: receipt.source.revision } }));
 }
 
-export const SCORECARD_POLICY = Object.freeze({
-	...RAW_POLICY,
+function deepFreeze<T>(value: T): T {
+	if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+		for (const item of Object.values(value)) deepFreeze(item);
+		Object.freeze(value);
+	}
+	return value;
+}
+
+export const SCORECARD_POLICY = deepFreeze({
+	...structuredClone(RAW_POLICY),
 	digest: sha256(canonicalJson(RAW_POLICY)),
 });
 
@@ -328,30 +337,54 @@ interface JobInventory {
 	timeout: boolean;
 }
 
-function jobsInWorkflow(path: string, source: string): JobInventory[] {
-	const lines = source.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
-	const start = lines.findIndex((line) => /^jobs:\s*(?:#.*)?$/u.test(line));
-	if (start < 0) throw new Error(`${path} has no top-level jobs mapping`);
-	const section: string[] = [];
-	for (const line of lines.slice(start + 1)) {
-		if (/^\S/u.test(line)) break;
-		section.push(line);
+type UnknownRecord = Record<string, unknown>;
+
+function record(value: unknown, label: string): UnknownRecord {
+	if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+		throw new Error(`${label} must be a mapping`);
 	}
-	const starts: Array<{ id: string; index: number }> = [];
-	for (const [index, line] of section.entries()) {
-		const match = line.match(/^ {2}(?:"([^"]+)"|'([^']+)'|([A-Za-z0-9_-]+)):\s*(?:#.*)?$/u);
-		if (match) starts.push({ id: match[1] ?? match[2] ?? match[3]!, index });
+	return value as UnknownRecord;
+}
+
+function workflowDocument(path: string, source: string): UnknownRecord {
+	const document = parseDocument(source, {
+		prettyErrors: false,
+		uniqueKeys: true,
+	});
+	if (document.errors.length > 0) {
+		throw new Error(`${path} is invalid YAML: ${document.errors.map((error) => error.message).join('; ')}`);
 	}
-	if (starts.length === 0) throw new Error(`${path} has no parseable jobs`);
-	return starts.map(({ id, index }, position) => {
-		const block = section.slice(index, starts[position + 1]?.index ?? section.length);
+	return record(document.toJS({ maxAliasCount: 100 }), path);
+}
+
+function jobsInWorkflow(path: string, workflow: UnknownRecord): Array<JobInventory & { value: UnknownRecord }> {
+	const jobs = record(workflow.jobs, `${path} jobs`);
+	const entries = Object.entries(jobs);
+	if (entries.length === 0) throw new Error(`${path} has no jobs`);
+	return entries.map(([id, value]) => {
+		const job = record(value, `${path} job ${id}`);
+		const timeout = job['timeout-minutes'];
 		return {
 			id,
-			timeout: block.some((line) =>
-				/^ {4}timeout-minutes:\s*[1-9][0-9]*\s*(?:#.*)?$/u.test(line),
-			),
+			timeout: typeof timeout === 'number' && Number.isSafeInteger(timeout) && timeout > 0,
+			value: job,
 		};
 	});
+}
+
+function visitValues(
+	value: unknown,
+	visitor: (value: unknown, key: string | null) => void,
+	key: string | null = null,
+): void {
+	visitor(value, key);
+	if (Array.isArray(value)) {
+		for (const item of value) visitValues(item, visitor);
+		return;
+	}
+	if (value && typeof value === 'object') {
+		for (const [childKey, item] of Object.entries(value)) visitValues(item, visitor, childKey);
+	}
 }
 
 export function inventoryWorkflows(input: SourceMeasurementInput) {
@@ -363,12 +396,18 @@ export function inventoryWorkflows(input: SourceMeasurementInput) {
 	const uncappedJobs: string[] = [];
 	const sharedCallers: Array<{ path: string; action: string; ref: string }> = [];
 	const secretReferences: Array<{ path: string; name: string }> = [];
-	const workflowDetails: Array<{ path: string; jobs: number; capped: number; uncapped: number }> = [];
+	const workflowDetails: Array<{
+		path: string;
+		jobs: number;
+		capped: number;
+		uncapped: number;
+	}> = [];
 	let total = 0;
 	let capped = 0;
 	for (const entry of workflowEntries) {
 		const source = decoder.decode(blobs.get(entry.path));
-		const jobs = jobsInWorkflow(entry.path, source);
+		const workflow = workflowDocument(entry.path, source);
+		const jobs = jobsInWorkflow(entry.path, workflow);
 		total += jobs.length;
 		const cappedHere = jobs.filter((job) => job.timeout).length;
 		capped += cappedHere;
@@ -381,19 +420,30 @@ export function inventoryWorkflows(input: SourceMeasurementInput) {
 			capped: cappedHere,
 			uncapped: jobs.length - cappedHere,
 		});
-		for (const match of source.matchAll(
-			/uses:\s*["']?mgkdante\/yesid\.dev-design\/\.github\/actions\/(classify-paths|required-context|shared-tooling-drift)@([A-Za-z0-9._/-]+)["']?/gu,
-		)) {
-			sharedCallers.push({ path: entry.path, action: match[1]!, ref: match[2]! });
+		for (const job of jobs) {
+			visitValues(job.value, (value, key) => {
+				if (key !== 'uses' || typeof value !== 'string') return;
+				const match = value.match(
+					/^mgkdante\/yesid\.dev-design\/\.github\/actions\/(classify-paths|required-context|shared-tooling-drift)@([A-Za-z0-9._/-]+)$/u,
+				);
+				if (match)
+					sharedCallers.push({
+						path: entry.path,
+						action: match[1]!,
+						ref: match[2]!,
+					});
+			});
 		}
-		const secrets = new Set([
-			...[...source.matchAll(/\bsecrets\.([A-Za-z_][A-Za-z0-9_]*)/gu)].map(
-				(match) => match[1]!,
-			),
-			...[...source.matchAll(/\bsecrets\[['"]([A-Za-z_][A-Za-z0-9_]*)['"]\]/gu)].map(
-				(match) => match[1]!,
-			),
-		]);
+		const secrets = new Set<string>();
+		visitValues(workflow, (value) => {
+			if (typeof value !== 'string') return;
+			for (const match of value.matchAll(/\bsecrets\.([A-Za-z_][A-Za-z0-9_]*)/gu)) {
+				secrets.add(match[1]!);
+			}
+			for (const match of value.matchAll(/\bsecrets\[['"]([A-Za-z_][A-Za-z0-9_]*)['"]\]/gu)) {
+				secrets.add(match[1]!);
+			}
+		});
 		for (const name of secrets) secretReferences.push({ path: entry.path, name });
 	}
 	for (const values of [uncappedJobs, workflowDetails, sharedCallers, secretReferences]) {
@@ -428,10 +478,122 @@ export interface NormalizedRun {
 	jobs: NormalizedJob[];
 }
 
+const GITHUB_CONCLUSIONS = new Set([
+	'action_required',
+	'cancelled',
+	'failure',
+	'neutral',
+	'skipped',
+	'stale',
+	'startup_failure',
+	'success',
+	'timed_out',
+]);
+
+const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$/u;
+
 function timestamp(value: string, label: string): number {
+	const match = value.match(RFC3339);
+	if (!match) throw new Error(`Invalid ${label} RFC3339 timestamp ${value}`);
+	const year = Number(match[1]);
+	const month = Number(match[2]);
+	const day = Number(match[3]);
+	const hour = Number(match[4]);
+	const minute = Number(match[5]);
+	const second = Number(match[6]);
+	const offset = match[8]!;
+	const offsetHour = offset === 'Z' ? 0 : Number(offset.slice(1, 3));
+	const offsetMinute = offset === 'Z' ? 0 : Number(offset.slice(4, 6));
+	const daysInMonth = month >= 1 && month <= 12 ? new Date(Date.UTC(year, month, 0)).getUTCDate() : 0;
+	if (
+		year < 1 ||
+		month < 1 ||
+		month > 12 ||
+		day < 1 ||
+		day > daysInMonth ||
+		hour > 23 ||
+		minute > 59 ||
+		second > 59 ||
+		offsetHour > 23 ||
+		offsetMinute > 59
+	) {
+		throw new Error(`Invalid ${label} RFC3339 timestamp ${value}`);
+	}
 	const parsed = Date.parse(value);
 	if (!Number.isFinite(parsed)) throw new Error(`Invalid ${label} timestamp ${value}`);
 	return parsed;
+}
+
+function exactRecord(value: unknown, label: string, fields: readonly string[]): UnknownRecord {
+	const result = record(value, label);
+	const keys = Object.keys(result);
+	const missing = fields.filter((field) => !Object.hasOwn(result, field));
+	const unexpected = keys.filter((field) => !fields.includes(field));
+	if (missing.length > 0 || unexpected.length > 0) {
+		throw new Error(
+			`${label} fields invalid; missing ${missing.join(', ') || 'none'}; unexpected ${unexpected.join(', ') || 'none'}`,
+		);
+	}
+	return result;
+}
+
+function githubConclusion(value: unknown, label: string): string {
+	if (typeof value !== 'string' || !GITHUB_CONCLUSIONS.has(value)) {
+		throw new Error(`Invalid ${label} conclusion ${String(value)}`);
+	}
+	return value;
+}
+
+function nullableTimestamp(value: unknown, label: string): string | null {
+	if (value === null) return null;
+	if (typeof value !== 'string') throw new Error(`${label} must be an RFC3339 string or null`);
+	timestamp(value, label);
+	return value;
+}
+
+function normalizedRun(value: unknown, index: number): NormalizedRun {
+	const run = exactRecord(value, `run[${index}]`, ['id', 'attempt', 'conclusion', 'createdAt', 'updatedAt', 'jobs']);
+	const id = run.id;
+	if (!(
+		(typeof id === 'number' && Number.isSafeInteger(id) && id > 0) ||
+		(typeof id === 'string' && /^[1-9][0-9]*$/u.test(id))
+	)) {
+		throw new Error(`Invalid run[${index}] id`);
+	}
+	if (typeof run.attempt !== 'number' || !Number.isSafeInteger(run.attempt) || run.attempt < 1) {
+		throw new Error(`Invalid attempt for run ${String(id)}`);
+	}
+	if (typeof run.createdAt !== 'string' || typeof run.updatedAt !== 'string') {
+		throw new Error(`Run ${String(id)} timestamps must be RFC3339 strings`);
+	}
+	timestamp(run.createdAt, `${String(id)} createdAt`);
+	timestamp(run.updatedAt, `${String(id)} updatedAt`);
+	if (!Array.isArray(run.jobs)) throw new Error(`Run ${String(id)} jobs must be an array`);
+	const jobs = run.jobs.map((value, jobIndex): NormalizedJob => {
+		const job = exactRecord(value, `run ${String(id)} job[${jobIndex}]`, [
+			'name',
+			'conclusion',
+			'startedAt',
+			'completedAt',
+		]);
+		if (typeof job.name !== 'string' || job.name.trim().length === 0) {
+			throw new Error(`Run ${String(id)} job[${jobIndex}] has invalid name`);
+		}
+		return {
+			name: job.name,
+			conclusion: githubConclusion(job.conclusion, `run ${String(id)} job ${job.name}`),
+			startedAt: nullableTimestamp(job.startedAt, `run ${String(id)} job ${job.name} startedAt`),
+			completedAt: nullableTimestamp(job.completedAt, `run ${String(id)} job ${job.name} completedAt`),
+		};
+	});
+	return {
+		id,
+		attempt: run.attempt,
+		conclusion: githubConclusion(run.conclusion, `run ${String(id)}`),
+		createdAt: run.createdAt,
+		updatedAt: run.updatedAt,
+		jobs,
+	};
 }
 
 function seconds(start: number, end: number, label: string): number {
@@ -445,7 +607,9 @@ function nearestRank(values: readonly number[], percentile: number): number | nu
 	return sorted[Math.max(0, Math.ceil(percentile * sorted.length) - 1)]!;
 }
 
-export function reduceRuns(runs: readonly NormalizedRun[]) {
+export function reduceRuns(input: readonly unknown[]) {
+	if (!Array.isArray(input)) throw new Error('Run input must be an array');
+	const runs = input.map(normalizedRun);
 	const identities = new Set<string>();
 	const walls: number[] = [];
 	const queues: number[] = [];
