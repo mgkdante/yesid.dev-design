@@ -1,0 +1,180 @@
+name: config-release
+
+on:
+  push:
+    tags: ['config-v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing annotated config-vX.Y.Z tag to verify
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: config-release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  config-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+
+      - name: Prove exact annotated config release identity
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "mgkdante/yesid.dev-design"
+          [[ "$RELEASE_TAG" =~ ^config-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          tag_object="$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{tag}")"
+          peeled_commit="$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}")"
+          git merge-base --is-ancestor "$peeled_commit" refs/remotes/origin/main
+          remote_tag_object="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" \
+            --jq 'select(.object.type == "tag") | .object.sha')"
+          test "$remote_tag_object" = "$tag_object"
+          bun run config:release:check -- \
+            --version "${RELEASE_TAG#config-v}" \
+            --tag "$RELEASE_TAG"
+
+      - name: Build and self-verify deterministic package assets
+        run: |
+          set -euo pipefail
+          asset="$RUNNER_TEMP/yesid-${RELEASE_TAG}.tgz"
+          bun run config:release:build -- \
+            --tag "$RELEASE_TAG" \
+            --output "$asset" \
+            >"$RUNNER_TEMP/built-config-evidence.json"
+          bun run config:release:verify -- --tag "$RELEASE_TAG" --archive "$asset"
+          (cd "$RUNNER_TEMP" && sha256sum --check "yesid-${RELEASE_TAG}.tgz.sha256")
+
+      - name: Publish immutable config release
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "::error::release already exists for ${RELEASE_TAG}"
+            exit 1
+          fi
+          asset="$RUNNER_TEMP/yesid-${RELEASE_TAG}.tgz"
+          release_version="${RELEASE_TAG#config-v}"
+          version_without_build="${release_version%%+*}"
+          prerelease=false
+          prerelease_args=()
+          if [[ "$version_without_build" == *-* ]]; then
+            prerelease=true
+            prerelease_args+=(--prerelease)
+          fi
+          gh release create "$RELEASE_TAG" \
+            "$asset" \
+            "$asset.sha256" \
+            --draft \
+            --verify-tag \
+            "${prerelease_args[@]}" \
+            --title "$RELEASE_TAG" \
+            --notes "Immutable @yesid/config release ${RELEASE_TAG}."
+          release_id="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq ".[] | select(.tag_name == \"${RELEASE_TAG}\" and .draft == true) | .id")"
+          [[ "$release_id" =~ ^[1-9][0-9]*$ ]]
+          draft_json="$RUNNER_TEMP/draft-config-release.json"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" >"$draft_json"
+          asset_name="yesid-${RELEASE_TAG}.tgz"
+          checksum_name="${asset_name}.sha256"
+          jq -e \
+            --arg tag "$RELEASE_TAG" \
+            --arg asset "$asset_name" \
+            --arg checksum "$checksum_name" \
+            --argjson prerelease "$prerelease" '
+              .tag_name == $tag and
+              .draft == true and
+              .prerelease == $prerelease and
+              (.assets | length) == 2 and
+              ([.assets[] | select(.name == $asset and .state == "uploaded" and .size > 0)] | length) == 1 and
+              ([.assets[] | select(.name == $checksum and .state == "uploaded" and .size > 0)] | length) == 1
+            ' "$draft_json" >/dev/null
+          test "$(jq -r --arg asset "$asset_name" \
+            '[.assets[] | select(.name == $asset)][0].size' "$draft_json")" = \
+            "$(jq -r .size "$RUNNER_TEMP/built-config-evidence.json")"
+          test "$(jq -r --arg asset "$asset_name" \
+            '[.assets[] | select(.name == $asset)][0].digest' "$draft_json")" = \
+            "$(jq -r .digest "$RUNNER_TEMP/built-config-evidence.json")"
+          test "$(jq -r --arg asset "$checksum_name" \
+            '[.assets[] | select(.name == $asset)][0].size' "$draft_json")" = \
+            "$(stat --format=%s "$asset.sha256")"
+          test "$(jq -r --arg asset "$checksum_name" \
+            '[.assets[] | select(.name == $asset)][0].digest' "$draft_json")" = \
+            "sha256:$(sha256sum "$asset.sha256" | cut -d ' ' -f 1)"
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
+            -F draft=false \
+            >"$RUNNER_TEMP/published-config-release.json"
+
+      - name: Verify published immutable assets
+        run: |
+          set -euo pipefail
+          release_json="$RUNNER_TEMP/config-release.json"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" >"$release_json"
+          release_version="${RELEASE_TAG#config-v}"
+          version_without_build="${release_version%%+*}"
+          prerelease=false
+          if [[ "$version_without_build" == *-* ]]; then prerelease=true; fi
+          jq -e --arg tag "$RELEASE_TAG" --argjson prerelease "$prerelease" '
+            .tag_name == $tag and
+            .draft == false and
+            .prerelease == $prerelease and
+            .immutable == true and
+            ([.assets[].name] | sort) ==
+              (["yesid-" + $tag + ".tgz", "yesid-" + $tag + ".tgz.sha256"] | sort)
+          ' "$release_json" >/dev/null
+          verification_root="$RUNNER_TEMP/config-release-verification"
+          mkdir -p "$verification_root"
+          gh release download "$RELEASE_TAG" \
+            --dir "$verification_root" \
+            --pattern "yesid-${RELEASE_TAG}.tgz*"
+          downloaded_asset="$verification_root/yesid-${RELEASE_TAG}.tgz"
+          downloaded_checksum="${downloaded_asset}.sha256"
+          bun run config:release:verify -- \
+            --tag "$RELEASE_TAG" \
+            --archive "$downloaded_asset" \
+            >"$RUNNER_TEMP/downloaded-config-evidence.json"
+          (cd "$verification_root" && sha256sum --check "yesid-${RELEASE_TAG}.tgz.sha256")
+
+          asset_name="yesid-${RELEASE_TAG}.tgz"
+          expected_size="$(jq -r --arg asset "$asset_name" \
+            '[.assets[] | select(.name == $asset)][0].size' "$release_json")"
+          expected_digest="$(jq -r --arg asset "$asset_name" \
+            '[.assets[] | select(.name == $asset)][0].digest' "$release_json")"
+          test "$(jq -r .size "$RUNNER_TEMP/downloaded-config-evidence.json")" = "$expected_size"
+          test "$(jq -r .digest "$RUNNER_TEMP/downloaded-config-evidence.json")" = "$expected_digest"
+
+          remote_tag_object="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" \
+            --jq 'select(.object.type == "tag") | .object.sha')"
+          test "$(jq -r .tag.object "$RUNNER_TEMP/downloaded-config-evidence.json")" = \
+            "$remote_tag_object"
+
+          attestation_verified=false
+          for attempt in {1..12}; do
+            if gh release verify "$RELEASE_TAG" && \
+              gh release verify-asset "$RELEASE_TAG" "$downloaded_asset" && \
+              gh release verify-asset "$RELEASE_TAG" "$downloaded_checksum"; then
+              attestation_verified=true
+              break
+            fi
+            if [[ "$attempt" -lt 12 ]]; then sleep 5; fi
+          done
+          test "$attestation_verified" = true

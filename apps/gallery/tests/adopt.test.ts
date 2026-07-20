@@ -778,5 +778,8 @@ describe('parseArgs', () => {
 		expect(() =>
 			parseArgs(['--tag', 'v1.2.3', '--packages', 'tokens,unknown', '--dest', 'vendor/design']),
 		).toThrow(/unknown package/);
+		expect(() =>
+			parseArgs(['--tag', 'v1.2.3', '--packages', 'config', '--dest', 'vendor/design']),
+		).toThrow(/unknown package/);
 	});
 });

@@ -97,6 +97,10 @@ and full payload offline. Git dependencies cannot select workspace subpackages,
 and npm publication remains an optional later layer. The full decision is in
 [`DECISIONS.md`](DECISIONS.md).
 
+Shared tooling uses the separate, independently versioned `@yesid/config`
+asset (`config-vX.Y.Z` / `yesid-config-vX.Y.Z.tgz`). It never enters the
+four-package `vX.Y.Z` adoption archive.
+
 For a new product, follow [`docs/BUILD-A-YESID-PRODUCT.md`](docs/BUILD-A-YESID-PRODUCT.md).
 It covers adoption, token generation, Tailwind, fonts, UI configuration, motion,
 gates, localization, and deliberate tag bumps.

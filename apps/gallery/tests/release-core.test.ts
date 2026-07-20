@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
 	checkPreparedRelease,
+	lockWorkspaceVersion,
 	parseChangeFragment,
 	parseChangeFragments,
 	parseExactSemVer,
@@ -22,6 +23,7 @@ import { runReleaseCommand } from '../../../tools/release.js';
 
 const scratch: string[] = [];
 const RELEASED_WORKSPACES = ['tokens', 'motion', 'gates', 'ui'] as const;
+const CONFIG_VERSION = '0.1.0';
 const REPOSITORY_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
 afterEach(() => {
@@ -47,6 +49,10 @@ function lockfile(version: string): string {
     "packages/gates": {
       "name": "@yesid/gates",
       "version": "${version}",
+    },
+    "packages/config": {
+      "name": "@yesid/config",
+      "version": "${CONFIG_VERSION}",
     },
     "packages/motion": {
       "name": "@yesid/motion",
@@ -80,6 +86,14 @@ function createRepository(version = '0.7.0'): string {
 			manifest(`@yesid/${workspace}`, version),
 		);
 	}
+	write(
+		join(root, 'packages/config/package.json'),
+		manifest('@yesid/config', CONFIG_VERSION),
+	);
+	write(
+		join(root, 'packages/config/CHANGELOG.md'),
+		'# Changelog\n\n## 0.1.0\n\nIndependent config release.\n',
+	);
 	write(join(root, 'apps/gallery/package.json'), manifest('@yesid/gallery', '0.1.0', '\t'));
 	write(join(root, 'bun.lock'), lockfile(version));
 	mkdirSync(join(root, '.changes'));
@@ -102,6 +116,7 @@ function versions(root: string): Record<string, string> {
 		[
 			'package.json',
 			...RELEASED_WORKSPACES.map((workspace) => `packages/${workspace}/package.json`),
+			'packages/config/package.json',
 			'apps/gallery/package.json',
 		].map((path) => [path, JSON.parse(readFileSync(join(root, path), 'utf8')).version as string]),
 	);
@@ -166,6 +181,13 @@ describe('strict release inputs', () => {
 describe('deterministic release preparation', () => {
 	it('bootstraps the explicit unreleased 0.7.0 placeholder to rc.1', () => {
 		const root = createRepository();
+		write(
+			join(root, '.config-changes/pending-config.md'),
+			'---\nbump: patch\n---\n\nPreserve this config-only fragment.\n',
+		);
+		const configManifest = readFileSync(join(root, 'packages/config/package.json'));
+		const configChangelog = readFileSync(join(root, 'packages/config/CHANGELOG.md'));
+		const configFragment = readFileSync(join(root, '.config-changes/pending-config.md'));
 		addFragment(root, 'z-motion', fragment([['@yesid/motion', 'patch']], 'Harden motion.'));
 		addFragment(
 			root,
@@ -181,6 +203,7 @@ describe('deterministic release preparation', () => {
 			'packages/motion/package.json': '0.7.0-rc.1',
 			'packages/gates/package.json': '0.7.0-rc.1',
 			'packages/ui/package.json': '0.7.0-rc.1',
+			'packages/config/package.json': CONFIG_VERSION,
 			'apps/gallery/package.json': '0.1.0',
 		});
 		expect(readFileSync(join(root, 'bun.lock'), 'utf8')).toContain(
@@ -200,6 +223,12 @@ describe('deterministic release preparation', () => {
 `);
 		expect(existsSync(join(root, '.changes/a-ui.md'))).toBe(false);
 		expect(existsSync(join(root, '.changes/z-motion.md'))).toBe(false);
+		expect(readFileSync(join(root, 'packages/config/package.json'))).toEqual(configManifest);
+		expect(readFileSync(join(root, 'packages/config/CHANGELOG.md'))).toEqual(configChangelog);
+		expect(readFileSync(join(root, '.config-changes/pending-config.md'))).toEqual(configFragment);
+		expect(lockWorkspaceVersion(readFileSync(join(root, 'bun.lock'), 'utf8'), 'packages/config')).toBe(
+			CONFIG_VERSION,
+		);
 	});
 
 	it('produces identical bytes independent of fragment creation order', () => {
@@ -217,6 +246,7 @@ describe('deterministic release preparation', () => {
 			'CHANGELOG.md',
 			'package.json',
 			...RELEASED_WORKSPACES.map((workspace) => `packages/${workspace}/package.json`),
+			'packages/config/package.json',
 			'bun.lock',
 		]) {
 			expect(readFileSync(join(left, path))).toEqual(readFileSync(join(right, path)));

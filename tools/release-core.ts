@@ -237,7 +237,7 @@ function objectForKey(
 	throw new Error(`bun.lock is missing workspace object ${key}`);
 }
 
-function lockWorkspaceVersion(source: string, workspace: string): string {
+export function lockWorkspaceVersion(source: string, workspace: string): string {
 	const workspaces = objectForKey(source, 'workspaces');
 	const block = objectForKey(source, workspace, workspaces.start + 1, workspaces.end);
 	const object = source.slice(block.start, block.end + 1);
@@ -248,7 +248,7 @@ function lockWorkspaceVersion(source: string, workspace: string): string {
 	return matches[0][1];
 }
 
-function replaceLockWorkspaceVersion(
+export function replaceLockWorkspaceVersion(
 	source: string,
 	workspace: string,
 	currentVersion: string,
@@ -394,14 +394,14 @@ function comparePrerelease(
 	return 0;
 }
 
-function compareVersions(left: ExactSemVer, right: ExactSemVer): number {
+export function compareVersions(left: ExactSemVer, right: ExactSemVer): number {
 	for (const key of ['major', 'minor', 'patch'] as const) {
 		if (left[key] !== right[key]) return left[key] < right[key] ? -1 : 1;
 	}
 	return comparePrerelease(left.prerelease, right.prerelease);
 }
 
-function sameCore(left: ExactSemVer, right: ExactSemVer): boolean {
+export function sameCore(left: ExactSemVer, right: ExactSemVer): boolean {
 	return left.major === right.major && left.minor === right.minor && left.patch === right.patch;
 }
 

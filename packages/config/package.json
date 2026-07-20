@@ -1,0 +1,11 @@
+{
+	"name": "@yesid/config",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "Independently versioned shared-tooling configuration distribution boundary.",
+	"files": ["README.md", "LICENSE", "CHANGELOG.md"],
+	"exports": {
+		"./package.json": "./package.json"
+	}
+}
