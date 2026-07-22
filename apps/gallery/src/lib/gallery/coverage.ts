@@ -18,6 +18,7 @@ export const GALLERY_COVERAGE = {
 		'BlueprintShell',
 		'ChevronToggle',
 		'MetroStation',
+		'QuietModeButton',
 		'SectionLabel',
 		'StickyPanel',
 		'StopLabel',

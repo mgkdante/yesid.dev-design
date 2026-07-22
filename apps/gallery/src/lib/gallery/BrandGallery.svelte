@@ -5,6 +5,7 @@
 		BlueprintShell,
 		ChevronToggle,
 		MetroStation,
+		QuietModeButton,
 		SectionLabel,
 		StickyPanel,
 		StopLabel,
@@ -13,7 +14,17 @@
 	} from '@yesid/ui/brand';
 
 	let chevronOpen = $state(false);
+	let quietModeEnabled = $state(false);
+	let quietModeRemembered = $state(false);
 	const blueprintLabels: [string, string, string] = ['GRID 02', 'AXIS 17', 'REV 04'];
+	const quietModeCopy = {
+		collapse: 'Collapse all',
+		expand: 'Expand all',
+		collapseTitle: 'Collapse every section',
+		expandTitle: 'Expand every section',
+		remember: 'Always start collapsed',
+		forget: "Don't start collapsed",
+	};
 </script>
 
 {#snippet blueprintHero()}
@@ -160,6 +171,23 @@
 					<SectionLabel text="CONFIGURED SURFACE" variant="metric" />
 					<p class="mt-2 text-small">A caller class changes presentation without changing behavior.</p>
 				</StickyPanel>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:QuietModeButton">
+			<Card.Header>
+				<Card.Title>QuietModeButton</Card.Title>
+				<Card.Description>Caller-owned copy and state with an explicit active effect.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<QuietModeButton
+					copy={quietModeCopy}
+					enabled={quietModeEnabled}
+					remembered={quietModeRemembered}
+					onToggle={() => (quietModeEnabled = !quietModeEnabled)}
+					onRememberToggle={() => (quietModeRemembered = !quietModeRemembered)}
+					activeEffect="glow"
+				/>
 			</Card.Content>
 		</Card.Root>
 
