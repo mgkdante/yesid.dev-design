@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0
+
+<!-- release-fragment: i2-seo-foundation -->
+- `@yesid/gates` (minor), `@yesid/seo-kit` (minor): Add framework-neutral JSON-LD, sitemap, and injected-rasterizer Satori primitives, plus reusable sitemap and Open Graph coverage engines.
+
 ## 0.7.1
 
 <!-- release-fragment: reduced-motion-resubscribe -->
