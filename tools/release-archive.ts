@@ -34,7 +34,7 @@ import {
 } from './release/identity.js';
 
 const RELEASE_RECEIPT_SCHEMA = 1 as const;
-const RELEASED_PACKAGES = ['tokens', 'motion', 'gates', 'ui'] as const;
+const RELEASED_PACKAGES = ['tokens', 'motion', 'gates', 'seo-kit', 'ui'] as const;
 const RELEASE_PATHS = [
 	'LICENSE',
 	'tools/adopt.ts',

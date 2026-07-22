@@ -4,7 +4,7 @@
 
 Use the repository's [bug report form](https://github.com/mgkdante/yesid.dev-design/issues/new?template=bug-report.yml)
 for defects in an exact released tag of the adoption tool, tokens, motion,
-gates, UI, or Gallery documentation. Include the exact tag, acquisition mode,
+gates, SEO kit, UI, or Gallery documentation. Include the exact tag, acquisition mode,
 minimal reproduction, and the output of:
 
 ```sh

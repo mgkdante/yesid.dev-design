@@ -72,6 +72,24 @@ function colorMixViolations(src: string, config?: ColorMixFloorConfig): string[]
 type ContrastPair = [string, [Mode, string], [Mode, string], number];
 
 // @public (undocumented)
+interface CoverageDiff {
+    // (undocumented)
+    extra: string[];
+    // (undocumented)
+    missing: string[];
+}
+
+// @public (undocumented)
+interface CoverageDiffInput {
+    // (undocumented)
+    actual: Iterable<string>;
+    // (undocumented)
+    expected: Iterable<string>;
+    // (undocumented)
+    normalize?: (value: string) => string;
+}
+
+// @public (undocumented)
 interface DatavizDoctrineConfig {
     // (undocumented)
     affordanceTokens?: readonly string[];
@@ -150,7 +168,13 @@ declare namespace Index {
         ColorMixFloorConfig,
         tvOnlyInUiViolations,
         TvOnlyInUiConfig,
-        TvGateResult
+        TvGateResult,
+        sitemapCoverage,
+        ogCoverage,
+        CoverageDiffInput,
+        CoverageDiff,
+        OgCoverageInput,
+        OgCoverage
     }
 }
 
@@ -168,6 +192,23 @@ type Mode = 'dark' | 'light' | 'brand';
 
 // @public
 function numbered(src: string): Array<[number, string]>;
+
+// @public (undocumented)
+interface OgCoverage extends CoverageDiff {
+    // (undocumented)
+    invalid: string[];
+}
+
+// @public (undocumented)
+function ogCoverage(input: OgCoverageInput): OgCoverage;
+
+// @public (undocumented)
+interface OgCoverageInput extends CoverageDiffInput {
+    // (undocumented)
+    identifiers?: Iterable<string>;
+    // (undocumented)
+    isValidIdentifier?: (value: string) => boolean;
+}
 
 // @public (undocumented)
 interface PairResult {
@@ -194,6 +235,9 @@ function runIdentities(tokens: Record<string, unknown>, identities: readonly Tok
     b: string;
     pass: boolean;
 }>;
+
+// @public (undocumented)
+function sitemapCoverage(input: CoverageDiffInput): CoverageDiff;
 
 // @public (undocumented)
 interface StyleRegressionConfig {

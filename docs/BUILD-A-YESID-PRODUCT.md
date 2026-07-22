@@ -4,9 +4,9 @@ Use this checklist in the new product:
 
 - [ ] Start from Bun, SvelteKit, Svelte 5, and Tailwind CSS v4.
 - [ ] Pick and record one exact `yesid.dev-design` tag.
-- [ ] Bootstrap the complete adoption tool bundle from that tag and vendor `tokens,motion,gates,ui`.
+- [ ] Bootstrap the complete adoption tool bundle from that tag and vendor `tokens,motion,gates,seo-kit,ui`.
 - [ ] Verify the schema-2 receipt before changing product code.
-- [ ] Add the four vendored packages to `package.json` and run `bun install`.
+- [ ] Add the five vendored packages to `package.json` and run `bun install`.
 - [ ] Add the thin token build script, generate `tokens.css`, and wire the `@theme` sentinel.
 - [ ] Load Inter Variable and JetBrains Mono Variable.
 - [ ] Import one shared UI initializer from both SvelteKit client and server init hooks.
@@ -37,7 +37,7 @@ git clone --depth 1 --branch "$YESID_DESIGN_TAG" \
   https://github.com/mgkdante/yesid.dev-design .yesid-design-bootstrap
 bun .yesid-design-bootstrap/tools/adopt.ts \
   --tag "$YESID_DESIGN_TAG" \
-  --packages tokens,motion,gates,ui \
+  --packages tokens,motion,gates,seo-kit,ui \
   --dest vendor/design
 bun vendor/design/tools/adopt.ts --check --dest vendor/design
 rm -rf .yesid-design-bootstrap
@@ -67,6 +67,7 @@ Add the vendored packages to the product's `package.json`:
 {
   "dependencies": {
     "@yesid/motion": "file:./vendor/design/motion",
+    "@yesid/seo-kit": "file:./vendor/design/seo-kit",
     "@yesid/tokens": "file:./vendor/design/tokens",
     "@yesid/ui": "file:./vendor/design/ui"
   },
@@ -393,7 +394,7 @@ git clone --depth 1 --branch "$YESID_DESIGN_TAG" \
   https://github.com/mgkdante/yesid.dev-design .yesid-design-rollback
 bun .yesid-design-rollback/tools/adopt.ts \
   --tag "$YESID_DESIGN_TAG" \
-  --packages tokens,motion,gates,ui \
+  --packages tokens,motion,gates,seo-kit,ui \
   --dest vendor/design
 bun vendor/design/tools/adopt.ts --check --dest vendor/design
 rm -rf .yesid-design-rollback

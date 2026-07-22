@@ -70,7 +70,7 @@ export interface DirectAssetTarget {
 
 interface ReleasedPackage {
 	name: ReleasedPackageName;
-	directory: 'tokens' | 'motion' | 'gates' | 'ui';
+	directory: 'tokens' | 'motion' | 'gates' | 'seo-kit' | 'ui';
 }
 
 interface PackageManifest {
@@ -82,6 +82,7 @@ const RELEASED_PACKAGE_CONFIG: readonly ReleasedPackage[] = [
 	{ name: '@yesid/tokens', directory: 'tokens' },
 	{ name: '@yesid/motion', directory: 'motion' },
 	{ name: '@yesid/gates', directory: 'gates' },
+	{ name: '@yesid/seo-kit', directory: 'seo-kit' },
 	{ name: '@yesid/ui', directory: 'ui' },
 ];
 
@@ -89,6 +90,7 @@ export const API_REPORT_PATHS: Readonly<Record<ReleasedPackageName, string>> = {
 	'@yesid/tokens': 'api-reports/tokens.api.md',
 	'@yesid/motion': 'api-reports/motion.api.md',
 	'@yesid/gates': 'api-reports/gates.api.md',
+	'@yesid/seo-kit': 'api-reports/seo-kit.api.md',
 	'@yesid/ui': 'api-reports/ui.api.md',
 };
 
@@ -590,10 +592,14 @@ if (import.meta.main) {
 }
 
 export function authorizeApiChanges(input: ApiApprovalInput): ApiApprovalResult {
-	const changedPackages = RELEASED_PACKAGES.filter((packageName) => {
-		const base = input.baseReports[packageName];
-		return base !== undefined && input.currentReports[packageName] !== base;
-	});
+	const firstBaseline = RELEASED_PACKAGES.every(
+		(packageName) => input.baseReports[packageName] === undefined,
+	);
+	const changedPackages = firstBaseline
+		? []
+		: RELEASED_PACKAGES.filter(
+				(packageName) => input.currentReports[packageName] !== input.baseReports[packageName],
+			);
 
 	const newFragments = Object.keys(input.currentFragments)
 		.filter((path) => input.baseFragments[path] === undefined)

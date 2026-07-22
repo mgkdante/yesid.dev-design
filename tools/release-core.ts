@@ -13,6 +13,7 @@ export const RELEASED_PACKAGES = [
 	'@yesid/tokens',
 	'@yesid/motion',
 	'@yesid/gates',
+	'@yesid/seo-kit',
 	'@yesid/ui',
 ] as const;
 
@@ -46,11 +47,12 @@ export interface PreparedReleaseExpectation {
 }
 
 const RELEASED_WORKSPACES: Readonly<
-	Record<ReleasedPackageName, `packages/${'tokens' | 'motion' | 'gates' | 'ui'}`>
+	Record<ReleasedPackageName, `packages/${'tokens' | 'motion' | 'gates' | 'seo-kit' | 'ui'}`>
 > = {
 	'@yesid/tokens': 'packages/tokens',
 	'@yesid/motion': 'packages/motion',
 	'@yesid/gates': 'packages/gates',
+	'@yesid/seo-kit': 'packages/seo-kit',
 	'@yesid/ui': 'packages/ui',
 };
 const FRAGMENT_PATH = /^\.changes\/([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/u;

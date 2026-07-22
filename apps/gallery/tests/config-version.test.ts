@@ -14,7 +14,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { lockWorkspaceVersion } from '../../../tools/release-core.js';
 
 const TOOL = fileURLToPath(new URL('../../../tools/config-version.ts', import.meta.url));
-const U4_PACKAGES = ['tokens', 'motion', 'gates', 'ui'] as const;
+const U4_PACKAGES = ['tokens', 'motion', 'gates', 'seo-kit', 'ui'] as const;
 const scratch: string[] = [];
 
 function tempDir(): string {
@@ -52,6 +52,10 @@ function lockfile(configVersion = '0.1.0', rootVersion = '7.7.7'): string {
     },
     "packages/gates": {
       "name": "@yesid/gates",
+      "version": "${rootVersion}",
+    },
+    "packages/seo-kit": {
+      "name": "@yesid/seo-kit",
       "version": "${rootVersion}",
     },
     "packages/ui": {
@@ -98,7 +102,7 @@ afterEach(() => {
 });
 
 describe('independent @yesid/config version line', () => {
-	it('prepares and checks config-only fragments without touching the four-package release bytes', () => {
+	it('prepares and checks config-only fragments without touching the five-package release bytes', () => {
 		const root = repository();
 		const unchanged = rootReleaseBytes(root);
 		write(
