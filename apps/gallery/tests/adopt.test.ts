@@ -54,7 +54,7 @@ function makeSource(root: string): void {
 	write(join(root, 'LICENSE'), 'test license\n');
 	write(join(root, 'tools', 'adopt.ts'), "export * from './adopt/runtime.js';\n");
 	write(join(root, 'tools', 'adopt', 'runtime.ts'), "export const schema = 2;\n");
-	for (const name of ['tokens', 'motion', 'gates', 'ui']) {
+	for (const name of ['tokens', 'motion', 'gates', 'seo-kit', 'ui']) {
 		const dependencies = name === 'ui' ? { '@yesid/motion': 'workspace:*' } : undefined;
 		const exports = {
 			'.': {
@@ -159,7 +159,7 @@ describe('adoptFromSource', () => {
 		const result = adoptFromSource({
 			source,
 			dest,
-			packages: ['tokens', 'motion', 'gates', 'ui'],
+			packages: ['tokens', 'motion', 'gates', 'seo-kit', 'ui'],
 			provenance: worktreeProvenance('v9.8.7', NEW_COMMIT),
 		});
 		const { manifest } = result;
@@ -190,7 +190,7 @@ describe('adoptFromSource', () => {
 		expect(manifest.exclusionPolicyDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
 		expect(manifest.toolDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
 		expect(manifest.treeHash).toMatch(/^sha256:[0-9a-f]{64}$/);
-		expect(manifest.packages).toEqual(['tokens', 'motion', 'gates', 'ui']);
+		expect(manifest.packages).toEqual(['tokens', 'motion', 'gates', 'seo-kit', 'ui']);
 		expect(readFileSync(join(dest, 'LICENSE'), 'utf-8')).toBe('test license\n');
 		expect(readFileSync(join(dest, 'tools', 'adopt.ts'), 'utf-8')).toContain("./adopt/runtime.js");
 		expect(existsSync(join(dest, 'tools', 'adopt', 'runtime.ts'))).toBe(true);

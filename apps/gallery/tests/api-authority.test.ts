@@ -35,6 +35,7 @@ const BASE_REPORTS = {
 	'@yesid/tokens': 'tokens-v1',
 	'@yesid/motion': 'motion-v1',
 	'@yesid/gates': 'gates-v1',
+	'@yesid/seo-kit': 'seo-kit-v1',
 	'@yesid/ui': 'ui-v1',
 } as const;
 
@@ -118,6 +119,38 @@ describe('API report approval', () => {
 				},
 			}),
 		).toThrow('API report changes require a new release fragment for: @yesid/ui');
+	});
+
+	it('requires a release fragment when a package joins an existing API baseline', () => {
+		const baseReports = {
+			'@yesid/tokens': BASE_REPORTS['@yesid/tokens'],
+			'@yesid/motion': BASE_REPORTS['@yesid/motion'],
+			'@yesid/gates': BASE_REPORTS['@yesid/gates'],
+			'@yesid/ui': BASE_REPORTS['@yesid/ui'],
+		};
+
+		expect(() =>
+			authorizeApiChanges({
+				baseReports,
+				currentReports: BASE_REPORTS,
+				baseFragments: {},
+				currentFragments: {},
+			}),
+		).toThrow('API report changes require a new release fragment for: @yesid/seo-kit');
+
+		expect(
+			authorizeApiChanges({
+				baseReports,
+				currentReports: BASE_REPORTS,
+				baseFragments: {},
+				currentFragments: {
+					'.changes/add-seo-kit.md': fragment({ '@yesid/seo-kit': 'minor' }),
+				},
+			}),
+		).toEqual({
+			changedPackages: ['@yesid/seo-kit'],
+			newFragments: ['.changes/add-seo-kit.md'],
+		});
 	});
 
 	it('treats first report creation as the one-time approved baseline', () => {
@@ -228,6 +261,7 @@ describe('deterministic package API reports', () => {
 			'@yesid/tokens',
 			'@yesid/motion',
 			'@yesid/gates',
+			'@yesid/seo-kit',
 			'@yesid/ui',
 		]);
 		for (const report of Object.values(first)) {
@@ -243,6 +277,9 @@ describe('deterministic package API reports', () => {
 		expect(first['@yesid/motion']).toContain('function subscribe');
 		expect(first['@yesid/motion']).not.toContain('_resetForTests');
 		expect(first['@yesid/gates']).toContain('function runContrastPairs');
+		expect(first['@yesid/seo-kit']).toContain('function buildWebSiteJsonLd');
+		expect(first['@yesid/seo-kit']).toContain('function emitSitemapDocument');
+		expect(first['@yesid/seo-kit']).toContain('function renderSatoriPng');
 		expect(first['@yesid/ui']).toContain('type ButtonProps');
 		expect(first['@yesid/ui']).toContain('function configureUi');
 		expect(first['@yesid/ui']).toContain('import { Component } from \'svelte\';');
@@ -348,6 +385,7 @@ describe('deterministic package API reports', () => {
 		expect(readFileSync(join(root, 'api-reports', 'tokens.api.md'), 'utf8')).toBe('tokens-v1');
 		expect(readFileSync(join(root, 'api-reports', 'motion.api.md'), 'utf8')).toBe('motion-v1');
 		expect(readFileSync(join(root, 'api-reports', 'gates.api.md'), 'utf8')).toBe('gates-v1');
+		expect(readFileSync(join(root, 'api-reports', 'seo-kit.api.md'), 'utf8')).toBe('seo-kit-v1');
 		expect(readFileSync(join(root, 'api-reports', 'ui.api.md'), 'utf8')).toBe('ui-v1');
 		expect(() => checkApiReports(root, BASE_REPORTS)).not.toThrow();
 

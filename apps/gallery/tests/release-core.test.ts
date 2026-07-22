@@ -22,7 +22,7 @@ import {
 import { runReleaseCommand } from '../../../tools/release.js';
 
 const scratch: string[] = [];
-const RELEASED_WORKSPACES = ['tokens', 'motion', 'gates', 'ui'] as const;
+const RELEASED_WORKSPACES = ['tokens', 'motion', 'gates', 'seo-kit', 'ui'] as const;
 const CONFIG_VERSION = '0.1.0';
 const REPOSITORY_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
@@ -56,6 +56,10 @@ function lockfile(version: string): string {
     },
     "packages/motion": {
       "name": "@yesid/motion",
+      "version": "${version}",
+    },
+    "packages/seo-kit": {
+      "name": "@yesid/seo-kit",
       "version": "${version}",
     },
     "packages/tokens": {
@@ -202,6 +206,7 @@ describe('deterministic release preparation', () => {
 			'packages/tokens/package.json': '0.7.0-rc.1',
 			'packages/motion/package.json': '0.7.0-rc.1',
 			'packages/gates/package.json': '0.7.0-rc.1',
+			'packages/seo-kit/package.json': '0.7.0-rc.1',
 			'packages/ui/package.json': '0.7.0-rc.1',
 			'packages/config/package.json': CONFIG_VERSION,
 			'apps/gallery/package.json': '0.1.0',
