@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0
+
+<!-- release-fragment: d3-quiet-mode-button -->
+- `@yesid/ui` (minor): Add the controller-neutral `QuietModeButton` brand component with caller-owned copy, state, actions, and an explicit optional glow effect.
+
 ## 0.8.0
 
 <!-- release-fragment: i2-seo-foundation -->
