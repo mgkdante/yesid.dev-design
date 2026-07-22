@@ -300,6 +300,10 @@ declare namespace Brand {
         ChevronToggleProps,
         MetroStation,
         MetroStationProps,
+        QuietModeButton,
+        QuietModeActiveEffect,
+        QuietModeButtonCopy,
+        QuietModeButtonProps,
         SectionLabel,
         SectionLabelProps,
         StickyPanel,
@@ -608,6 +612,10 @@ declare namespace Index {
         ChevronToggleProps,
         MetroStation,
         MetroStationProps,
+        QuietModeButton,
+        QuietModeActiveEffect,
+        QuietModeButtonCopy,
+        QuietModeButtonProps,
         SectionLabel,
         SectionLabelProps,
         StickyPanel,
@@ -810,6 +818,49 @@ declare namespace PrimitivesToggleGroup {
         ToggleGroup_2 as ToggleGroup,
         ToggleGroupItem
     }
+}
+
+// @public (undocumented)
+type QuietModeActiveEffect = 'none' | 'glow';
+
+// @public (undocumented)
+const QuietModeButton: Component<QuietModeButtonProps, {}, "">;
+
+// @public (undocumented)
+type QuietModeButton = ReturnType<typeof QuietModeButton>;
+
+// @public (undocumented)
+interface QuietModeButtonCopy {
+    // (undocumented)
+    readonly collapse: string;
+    // (undocumented)
+    readonly collapseTitle: string;
+    // (undocumented)
+    readonly expand: string;
+    // (undocumented)
+    readonly expandTitle: string;
+    // (undocumented)
+    readonly forget: string;
+    // (undocumented)
+    readonly remember: string;
+}
+
+// @public (undocumented)
+interface QuietModeButtonProps {
+    // (undocumented)
+    activeEffect?: QuietModeActiveEffect;
+    // (undocumented)
+    class?: string;
+    // (undocumented)
+    copy: QuietModeButtonCopy;
+    // (undocumented)
+    enabled: boolean;
+    // (undocumented)
+    onRememberToggle: () => void;
+    // (undocumented)
+    onToggle: () => void;
+    // (undocumented)
+    remembered: boolean;
 }
 
 // @public (undocumented)

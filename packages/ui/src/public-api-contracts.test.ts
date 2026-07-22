@@ -35,9 +35,11 @@ import {
 } from '@yesid/ui/toggle-group';
 import {
 	ChevronToggle,
+	QuietModeButton,
 	SectionLabel,
 	StopLabel,
 	TerminalCursor,
+	type QuietModeButtonProps,
 	type StopLabelProps,
 	type TerminalCursorProps,
 } from '@yesid/ui/brand';
@@ -107,6 +109,31 @@ const invalidSectionChildren: SectionLabelProps = { text: 'Section', children: i
 const invalidChevronChildren: ChevronToggleProps = { open: false, children: ignoredChildren };
 // @ts-expect-error the decorative cursor owns its empty span
 const invalidCursorChildren: TerminalCursorProps = { children: ignoredChildren };
+
+const quietModeProps: QuietModeButtonProps = {
+	copy: {
+		collapse: 'Collapse all',
+		expand: 'Expand all',
+		collapseTitle: 'Collapse every section',
+		expandTitle: 'Expand every section',
+		remember: 'Always start collapsed',
+		forget: "Don't start collapsed",
+	},
+	enabled: false,
+	remembered: false,
+	onToggle: () => undefined,
+	onRememberToggle: () => undefined,
+	activeEffect: 'glow',
+};
+type QuietModeComponentProps = ComponentProps<typeof QuietModeButton>;
+const quietModeComponentProps: QuietModeComponentProps = quietModeProps;
+// @ts-expect-error visual policy is a closed neutral variant
+const invalidQuietModeEffect: QuietModeButtonProps = { ...quietModeProps, activeEffect: 'pulse' };
+const invalidQuietModeChildren: QuietModeButtonProps = {
+	...quietModeProps,
+	// @ts-expect-error the package owns the two-button body
+	children: ignoredChildren,
+};
 
 const comboboxProps: ComboboxProps = {
 	options: [],
