@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.0
+
+<!-- release-fragment: i1-neutral-analytics -->
+- `@yesid/analytics` (minor): Add neutral consent-aware analytics policy, sanitization, client, and injected Plausible transport primitives.
+
 ## 0.10.0
 
 <!-- release-fragment: d1-canonical-breakpoints -->
