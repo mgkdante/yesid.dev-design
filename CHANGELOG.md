@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.1
+
+<!-- release-fragment: p2-wordmark-autoplay-cleanup -->
+- `@yesid/motion` (patch): Cancel delayed wordmark autoplay and active GSAP timelines when the motion action is destroyed.
+
 ## 0.11.0
 
 <!-- release-fragment: i1-neutral-analytics -->
