@@ -111,6 +111,10 @@ describe('repository governance contract', () => {
 
 	it('documents schema-2 adoption, offline verification, downgrade, and re-upgrade', () => {
 		const guide = read('docs/BUILD-A-YESID-PRODUCT.md');
+		const rollback = guide.slice(
+			guide.indexOf('### Rollback to a previously accepted release'),
+			guide.indexOf('### Re-upgrade'),
+		);
 
 		expect(guide).toContain('schema-2');
 		expect(guide).toContain('provenance.mode` is `release');
@@ -121,5 +125,23 @@ describe('repository governance contract', () => {
 		expect(guide).toContain('Rollback to a previously accepted release');
 		expect(guide).toContain('Re-upgrade');
 		expect(guide).toContain('Never edit `manifest.json` by hand');
+		expect(rollback).toMatch(/The selected tag owns its package\s+closure/u);
+		expect(rollback).toContain(
+			"import { PACKAGE_NAMES } from './.yesid-design-rollback/tools/adopt/contract.ts'",
+		);
+		expect(rollback).toContain("process.stdout.write(PACKAGE_NAMES.join(','))");
+		expect(rollback).toContain('--packages "$YESID_DESIGN_PACKAGES"');
+		expect(rollback).not.toContain(
+			'--packages tokens,motion,gates,seo-kit,ui,analytics',
+		);
+		expect(rollback).toMatch(
+			/Before running `bun install`, reconcile the consumer's `package\.json`/u,
+		);
+		expect(rollback).toContain(
+			'remove `"@yesid/analytics": "file:./vendor/design/analytics"`',
+		);
+		expect(rollback).toMatch(
+			/dependency set\s+must match the installed `manifest\.json` package\s+closure/u,
+		);
 	});
 });

@@ -387,19 +387,33 @@ unverified directory copy.
 
 Choose a tag whose Release receipt and product behavior were already accepted
 by this consumer. Bootstrap the tool outside the destination, adopt that exact
-tag, and verify the newly installed payload:
+tag, and verify the newly installed payload. The selected tag owns its package
+closure, so resolve that closure from the tag-owned adoption contract instead
+of passing the current release's package list. For example, `v0.10.0` resolves
+to `tokens,motion,gates,seo-kit,ui` and rejects `analytics`:
 
 ```sh
 export YESID_DESIGN_TAG=vX.Y.Z
 git clone --depth 1 --branch "$YESID_DESIGN_TAG" \
   https://github.com/mgkdante/yesid.dev-design .yesid-design-rollback
+export YESID_DESIGN_PACKAGES="$(
+  bun -e \
+    "import { PACKAGE_NAMES } from './.yesid-design-rollback/tools/adopt/contract.ts'; process.stdout.write(PACKAGE_NAMES.join(','))"
+)"
 bun .yesid-design-rollback/tools/adopt.ts \
   --tag "$YESID_DESIGN_TAG" \
-  --packages tokens,motion,gates,seo-kit,ui,analytics \
+  --packages "$YESID_DESIGN_PACKAGES" \
   --dest vendor/design
 bun vendor/design/tools/adopt.ts --check --dest vendor/design
 rm -rf .yesid-design-rollback
 ```
+
+Before running `bun install`, reconcile the consumer's `package.json` with the
+installed `manifest.json`: add dependencies present in the target package
+closure and remove dependencies absent from it. For a `v0.10.0` rollback,
+remove `"@yesid/analytics": "file:./vendor/design/analytics"`; leaving it behind
+would point Bun at a package the rollback removed. The committed dependency set
+must match the installed `manifest.json` package closure.
 
 Then run `bun install`, regenerate consumer-owned token outputs, review the
 vendor/generated diff, and run the consumer's gates, tests, typecheck, build,
