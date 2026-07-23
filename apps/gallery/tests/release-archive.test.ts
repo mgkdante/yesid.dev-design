@@ -61,7 +61,7 @@ function repository(options: { lightweight?: boolean; version?: string } = {}): 
 	write(join(root, 'README.md'), 'repository-only documentation\n');
 	write(join(root, 'tools', 'adopt.ts'), 'export {};\n');
 	write(join(root, 'tools', 'adopt', 'contract.ts'), 'export {};\n');
-	for (const name of ['tokens', 'motion', 'gates', 'seo-kit', 'ui']) {
+	for (const name of ['tokens', 'motion', 'gates', 'seo-kit', 'ui', 'analytics']) {
 		write(join(root, 'packages', name, 'package.json'), manifest(`@yesid/${name}`, options.version));
 		write(join(root, 'packages', name, 'src', 'index.ts'), `export const name = '${name}';\n`);
 	}
@@ -212,7 +212,7 @@ describe('immutable release archive', () => {
 				'--tag',
 				TAG,
 				'--packages',
-				'tokens,motion,gates,seo-kit,ui',
+				'tokens,motion,gates,seo-kit,ui,analytics',
 				'--dest',
 				adoption,
 				'--archive',

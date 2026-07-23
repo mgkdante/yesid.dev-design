@@ -32,6 +32,7 @@ afterEach(() => {
 });
 
 const BASE_REPORTS = {
+	'@yesid/analytics': 'analytics-v1',
 	'@yesid/tokens': 'tokens-v1',
 	'@yesid/motion': 'motion-v1',
 	'@yesid/gates': 'gates-v1',
@@ -123,6 +124,7 @@ describe('API report approval', () => {
 
 	it('requires a release fragment when a package joins an existing API baseline', () => {
 		const baseReports = {
+			'@yesid/analytics': BASE_REPORTS['@yesid/analytics'],
 			'@yesid/tokens': BASE_REPORTS['@yesid/tokens'],
 			'@yesid/motion': BASE_REPORTS['@yesid/motion'],
 			'@yesid/gates': BASE_REPORTS['@yesid/gates'],
@@ -263,6 +265,7 @@ describe('deterministic package API reports', () => {
 			'@yesid/gates',
 			'@yesid/seo-kit',
 			'@yesid/ui',
+			'@yesid/analytics',
 		]);
 		for (const report of Object.values(first)) {
 			expect(report).toMatch(/^<!-- GENERATED: bun run api:report/u);
@@ -273,6 +276,9 @@ describe('deterministic package API reports', () => {
 		expect(first['@yesid/tokens']).toContain(
 			'`./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `',
 		);
+		expect(first['@yesid/analytics']).toContain('function createAnalyticsClient');
+		expect(first['@yesid/analytics']).toContain('function defineAnalyticsPreset');
+		expect(first['@yesid/analytics']).toContain('function createAnalyticsConsentStore');
 		expect(first['@yesid/tokens']).toContain('function parseTokens');
 		expect(first['@yesid/motion']).toContain('function subscribe');
 		expect(first['@yesid/motion']).not.toContain('_resetForTests');

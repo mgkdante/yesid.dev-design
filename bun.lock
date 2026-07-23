@@ -41,6 +41,19 @@
         "vitest": "^4.1.0",
       },
     },
+    "packages/analytics": {
+      "name": "@yesid/analytics",
+      "version": "0.10.0",
+      "devDependencies": {
+        "@types/node": "^22.0.0",
+        "svelte": "^5.54.0",
+        "typescript": "^5.5.0",
+        "vitest": "^4.1.0",
+      },
+      "peerDependencies": {
+        "svelte": "^5.0.0",
+      },
+    },
     "packages/config": {
       "name": "@yesid/config",
       "version": "0.2.0",
@@ -402,6 +415,8 @@
     "@vitest/spy": ["@vitest/spy@4.1.9", "", {}, "sha512-fHpsS6mIi+PiEW+vcRVOMkX1oSaPKne3VOclSFICPcGOmfKgXPU5iAah+wcNcj2xPrCCmfq99IDGf+EojhhvhA=="],
 
     "@vitest/utils": ["@vitest/utils@4.1.9", "", { "dependencies": { "@vitest/pretty-format": "4.1.9", "convert-source-map": "^2.0.0", "tinyrainbow": "^3.1.0" } }, "sha512-A51o8ymO5PpqlWNnBP9ZHPXDIpuMtTLlGSjN7la4US+LJzoUMyhwjA5QXlm39JexgwHKW4Xjs8Z2d3dLCXOeuA=="],
+
+    "@yesid/analytics": ["@yesid/analytics@workspace:packages/analytics"],
 
     "@yesid/config": ["@yesid/config@workspace:packages/config"],
 

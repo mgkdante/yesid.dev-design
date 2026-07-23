@@ -115,7 +115,8 @@ describe('repository governance contract', () => {
 		expect(guide).toContain('schema-2');
 		expect(guide).toContain('provenance.mode` is `release');
 		expect(guide).toContain('bun vendor/design/tools/adopt.ts --check --dest vendor/design');
-		expect(guide).toContain('Add the five vendored packages to `package.json`');
+		expect(guide).toContain('Add the six vendored packages to `package.json`');
+		expect(guide).toContain('"@yesid/analytics": "file:./vendor/design/analytics"');
 		expect(guide).toContain('"@yesid/seo-kit": "file:./vendor/design/seo-kit"');
 		expect(guide).toContain('Rollback to a previously accepted release');
 		expect(guide).toContain('Re-upgrade');

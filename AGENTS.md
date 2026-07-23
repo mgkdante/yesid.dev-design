@@ -28,7 +28,7 @@ notion:
 
 ## Project
 
-**yesid.dev-design** — the yesid brand's shared foundation as a standalone bun+turbo monorepo: `packages/tokens` (DTCG source of truth + generators), `packages/motion` (pure Snappy-Doctrine actions), `packages/gates` (neutral quality engines; product policy stays consumer-side), `packages/seo-kit` (framework-neutral SEO builders and rendering core), `packages/ui` (source-shipped Svelte 5 primitives), and `apps/gallery` (the living brand gallery). Extracted byte-faithful from yesid.dev @ `2bdb611d91749dc437c07586cb82129eabe9dfec`; `v0.1.0` is the immovable parity tag. Current external-consumer receipts are recorded in `CONSUMERS.md`.
+**yesid.dev-design** — the yesid brand's shared foundation as a standalone bun+turbo monorepo: `packages/tokens` (DTCG source of truth + generators), `packages/motion` (pure Snappy-Doctrine actions), `packages/gates` (neutral quality engines; product policy stays consumer-side), `packages/seo-kit` (framework-neutral SEO builders and rendering core), `packages/ui` (source-shipped Svelte 5 primitives), `packages/analytics` (consumer-configured consent and analytics primitives), and `apps/gallery` (the living brand gallery). Extracted byte-faithful from yesid.dev @ `2bdb611d91749dc437c07586cb82129eabe9dfec`; `v0.1.0` is the immovable parity tag. Current external-consumer receipts are recorded in `CONSUMERS.md`.
 
 ## Governance laws (constitutional — see README for the full text)
 

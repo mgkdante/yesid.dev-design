@@ -112,7 +112,7 @@ function repository(configVersion = CONFIG_VERSION, tag = `config-v${configVersi
 	write(join(root, 'packages/config/.env'), 'DO_NOT_SHIP=secret\n');
 	write(join(root, 'packages/config/secret.txt'), 'also excluded\n');
 	symlinkSync('secret.txt', join(root, 'packages/config/secret-link'));
-	for (const name of ['tokens', 'motion', 'gates', 'seo-kit', 'ui']) {
+	for (const name of ['tokens', 'motion', 'gates', 'seo-kit', 'ui', 'analytics']) {
 		write(join(root, `packages/${name}/package.json`), manifest(`@yesid/${name}`, '9.9.9'));
 	}
 	git(root, 'add', '.');
