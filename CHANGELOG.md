@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.0
+
+<!-- release-fragment: d1-canonical-breakpoints -->
+- `@yesid/tokens` (minor): Add canonical tablet and desktop min/max breakpoint tokens and generated custom-media aliases for reusable consumer media queries.
+
 ## 0.9.0
 
 <!-- release-fragment: d3-quiet-mode-button -->
