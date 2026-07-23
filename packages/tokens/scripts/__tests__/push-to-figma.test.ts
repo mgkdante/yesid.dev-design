@@ -41,7 +41,7 @@ describe('push-to-figma', () => {
     expect(Object.keys(colorCard!.values).sort()).toEqual(['dark', 'light']);
   });
 
-  it('produces 133 variables (GO2-W5 round-4 doctrine baseline)', () => {
+  it('produces 160 variables', () => {
     // Sanity check on the overall count. 82 at GO-W2.2 (69 after
     // slice-design's trim + 13: 3 theme-moded colors, 6 surface aliases,
     // 3 border aliases, shadow/sheet). GO2-W5 adds 19: 7 theme-invariant
@@ -68,8 +68,10 @@ describe('push-to-figma', () => {
     // transit (status 5, occupancy 5, severity 3, heatmap 10 — per-mode pairs
     // that merge to one moded color/dataviz-* variable each). 133 was the
     // v0.1.0 parity-anchor count (yesid.dev @ 2bdb611d).
+    // WS-D/D1(a) adds 4 canonical breakpoint dimensions: tablet min/max and
+    // desktop min/max.
     const vars = runScript();
-    expect(vars.length).toBe(156);
+    expect(vars.length).toBe(160);
   });
 
   it('theme re-pins of brand names merge as modes of one variable (no duplicates)', () => {
