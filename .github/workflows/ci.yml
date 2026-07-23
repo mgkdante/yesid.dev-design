@@ -49,7 +49,7 @@ jobs:
                 },
                 "token-outputs-windows-work": {
                   "paths": ["DESIGN.md", "apps/gallery/src/app.css", "tools/api-authority.ts", "tools/build-tokens.ts", "tools/release-core.ts"],
-                  "prefixes": ["api-reports/", "packages/gates/", "packages/motion/", "packages/tokens/", "packages/ui/"]
+                  "prefixes": ["api-reports/", "packages/analytics/", "packages/gates/", "packages/motion/", "packages/tokens/", "packages/ui/"]
                 },
                 "token-byte-parity-work": {
                   "paths": ["DESIGN.md", "apps/gallery/src/app.css", "packages/motion/src/tokens.ts", "packages/tokens/package.json", "packages/tokens/tokens.css", "packages/tokens/tokens.json", "packages/tokens/tsconfig.json", "tools/build-tokens.ts"],

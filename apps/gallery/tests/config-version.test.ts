@@ -14,7 +14,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { lockWorkspaceVersion } from '../../../tools/release-core.js';
 
 const TOOL = fileURLToPath(new URL('../../../tools/config-version.ts', import.meta.url));
-const U4_PACKAGES = ['tokens', 'motion', 'gates', 'seo-kit', 'ui'] as const;
+const COORDINATED_PACKAGES = ['tokens', 'motion', 'gates', 'seo-kit', 'ui', 'analytics'] as const;
 const scratch: string[] = [];
 
 function tempDir(): string {
@@ -41,6 +41,10 @@ function lockfile(configVersion = '0.1.0', rootVersion = '7.7.7'): string {
     "packages/config": {
       "name": "@yesid/config",
       "version": "${configVersion}",
+    },
+    "packages/analytics": {
+      "name": "@yesid/analytics",
+      "version": "${rootVersion}",
     },
     "packages/tokens": {
       "name": "@yesid/tokens",
@@ -71,7 +75,7 @@ function repository(): string {
 	const root = tempDir();
 	write(join(root, 'package.json'), manifest('yesid-dev-design', '7.7.7'));
 	write(join(root, 'CHANGELOG.md'), '# Changelog\n\n## 7.7.7\n\nRoot release.\n');
-	for (const name of U4_PACKAGES) {
+	for (const name of COORDINATED_PACKAGES) {
 		write(join(root, `packages/${name}/package.json`), manifest(`@yesid/${name}`, '7.7.7'));
 	}
 	write(join(root, 'packages/config/package.json'), manifest('@yesid/config', '0.1.0'));
@@ -92,7 +96,7 @@ function rootReleaseBytes(root: string): Map<string, Buffer> {
 		[
 			'package.json',
 			'CHANGELOG.md',
-			...U4_PACKAGES.map((name) => `packages/${name}/package.json`),
+			...COORDINATED_PACKAGES.map((name) => `packages/${name}/package.json`),
 		].map((path) => [path, readFileSync(join(root, path))]),
 	);
 }
@@ -102,7 +106,7 @@ afterEach(() => {
 });
 
 describe('independent @yesid/config version line', () => {
-	it('prepares and checks config-only fragments without touching the five-package release bytes', () => {
+	it('prepares and checks config-only fragments without touching coordinated release bytes', () => {
 		const root = repository();
 		const unchanged = rootReleaseBytes(root);
 		write(
@@ -120,7 +124,7 @@ describe('independent @yesid/config version line', () => {
 			'"packages/config": {\n      "name": "@yesid/config",\n      "version": "0.2.0"',
 		);
 		const preparedLockfile = readFileSync(join(root, 'bun.lock'), 'utf8');
-		for (const name of U4_PACKAGES) {
+		for (const name of COORDINATED_PACKAGES) {
 			expect(lockWorkspaceVersion(preparedLockfile, `packages/${name}`), name).toBe('7.7.7');
 		}
 		expect(readFileSync(join(root, 'packages/config/CHANGELOG.md'), 'utf8')).toContain(

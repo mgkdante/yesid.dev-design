@@ -4,7 +4,7 @@
 
 Report vulnerabilities privately via GitHub's private vulnerability reporting: **Security tab → Report a vulnerability** on this repository. Do not open public issues for security reports.
 
-You can expect an acknowledgement within a few days. Please include reproduction steps and the affected package or tool (`@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, `@yesid/seo-kit`, `@yesid/ui`, `tools/adopt.ts`).
+You can expect an acknowledgement within a few days. Please include reproduction steps and the affected package or tool (`@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, `@yesid/seo-kit`, `@yesid/ui`, `@yesid/analytics`, `tools/adopt.ts`).
 
 ## Supported versions
 

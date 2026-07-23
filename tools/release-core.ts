@@ -15,6 +15,7 @@ export const RELEASED_PACKAGES = [
 	'@yesid/gates',
 	'@yesid/seo-kit',
 	'@yesid/ui',
+	'@yesid/analytics',
 ] as const;
 
 export type ReleasedPackageName = (typeof RELEASED_PACKAGES)[number];
@@ -47,13 +48,17 @@ export interface PreparedReleaseExpectation {
 }
 
 const RELEASED_WORKSPACES: Readonly<
-	Record<ReleasedPackageName, `packages/${'tokens' | 'motion' | 'gates' | 'seo-kit' | 'ui'}`>
+	Record<
+		ReleasedPackageName,
+		`packages/${'tokens' | 'motion' | 'gates' | 'seo-kit' | 'ui' | 'analytics'}`
+	>
 > = {
 	'@yesid/tokens': 'packages/tokens',
 	'@yesid/motion': 'packages/motion',
 	'@yesid/gates': 'packages/gates',
 	'@yesid/seo-kit': 'packages/seo-kit',
 	'@yesid/ui': 'packages/ui',
+	'@yesid/analytics': 'packages/analytics',
 };
 const FRAGMENT_PATH = /^\.changes\/([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/u;
 const NUMERIC_IDENTIFIER = /^(?:0|[1-9]\d*)$/u;

@@ -1,7 +1,7 @@
 # yesid.dev-design
 
 The yesid brand's shared foundation as a standalone bun+turbo monorepo — design
-tokens, pure motion actions, UI primitives, quality gates, and neutral SEO infrastructure, extracted from
+tokens, pure motion actions, UI primitives, quality gates, neutral SEO infrastructure, and consent-aware analytics primitives, extracted from
 **yesid.dev @ `2bdb611d91749dc437c07586cb82129eabe9dfec`** (the **parity
 anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 
@@ -14,6 +14,7 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 | `packages/gates` | `@yesid/gates` — pure, parameterized brand-quality engines: tokens-only style regressions, color-mix and WCAG contrast checks, no-raw-brand-hex, dataviz doctrine, and tv()-only-in-ui. Product policy stays in each consumer; upstream regression fixtures are neutral and test-only. |
 | `packages/seo-kit` | `@yesid/seo-kit` — framework-neutral JSON-LD builders, byte-configurable sitemap emitters, and a Satori core with consumer-injected rasterization. SEO content, routing policy, fonts, templates, and rasterizer dependencies stay consumer-owned. |
 | `packages/ui` | `@yesid/ui` — source-shipped Svelte 5 primitives and promoted brand components, with package-owned class merging and product vocabulary configured once at boot. |
+| `packages/analytics` | `@yesid/analytics` — consumer-configured analytics presets, consent state and policy, sanitized ordered clients, and an injected Plausible Events API transport. Domains, event names, storage keys, controls, and product copy stay consumer-owned. |
 | `apps/gallery` | `@yesid/gallery` — the living brand gallery: token sheets + motion demos rendered from `tokens.json`; the dogfood consumer of `@yesid/tokens/tokens.css`. |
 
 ## Versioning + the parity contract
@@ -24,8 +25,8 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 - Later brand changes bump PAST the parity tag (`v0.2.0` adds the dataviz
   scale; beautification-era changes go higher). The parity tag never moves.
 - **Lockstep started at `v0.7.0`.** The root manifest is canonical
-  for `@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, `@yesid/seo-kit`, and `@yesid/ui`; all
-  five package versions move together once `@yesid/seo-kit` enters the next release. Historical
+  for `@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, `@yesid/seo-kit`, `@yesid/ui`, and
+  `@yesid/analytics`; all six package versions move together. Historical
   package-version skew and annotated tags `v0.1.0` through `v0.6.0` remain
   immutable. The private `@yesid/gallery` app is excluded from lockstep.
 - **Consumers pin exact versions.** A cascade is a deliberate bump-PR in the
@@ -100,7 +101,7 @@ and npm publication remains an optional later layer. The full decision is in
 
 Shared tooling uses the separate, independently versioned `@yesid/config`
 asset (`config-vX.Y.Z` / `yesid-config-vX.Y.Z.tgz`). It never enters the
-five-package `vX.Y.Z` adoption archive beginning with the first `@yesid/seo-kit` release.
+coordinated `vX.Y.Z` adoption archive.
 The [shared CI contract](docs/SHARED-TOOLING-CI.md) documents immutable-SHA
 classifier, reporter, and configuration/caller drift actions.
 

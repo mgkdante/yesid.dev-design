@@ -22,6 +22,7 @@ type PackageManifest = {
 };
 
 type ReleasedPackageName =
+	| '@yesid/analytics'
 	| '@yesid/tokens'
 	| '@yesid/motion'
 	| '@yesid/gates'
@@ -29,6 +30,7 @@ type ReleasedPackageName =
 	| '@yesid/ui';
 
 const RELEASED_MANIFESTS: ReadonlySet<ReleasedPackageName> = new Set([
+	'@yesid/analytics',
 	'@yesid/tokens',
 	'@yesid/motion',
 	'@yesid/gates',
@@ -41,6 +43,7 @@ const REPOSITORY_PATH = fileURLToPath(new URL('../../../', import.meta.url));
 const GALLERY_MANIFEST_URL = new URL('../package.json', import.meta.url);
 const CONFIG_MANIFEST_URL = new URL('../../../packages/config/package.json', import.meta.url);
 const RELEASED_MANIFEST_URLS: Record<ReleasedPackageName, URL> = {
+	'@yesid/analytics': new URL('../../../packages/analytics/package.json', import.meta.url),
 	'@yesid/tokens': new URL('../../../packages/tokens/package.json', import.meta.url),
 	'@yesid/motion': new URL('../../../packages/motion/package.json', import.meta.url),
 	'@yesid/gates': new URL('../../../packages/gates/package.json', import.meta.url),
@@ -89,6 +92,15 @@ const SEO_KIT_EXPORTS = {
 	'./jsonld': './src/jsonld.ts',
 	'./sitemap': './src/sitemap.ts',
 	'./satori': './src/satori.ts',
+} as const;
+
+const ANALYTICS_EXPORTS = {
+	'.': './src/index.ts',
+	'./client': './src/client.ts',
+	'./config': './src/config.ts',
+	'./consent': './src/consent.svelte.ts',
+	'./plausible': './src/plausible.ts',
+	'./policy': './src/policy.ts',
 } as const;
 
 const TOKEN_DIRECT_EXPORTS = {
@@ -233,11 +245,18 @@ describe('prospective package release contract', () => {
 		).toBe(rootManifest.version);
 	});
 
-	it('keeps @yesid/config independently versioned and outside the five-package release closure', () => {
+	it('keeps @yesid/config independently versioned and outside the coordinated release closure', () => {
 		const configManifest = readManifest(CONFIG_MANIFEST_URL);
 		expect(isStrictSemVer(configManifest.version)).toBe(true);
 		expect(new Set(RELEASED_MANIFESTS)).toEqual(
-			new Set(['@yesid/tokens', '@yesid/motion', '@yesid/gates', '@yesid/seo-kit', '@yesid/ui']),
+			new Set([
+				'@yesid/analytics',
+				'@yesid/tokens',
+				'@yesid/motion',
+				'@yesid/gates',
+				'@yesid/seo-kit',
+				'@yesid/ui',
+			]),
 		);
 		expect(isReleasedManifestName(configManifest.name)).toBe(false);
 
@@ -303,8 +322,8 @@ describe('conditioned package export contract', () => {
 		expect(manifests[packageName].sideEffects).toEqual(['**/*.css']);
 	});
 
-	it('@yesid/seo-kit remains side-effect free', () => {
-		expect(manifests['@yesid/seo-kit'].sideEffects).toBe(false);
+	it.each(['@yesid/analytics', '@yesid/seo-kit'] as const)('%s remains side-effect free', (packageName) => {
+		expect(manifests[packageName].sideEffects).toBe(false);
 	});
 
 	it('preserves every existing UI and motion export target', () => {
@@ -325,6 +344,9 @@ describe('conditioned package export contract', () => {
 		]));
 		expect(new Set(Object.keys(readExports(manifests['@yesid/seo-kit'])))).toEqual(new Set([
 			...Object.keys(SEO_KIT_EXPORTS),
+		]));
+		expect(new Set(Object.keys(readExports(manifests['@yesid/analytics'])))).toEqual(new Set([
+			...Object.keys(ANALYTICS_EXPORTS),
 		]));
 		expect(new Set(Object.keys(readExports(manifests['@yesid/tokens'])))).toEqual(new Set([
 			...Object.keys(TOKEN_DIRECT_EXPORTS),
@@ -356,7 +378,12 @@ describe('conditioned package export contract', () => {
 		expectConditionalExports(manifests['@yesid/ui'], { './cn': cn }, ['types', 'default']);
 	});
 
-	it('uses ordered TypeScript conditions for motion, gates, and seo-kit', () => {
+	it('uses ordered TypeScript conditions for analytics, motion, gates, and seo-kit', () => {
+		expectConditionalExports(
+			manifests['@yesid/analytics'],
+			ANALYTICS_EXPORTS,
+			['types', 'default'],
+		);
 		expectConditionalExports(
 			manifests['@yesid/motion'],
 			EXISTING_MOTION_EXPORTS,
