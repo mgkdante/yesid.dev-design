@@ -11,7 +11,8 @@ vi.mock('$lib/motion/utils/gsap.js', () => {
 		fromTo: vi.fn().mockReturnThis(),
 		to: vi.fn().mockReturnThis(),
 		set: vi.fn().mockReturnThis(),
-		then: vi.fn((cb: () => void) => { cb(); return timelineMock; })
+		kill: vi.fn().mockReturnThis(),
+		then: vi.fn().mockReturnThis()
 	};
 
 	// SplitText is called with `new` — must be a function (not arrow) to work as constructor
@@ -45,10 +46,12 @@ function mockMatchMedia(matches: boolean) {
 describe('wordmarkHover action', () => {
 	beforeEach(() => {
 		mockMatchMedia(false);
+		vi.clearAllMocks();
 		vi.resetModules();
 	});
 
 	afterEach(() => {
+		vi.useRealTimers();
 		vi.restoreAllMocks();
 	});
 
@@ -120,20 +123,79 @@ describe('wordmarkHover action', () => {
 		expect(gsapMod.gsap.timeline).toHaveBeenCalled();
 	});
 
-	it('accepts autoPlay option to fire on mount', async () => {
+	it('fires autoplay only after the configured delay', async () => {
+		vi.useFakeTimers();
 		const gsapMod = await import('$lib/motion/utils/gsap.js');
+		(gsapMod.gsap.timeline as unknown as ReturnType<typeof vi.fn>).mockClear();
 		const { wordmarkHover } = await import('./wordmarkHover.js');
 		const el = document.createElement('span');
 		const dot = document.createElement('span');
-		wordmarkHover(el, { dotEl: dot, autoPlay: true });
+		const action = wordmarkHover(el, {
+			dotEl: dot,
+			autoPlay: true,
+			autoPlayDelay: 500
+		});
 
-		expect(gsapMod.gsap.timeline).toHaveBeenCalled();
+		expect(gsapMod.gsap.timeline).not.toHaveBeenCalled();
+		await vi.advanceTimersByTimeAsync(499);
+		expect(gsapMod.gsap.timeline).not.toHaveBeenCalled();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(gsapMod.gsap.timeline).toHaveBeenCalledTimes(1);
+
+		action.destroy();
+		vi.useRealTimers();
+	});
+
+	it('cancels delayed autoplay when destroyed before the delay', async () => {
+		vi.useFakeTimers();
+		const gsapMod = await import('$lib/motion/utils/gsap.js');
+		(gsapMod.gsap.timeline as unknown as ReturnType<typeof vi.fn>).mockClear();
+		const { wordmarkHover } = await import('./wordmarkHover.js');
+		const el = document.createElement('span');
+		const dot = document.createElement('span');
+		const action = wordmarkHover(el, {
+			dotEl: dot,
+			autoPlay: true,
+			autoPlayDelay: 500
+		});
+
+		expect(vi.getTimerCount()).toBe(1);
+		action.destroy();
+		expect(vi.getTimerCount()).toBe(0);
+		await vi.advanceTimersByTimeAsync(500);
+
+		expect(gsapMod.gsap.timeline).not.toHaveBeenCalled();
+		vi.useRealTimers();
+	});
+
+	it('kills and reverts an active action only once across repeated destroy', async () => {
+		const gsapMod = await import('$lib/motion/utils/gsap.js');
+		const timelineFactory = gsapMod.gsap.timeline as unknown as ReturnType<typeof vi.fn>;
+		timelineFactory.mockClear();
+		const splitTextFactory = gsapMod.SplitText as unknown as ReturnType<typeof vi.fn>;
+		splitTextFactory.mockClear();
+		const { wordmarkHover } = await import('./wordmarkHover.js');
+		const el = document.createElement('span');
+		const dot = document.createElement('span');
+		const action = wordmarkHover(el, { dotEl: dot });
+
+		el.dispatchEvent(new MouseEvent('mouseenter'));
+		const timeline = timelineFactory.mock.results[0]?.value as {
+			kill: ReturnType<typeof vi.fn>;
+		};
+		const splitInstance = splitTextFactory.mock.instances[0];
+		action.destroy();
+		action.destroy();
+
+		expect(timeline.kill).toHaveBeenCalledTimes(1);
+		expect(splitInstance.revert).toHaveBeenCalledTimes(1);
 	});
 });
 
 describe('wordmarkHover device gating', () => {
 	beforeEach(() => {
 		mockMatchMedia(false);
+		vi.clearAllMocks();
 		vi.resetModules();
 	});
 
