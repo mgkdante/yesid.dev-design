@@ -24,6 +24,12 @@ const fixture: TokenTree = {
   duration: {
     fast: { $type: 'duration', $value: '150ms' },
   },
+  breakpoint: {
+    'tablet-min': { $type: 'dimension', $value: '768px' },
+    'tablet-max': { $type: 'dimension', $value: '767px' },
+    'desktop-min': { $type: 'dimension', $value: '1024px' },
+    'desktop-max': { $type: 'dimension', $value: '1023px' },
+  },
 };
 
 describe('generateTokensCss', () => {
@@ -31,6 +37,18 @@ describe('generateTokensCss', () => {
 
   it('begins with a GENERATED header', () => {
     expect(css.startsWith('/* GENERATED FROM packages/tokens/tokens.json - DO NOT EDIT */')).toBe(true);
+  });
+
+  it('emits DTCG breakpoint values as custom media before style rules', () => {
+    const expectedPrelude = [
+      '@custom-media --tablet-min (min-width: 768px);',
+      '@custom-media --tablet-max (max-width: 767px);',
+      '@custom-media --desktop-min (min-width: 1024px);',
+      '@custom-media --desktop-max (max-width: 1023px);',
+    ].join('\n');
+
+    expect(css).toContain(expectedPrelude);
+    expect(css.indexOf(expectedPrelude)).toBeLessThan(css.indexOf(':root'));
   });
 
   it('emits brand tokens at :root', () => {
