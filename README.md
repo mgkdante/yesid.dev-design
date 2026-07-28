@@ -49,6 +49,9 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
    until THREE independent consumers need the same contract — only then may it
    promote into a package, as its own deliberate release.
 
+The standing cross-product ownership map is [`BOUNDARIES.md`](BOUNDARIES.md).
+It records what remains consumer-owned, why, and the receipt for each boundary.
+
 ## Deviation register (v0.1.0 vs the anchor — exhaustive)
 
 - **MOTION-1** — `packages/motion/src/utils/gsap.ts` (+ its test): eager
