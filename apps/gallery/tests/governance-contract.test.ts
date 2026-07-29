@@ -119,8 +119,9 @@ describe('repository governance contract', () => {
 		expect(guide).toContain('schema-2');
 		expect(guide).toContain('provenance.mode` is `release');
 		expect(guide).toContain('bun vendor/design/tools/adopt.ts --check --dest vendor/design');
-		expect(guide).toContain('Add the six vendored packages to `package.json`');
+		expect(guide).toContain('Add the seven vendored packages to `package.json`');
 		expect(guide).toContain('"@yesid/analytics": "file:./vendor/design/analytics"');
+		expect(guide).toContain('"@yesid/i18n-core": "file:./vendor/design/i18n-core"');
 		expect(guide).toContain('"@yesid/seo-kit": "file:./vendor/design/seo-kit"');
 		expect(guide).toContain('Rollback to a previously accepted release');
 		expect(guide).toContain('Re-upgrade');
@@ -132,13 +133,16 @@ describe('repository governance contract', () => {
 		expect(rollback).toContain("process.stdout.write(PACKAGE_NAMES.join(','))");
 		expect(rollback).toContain('--packages "$YESID_DESIGN_PACKAGES"');
 		expect(rollback).not.toContain(
-			'--packages tokens,motion,gates,seo-kit,ui,analytics',
+			'--packages tokens,motion,gates,seo-kit,ui,analytics,i18n-core',
 		);
 		expect(rollback).toMatch(
 			/Before running `bun install`, reconcile the consumer's `package\.json`/u,
 		);
 		expect(rollback).toContain(
 			'remove `"@yesid/analytics": "file:./vendor/design/analytics"`',
+		);
+		expect(rollback).toContain(
+			'`"@yesid/i18n-core": "file:./vendor/design/i18n-core"`',
 		);
 		expect(rollback).toMatch(
 			/dependency set\s+must match the installed `manifest\.json` package\s+closure/u,

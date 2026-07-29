@@ -67,6 +67,15 @@
         "vitest": "^4.1.0",
       },
     },
+    "packages/i18n-core": {
+      "name": "@yesid/i18n-core",
+      "version": "0.11.1",
+      "devDependencies": {
+        "@types/node": "^22.0.0",
+        "typescript": "^5.5.0",
+        "vitest": "^4.1.0",
+      },
+    },
     "packages/motion": {
       "name": "@yesid/motion",
       "version": "0.11.1",
@@ -423,6 +432,8 @@
     "@yesid/gallery": ["@yesid/gallery@workspace:apps/gallery"],
 
     "@yesid/gates": ["@yesid/gates@workspace:packages/gates"],
+
+    "@yesid/i18n-core": ["@yesid/i18n-core@workspace:packages/i18n-core"],
 
     "@yesid/motion": ["@yesid/motion@workspace:packages/motion"],
 

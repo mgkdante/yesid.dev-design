@@ -22,7 +22,15 @@ import {
 import { runReleaseCommand } from '../../../tools/release.js';
 
 const scratch: string[] = [];
-const RELEASED_WORKSPACES = ['tokens', 'motion', 'gates', 'seo-kit', 'ui', 'analytics'] as const;
+const RELEASED_WORKSPACES = [
+	'tokens',
+	'motion',
+	'gates',
+	'seo-kit',
+	'ui',
+	'analytics',
+	'i18n-core',
+] as const;
 const CONFIG_VERSION = '0.1.0';
 const REPOSITORY_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
@@ -48,6 +56,10 @@ function lockfile(version: string): string {
     },
     "packages/analytics": {
       "name": "@yesid/analytics",
+      "version": "${version}",
+    },
+    "packages/i18n-core": {
+      "name": "@yesid/i18n-core",
       "version": "${version}",
     },
     "packages/gates": {
@@ -208,6 +220,7 @@ describe('deterministic release preparation', () => {
 		expect(versions(root)).toEqual({
 			'package.json': '0.7.0-rc.1',
 			'packages/analytics/package.json': '0.7.0-rc.1',
+			'packages/i18n-core/package.json': '0.7.0-rc.1',
 			'packages/tokens/package.json': '0.7.0-rc.1',
 			'packages/motion/package.json': '0.7.0-rc.1',
 			'packages/gates/package.json': '0.7.0-rc.1',

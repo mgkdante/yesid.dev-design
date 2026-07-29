@@ -14,7 +14,15 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { lockWorkspaceVersion } from '../../../tools/release-core.js';
 
 const TOOL = fileURLToPath(new URL('../../../tools/config-version.ts', import.meta.url));
-const COORDINATED_PACKAGES = ['tokens', 'motion', 'gates', 'seo-kit', 'ui', 'analytics'] as const;
+const COORDINATED_PACKAGES = [
+	'tokens',
+	'motion',
+	'gates',
+	'seo-kit',
+	'ui',
+	'analytics',
+	'i18n-core',
+] as const;
 const scratch: string[] = [];
 
 function tempDir(): string {
@@ -44,6 +52,10 @@ function lockfile(configVersion = '0.1.0', rootVersion = '7.7.7'): string {
     },
     "packages/analytics": {
       "name": "@yesid/analytics",
+      "version": "${rootVersion}",
+    },
+    "packages/i18n-core": {
+      "name": "@yesid/i18n-core",
       "version": "${rootVersion}",
     },
     "packages/tokens": {

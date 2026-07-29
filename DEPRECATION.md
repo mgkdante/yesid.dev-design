@@ -1,7 +1,7 @@
 # Deprecation policy
 
 This policy applies to the public runtime, type, CSS, adoption, and manifest
-contracts of the six released packages. Private Gallery code, test helpers,
+contracts of the seven released packages. Private Gallery code, test helpers,
 and repository-only build internals are not public contracts unless a document
 explicitly says otherwise.
 

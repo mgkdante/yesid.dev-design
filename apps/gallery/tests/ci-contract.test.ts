@@ -736,10 +736,12 @@ describe('always-reporting required context', () => {
 		expect(readFileSync(ATTRIBUTES_URL, 'utf8')).toMatch(/^\*\.mjs text eol=lf$/mu);
 	});
 
-	it('routes analytics changes through the main and Windows API parity gates', () => {
+	it('routes analytics and i18n-core changes through the main and Windows API parity gates', () => {
 		const workflow = readFileSync(CI_WORKFLOW_URL, 'utf8');
 
 		expect(workflow).toContain('"prefixes": [".changes/", "api-reports/", "apps/", "packages/", "tools/"]');
-		expect(workflow).toContain('"prefixes": ["api-reports/", "packages/analytics/"');
+		expect(workflow).toContain(
+			'"prefixes": ["api-reports/", "packages/analytics/", "packages/gates/", "packages/i18n-core/"',
+		);
 	});
 });

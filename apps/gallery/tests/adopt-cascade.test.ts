@@ -31,7 +31,15 @@ describe('real repository adoption cascade', () => {
 		const options = {
 			source: repository,
 			dest,
-			packages: ['tokens', 'motion', 'gates', 'seo-kit', 'ui', 'analytics'] as PackageName[],
+			packages: [
+				'tokens',
+				'motion',
+				'gates',
+				'seo-kit',
+				'ui',
+				'analytics',
+				'i18n-core',
+			] as PackageName[],
 			provenance: {
 				mode: 'worktree' as const,
 				tag: { name: 'v0.7.0-test.1', object: COMMIT, peeledCommit: COMMIT },

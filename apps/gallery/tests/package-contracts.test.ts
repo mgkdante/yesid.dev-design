@@ -27,7 +27,8 @@ type ReleasedPackageName =
 	| '@yesid/motion'
 	| '@yesid/gates'
 	| '@yesid/seo-kit'
-	| '@yesid/ui';
+	| '@yesid/ui'
+	| '@yesid/i18n-core';
 
 const RELEASED_MANIFESTS: ReadonlySet<ReleasedPackageName> = new Set([
 	'@yesid/analytics',
@@ -36,6 +37,7 @@ const RELEASED_MANIFESTS: ReadonlySet<ReleasedPackageName> = new Set([
 	'@yesid/gates',
 	'@yesid/seo-kit',
 	'@yesid/ui',
+	'@yesid/i18n-core',
 ]);
 
 const ROOT_MANIFEST_URL = new URL('../../../package.json', import.meta.url);
@@ -49,6 +51,7 @@ const RELEASED_MANIFEST_URLS: Record<ReleasedPackageName, URL> = {
 	'@yesid/gates': new URL('../../../packages/gates/package.json', import.meta.url),
 	'@yesid/seo-kit': new URL('../../../packages/seo-kit/package.json', import.meta.url),
 	'@yesid/ui': new URL('../../../packages/ui/package.json', import.meta.url),
+	'@yesid/i18n-core': new URL('../../../packages/i18n-core/package.json', import.meta.url),
 };
 
 const EXISTING_UI_EXPORTS = {
@@ -101,6 +104,10 @@ const ANALYTICS_EXPORTS = {
 	'./consent': './src/consent.svelte.ts',
 	'./plausible': './src/plausible.ts',
 	'./policy': './src/policy.ts',
+} as const;
+
+const I18N_CORE_EXPORTS = {
+	'.': './src/index.ts',
 } as const;
 
 const TOKEN_DIRECT_EXPORTS = {
@@ -256,6 +263,7 @@ describe('prospective package release contract', () => {
 				'@yesid/gates',
 				'@yesid/seo-kit',
 				'@yesid/ui',
+				'@yesid/i18n-core',
 			]),
 		);
 		expect(isReleasedManifestName(configManifest.name)).toBe(false);
@@ -322,7 +330,7 @@ describe('conditioned package export contract', () => {
 		expect(manifests[packageName].sideEffects).toEqual(['**/*.css']);
 	});
 
-	it.each(['@yesid/analytics', '@yesid/seo-kit'] as const)('%s remains side-effect free', (packageName) => {
+	it.each(['@yesid/analytics', '@yesid/seo-kit', '@yesid/i18n-core'] as const)('%s remains side-effect free', (packageName) => {
 		expect(manifests[packageName].sideEffects).toBe(false);
 	});
 
@@ -347,6 +355,9 @@ describe('conditioned package export contract', () => {
 		]));
 		expect(new Set(Object.keys(readExports(manifests['@yesid/analytics'])))).toEqual(new Set([
 			...Object.keys(ANALYTICS_EXPORTS),
+		]));
+		expect(new Set(Object.keys(readExports(manifests['@yesid/i18n-core'])))).toEqual(new Set([
+			...Object.keys(I18N_CORE_EXPORTS),
 		]));
 		expect(new Set(Object.keys(readExports(manifests['@yesid/tokens'])))).toEqual(new Set([
 			...Object.keys(TOKEN_DIRECT_EXPORTS),
@@ -378,10 +389,15 @@ describe('conditioned package export contract', () => {
 		expectConditionalExports(manifests['@yesid/ui'], { './cn': cn }, ['types', 'default']);
 	});
 
-	it('uses ordered TypeScript conditions for analytics, motion, gates, and seo-kit', () => {
+	it('uses ordered TypeScript conditions for analytics, i18n-core, motion, gates, and seo-kit', () => {
 		expectConditionalExports(
 			manifests['@yesid/analytics'],
 			ANALYTICS_EXPORTS,
+			['types', 'default'],
+		);
+		expectConditionalExports(
+			manifests['@yesid/i18n-core'],
+			I18N_CORE_EXPORTS,
 			['types', 'default'],
 		);
 		expectConditionalExports(
