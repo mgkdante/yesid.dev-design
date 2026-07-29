@@ -1,7 +1,7 @@
 # yesid.dev-design
 
 The yesid brand's shared foundation as a standalone bun+turbo monorepo — design
-tokens, pure motion actions, UI primitives, quality gates, neutral SEO infrastructure, and consent-aware analytics primitives, extracted from
+tokens, pure motion actions, UI primitives, quality gates, neutral SEO infrastructure, consent-aware analytics primitives, and consumer-configured locale-routing mechanics, extracted from
 **yesid.dev @ `2bdb611d91749dc437c07586cb82129eabe9dfec`** (the **parity
 anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 
@@ -15,6 +15,7 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 | `packages/seo-kit` | `@yesid/seo-kit` — framework-neutral JSON-LD builders, byte-configurable sitemap emitters, and a Satori core with consumer-injected rasterization. SEO content, routing policy, fonts, templates, and rasterizer dependencies stay consumer-owned. |
 | `packages/ui` | `@yesid/ui` — source-shipped Svelte 5 primitives and promoted brand components, with package-owned class merging and product vocabulary configured once at boot. |
 | `packages/analytics` | `@yesid/analytics` — consumer-configured analytics presets, consent state and policy, sanitized ordered clients, and an injected Plausible Events API transport. Domains, event names, storage keys, controls, and product copy stay consumer-owned. |
+| `packages/i18n-core` | `@yesid/i18n-core` — pure, consumer-configured locale-routing mechanics: prefix membership and parsing, path localization, URL-state preservation, locale-switch detection, and route-id normalization. Locale values, route exemptions, framework adapters, and runtime flags stay consumer-owned. |
 | `apps/gallery` | `@yesid/gallery` — the living brand gallery: token sheets + motion demos rendered from `tokens.json`; the dogfood consumer of `@yesid/tokens/tokens.css`. |
 
 ## Versioning + the parity contract
@@ -25,8 +26,8 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 - Later brand changes bump PAST the parity tag (`v0.2.0` adds the dataviz
   scale; beautification-era changes go higher). The parity tag never moves.
 - **Lockstep started at `v0.7.0`.** The root manifest is canonical
-  for `@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, `@yesid/seo-kit`, `@yesid/ui`, and
-  `@yesid/analytics`; all six package versions move together. Historical
+  for `@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, `@yesid/seo-kit`, `@yesid/ui`,
+  `@yesid/analytics`, and `@yesid/i18n-core`; all seven package versions move together. Historical
   package-version skew and annotated tags `v0.1.0` through `v0.6.0` remain
   immutable. The private `@yesid/gallery` app is excluded from lockstep.
 - **Consumers pin exact versions.** A cascade is a deliberate bump-PR in the

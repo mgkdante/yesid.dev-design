@@ -70,7 +70,7 @@ export interface DirectAssetTarget {
 
 interface ReleasedPackage {
 	name: ReleasedPackageName;
-	directory: 'tokens' | 'motion' | 'gates' | 'seo-kit' | 'ui' | 'analytics';
+	directory: 'tokens' | 'motion' | 'gates' | 'seo-kit' | 'ui' | 'analytics' | 'i18n-core';
 }
 
 interface PackageManifest {
@@ -85,6 +85,7 @@ const RELEASED_PACKAGE_CONFIG: readonly ReleasedPackage[] = [
 	{ name: '@yesid/seo-kit', directory: 'seo-kit' },
 	{ name: '@yesid/ui', directory: 'ui' },
 	{ name: '@yesid/analytics', directory: 'analytics' },
+	{ name: '@yesid/i18n-core', directory: 'i18n-core' },
 ];
 
 export const API_REPORT_PATHS: Readonly<Record<ReleasedPackageName, string>> = {
@@ -94,6 +95,7 @@ export const API_REPORT_PATHS: Readonly<Record<ReleasedPackageName, string>> = {
 	'@yesid/seo-kit': 'api-reports/seo-kit.api.md',
 	'@yesid/ui': 'api-reports/ui.api.md',
 	'@yesid/analytics': 'api-reports/analytics.api.md',
+	'@yesid/i18n-core': 'api-reports/i18n-core.api.md',
 };
 
 const DIRECT_ASSET = /\.(?:css|json)$/u;

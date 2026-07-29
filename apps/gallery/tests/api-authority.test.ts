@@ -38,6 +38,7 @@ const BASE_REPORTS = {
 	'@yesid/gates': 'gates-v1',
 	'@yesid/seo-kit': 'seo-kit-v1',
 	'@yesid/ui': 'ui-v1',
+	'@yesid/i18n-core': 'i18n-core-v1',
 } as const;
 
 function fragment(packages: Readonly<Record<string, 'patch' | 'minor' | 'major'>>) {
@@ -129,6 +130,7 @@ describe('API report approval', () => {
 			'@yesid/motion': BASE_REPORTS['@yesid/motion'],
 			'@yesid/gates': BASE_REPORTS['@yesid/gates'],
 			'@yesid/ui': BASE_REPORTS['@yesid/ui'],
+			'@yesid/i18n-core': BASE_REPORTS['@yesid/i18n-core'],
 		};
 
 		expect(() =>
@@ -266,6 +268,7 @@ describe('deterministic package API reports', () => {
 			'@yesid/seo-kit',
 			'@yesid/ui',
 			'@yesid/analytics',
+			'@yesid/i18n-core',
 		]);
 		for (const report of Object.values(first)) {
 			expect(report).toMatch(/^<!-- GENERATED: bun run api:report/u);
@@ -279,6 +282,7 @@ describe('deterministic package API reports', () => {
 		expect(first['@yesid/analytics']).toContain('function createAnalyticsClient');
 		expect(first['@yesid/analytics']).toContain('function defineAnalyticsPreset');
 		expect(first['@yesid/analytics']).toContain('function createAnalyticsConsentStore');
+		expect(first['@yesid/i18n-core']).toContain('function createLocaleRouting');
 		expect(first['@yesid/tokens']).toContain('function parseTokens');
 		expect(first['@yesid/motion']).toContain('function subscribe');
 		expect(first['@yesid/motion']).not.toContain('_resetForTests');

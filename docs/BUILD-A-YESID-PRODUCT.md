@@ -4,9 +4,9 @@ Use this checklist in the new product:
 
 - [ ] Start from Bun, SvelteKit, Svelte 5, and Tailwind CSS v4.
 - [ ] Pick and record one exact `yesid.dev-design` tag.
-- [ ] Bootstrap the complete adoption tool bundle from that tag and vendor `tokens,motion,gates,seo-kit,ui,analytics`.
+- [ ] Bootstrap the complete adoption tool bundle from that tag and vendor `tokens,motion,gates,seo-kit,ui,analytics,i18n-core`.
 - [ ] Verify the schema-2 receipt before changing product code.
-- [ ] Add the six vendored packages to `package.json` and run `bun install`.
+- [ ] Add the seven vendored packages to `package.json` and run `bun install`.
 - [ ] Add the thin token build script, generate `tokens.css`, and wire the `@theme` sentinel.
 - [ ] Load Inter Variable and JetBrains Mono Variable.
 - [ ] Import one shared UI initializer from both SvelteKit client and server init hooks.
@@ -37,7 +37,7 @@ git clone --depth 1 --branch "$YESID_DESIGN_TAG" \
   https://github.com/mgkdante/yesid.dev-design .yesid-design-bootstrap
 bun .yesid-design-bootstrap/tools/adopt.ts \
   --tag "$YESID_DESIGN_TAG" \
-  --packages tokens,motion,gates,seo-kit,ui,analytics \
+  --packages tokens,motion,gates,seo-kit,ui,analytics,i18n-core \
   --dest vendor/design
 bun vendor/design/tools/adopt.ts --check --dest vendor/design
 rm -rf .yesid-design-bootstrap
@@ -67,6 +67,7 @@ Add the vendored packages to the product's `package.json`:
 {
   "dependencies": {
     "@yesid/analytics": "file:./vendor/design/analytics",
+    "@yesid/i18n-core": "file:./vendor/design/i18n-core",
     "@yesid/motion": "file:./vendor/design/motion",
     "@yesid/seo-kit": "file:./vendor/design/seo-kit",
     "@yesid/tokens": "file:./vendor/design/tokens",
@@ -356,11 +357,11 @@ bun run check
 bun run build
 ```
 
-## 7. Keep localization in the product
+## 7. Keep localization authority and copy in the product
 
-The packages do not read a locale or ship product copy. Pass translated labels, placeholders, clear labels, empty states, option labels, and `StopLabel` prefixes from the product. See the [Combobox copy levers](../packages/ui/PARITY-NOTES.md#combobox-wave-4-promotion) and the [localized StopLabel prefix](../packages/ui/PARITY-NOTES.md#stoplabel). The same notes ship at `vendor/design/ui/PARITY-NOTES.md` after adoption.
+`@yesid/i18n-core` does not discover product locale authority or ship product copy. Consumers inject their concrete locale values, routing policy, framework adapters, and runtime flag values. Other packages continue to receive translated labels, placeholders, clear labels, empty states, option labels, and `StopLabel` prefixes from the product. See the [Combobox copy levers](../packages/ui/PARITY-NOTES.md#combobox-wave-4-promotion) and the [localized StopLabel prefix](../packages/ui/PARITY-NOTES.md#stoplabel). The same notes ship at `vendor/design/ui/PARITY-NOTES.md` after adoption.
 
-Do not add a locale check to a package. If the third product needs a new copy seam, add a generic prop upstream with a default that preserves current consumers.
+Do not add product-specific locale checks, copy policy, or framework virtual-module imports to a package. If a third product needs a new copy seam, add a generic prop upstream with a default that preserves current consumers.
 
 ## 8. Bump the brand pin deliberately
 
@@ -390,7 +391,7 @@ by this consumer. Bootstrap the tool outside the destination, adopt that exact
 tag, and verify the newly installed payload. The selected tag owns its package
 closure, so resolve that closure from the tag-owned adoption contract instead
 of passing the current release's package list. For example, `v0.10.0` resolves
-to `tokens,motion,gates,seo-kit,ui` and rejects `analytics`:
+to `tokens,motion,gates,seo-kit,ui` and rejects `analytics` and `i18n-core`:
 
 ```sh
 export YESID_DESIGN_TAG=vX.Y.Z
@@ -411,7 +412,8 @@ rm -rf .yesid-design-rollback
 Before running `bun install`, reconcile the consumer's `package.json` with the
 installed `manifest.json`: add dependencies present in the target package
 closure and remove dependencies absent from it. For a `v0.10.0` rollback,
-remove `"@yesid/analytics": "file:./vendor/design/analytics"`; leaving it behind
+remove `"@yesid/analytics": "file:./vendor/design/analytics"` and
+`"@yesid/i18n-core": "file:./vendor/design/i18n-core"`; leaving either behind
 would point Bun at a package the rollback removed. The committed dependency set
 must match the installed `manifest.json` package closure.
 
