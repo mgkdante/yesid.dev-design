@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.0
+
+<!-- release-fragment: 035-footer-ripple-strip -->
+- `@yesid/tokens` (minor), `@yesid/motion` (minor), `@yesid/ui` (minor): Add the footer leaf primitive subpath, the opt-in global ripple utility and stylesheet subpaths, and the semantic strip-height token with its public CSS output.
+
 ## 0.12.0
 
 <!-- release-fragment: p2-i18n-core -->
