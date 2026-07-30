@@ -32,7 +32,7 @@ describe('Gallery coverage authority', () => {
 			.sort();
 
 		expect([...GALLERY_COVERAGE.primitives].sort()).toEqual(publicPrimitives);
-		expect(publicPrimitives).toHaveLength(13);
+		expect(publicPrimitives).toHaveLength(14);
 	});
 
 	it('tracks every public brand component and motion-action family', () => {

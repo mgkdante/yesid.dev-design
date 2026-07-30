@@ -185,3 +185,13 @@ The factory rejects a `defaultLocale` that appears in `prefixLocales` at constru
 The package neutrality test deliberately scans production `.ts` files only, excludes `*.test.ts`, and uses plain forbidden-pattern literals. This differs from analytics' scan-everything, fragment-joined convention. The exclusion is load-bearing: removing it makes the suite match its own test fixtures and forbidden-pattern definitions.
 
 **Consequence.** Product identity and policy cannot enter the package through app conditionals, supported or published lists, endpoint tables, copy, or framework imports. Leg A joins `@yesid/i18n-core` to the prospective seven-package release, API, archive, and adoption closure at `0.11.1` with a minor fragment; it creates no tag and changes no consumer. A separate release PR advances lockstep to `v0.12.0`, after which Transit may adopt the immutable asset in its own PR. yesid.dev remains untouched. Before publication, rollback is a feature-PR revert; after publication, fixes move forward in a new immutable version.
+
+## D22 - Global ripple returns as an opt-in utility and stylesheet
+
+**Status:** accepted 2026-07-30.
+
+**Context.** The motion action barrel records two earlier removals: `ripple` was deleted in 17e-2 because it was outside the action vocabulary, and `tapRipple` was deleted in slice-28.3 because it had zero template consumers. Owner-directed cross-product adoption now establishes a narrower shared need without making either behavior an automatic package concern.
+
+**Decision.** This explicitly reverses both ripple deletion decisions recorded in `packages/motion/src/actions/index.ts`, but does not restore either Svelte action. `@yesid/motion/utils/globalRipple` exposes the existing yesid.dev global pointer-feedback behavior as a direct utility subpath, and `@yesid/motion/ripple.css` exposes its visual contract as an explicit-import-only asset. The optional exclusion selector is evaluated at event time so consumers can exempt canvas surfaces without package-owned app conditionals or cached product nodes.
+
+**Consequence.** Cross-product consumers may deliberately adopt the same global ripple while retaining control over initialization, CSS import, and canvas exclusions. D15's zero-automatic-CSS doctrine remains unchanged: the package injects no stylesheet and enables no behavior on import.

@@ -5,6 +5,7 @@ export const GALLERY_COVERAGE = {
 		'card',
 		'collapsible',
 		'combobox',
+		'footer',
 		'resizable',
 		'scroll-area',
 		'separator',

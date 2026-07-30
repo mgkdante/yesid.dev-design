@@ -1,8 +1,13 @@
 <script lang="ts">
+	import '@yesid/motion/ripple.css';
+	import { initGlobalRipple } from '@yesid/motion/utils/globalRipple';
+	import { onMount } from 'svelte';
 	import '../fonts.css';
 	import '../gallery.css';
 
 	let { children } = $props();
+
+	onMount(() => initGlobalRipple());
 
 	function toggleTheme() {
 		const root = document.documentElement;

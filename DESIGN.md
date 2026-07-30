@@ -171,7 +171,7 @@ Borders use semantic tokens (`border`, `border-subtle`, `border-strong`).
 ## Components
 
 See `@yesid/ui/brand` (9 components: `BlueprintShell`, `ChevronToggle`, `MetroStation`, `QuietModeButton`, `SectionLabel`, `StickyPanel`, `StopLabel`, `TerminalCursor`, `TocBadge`) and
-13 primitive subpaths (`@yesid/ui/badge`, `@yesid/ui/button`, `@yesid/ui/card`, `@yesid/ui/collapsible`, `@yesid/ui/combobox`, `@yesid/ui/resizable`, `@yesid/ui/scroll-area`, `@yesid/ui/separator`, `@yesid/ui/sheet`, `@yesid/ui/skeleton`, `@yesid/ui/tabs`, `@yesid/ui/toggle`, `@yesid/ui/toggle-group`). Design-system documentation:
+14 primitive subpaths (`@yesid/ui/badge`, `@yesid/ui/button`, `@yesid/ui/card`, `@yesid/ui/collapsible`, `@yesid/ui/combobox`, `@yesid/ui/footer`, `@yesid/ui/resizable`, `@yesid/ui/scroll-area`, `@yesid/ui/separator`, `@yesid/ui/sheet`, `@yesid/ui/skeleton`, `@yesid/ui/tabs`, `@yesid/ui/toggle`, `@yesid/ui/toggle-group`). Design-system documentation:
 Notion → Business → Brand.
 
 ## Do's and Don'ts

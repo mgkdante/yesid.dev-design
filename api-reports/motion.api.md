@@ -33,6 +33,11 @@
 - `types` → `./src/utils/device.ts`
 - `default` → `./src/utils/device.ts`
 
+### `./utils/globalRipple`
+
+- `types` → `./src/utils/globalRipple.ts`
+- `default` → `./src/utils/globalRipple.ts`
+
 ### `./utils/gsap`
 
 - `types` → `./src/utils/gsap.ts`
@@ -53,12 +58,17 @@
 - `types` → `./src/utils/ticker.ts`
 - `default` → `./src/utils/ticker.ts`
 
+### `./ripple.css`
+
+- `default` → `./ripple.css`
+
 ### `./tap-feedback.css`
 
 - `default` → `./tap-feedback.css`
 
 ## Direct public assets
 
+- `./ripple.css` — direct asset `./ripple.css` (`default`), sha256 `fca8bcce82ad466ac567e4ca892b14b0e6db898c95bb810ebfa683372b4f10db`
 - `./tap-feedback.css` — direct asset `./tap-feedback.css` (`default`), sha256 `5501446ba351c14ba6c6220f3fe8623aa66b48f3130bd28e3c523796da3e9652`
 
 ## Declaration namespaces
@@ -69,6 +79,7 @@
 - `Tokens` → `./src/tokens.ts` (`./tokens`)
 - `StoresReducedMotion` → `./src/stores/reducedMotion.ts` (`./stores/reducedMotion`)
 - `UtilsDevice` → `./src/utils/device.ts` (`./utils/device`)
+- `UtilsGlobalRipple` → `./src/utils/globalRipple.ts` (`./utils/globalRipple`)
 - `UtilsGsap` → `./src/utils/gsap.ts` (`./utils/gsap`)
 - `UtilsLenis` → `./src/utils/lenis.ts` (`./utils/lenis`)
 - `UtilsSectionMagnet` → `./src/utils/sectionMagnet.ts` (`./utils/sectionMagnet`)
@@ -214,6 +225,11 @@ declare namespace Index {
 }
 
 // @public (undocumented)
+function initGlobalRipple(options?: {
+    exclude?: string;
+}): () => void;
+
+// @public (undocumented)
 function initLenis(): void;
 
 // @public
@@ -322,6 +338,12 @@ declare namespace UtilsDevice {
     export {
         isTouchDevice,
         isViewportAtMost
+    }
+}
+
+declare namespace UtilsGlobalRipple {
+    export {
+        initGlobalRipple
     }
 }
 
