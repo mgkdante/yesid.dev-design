@@ -21,6 +21,9 @@ const fixture: TokenTree = {
   radius: {
     sm: { $type: 'dimension', $value: '4px' },
   },
+  size: {
+    stripH: { $type: 'dimension', $value: '68px' },
+  },
   duration: {
     fast: { $type: 'duration', $value: '150ms' },
   },
@@ -89,5 +92,11 @@ describe('generateTokensCss', () => {
   it('emits radius and duration in :root', () => {
     expect(css).toMatch(/--radius-sm:\s*4px;/);
     expect(css).toMatch(/--duration-fast:\s*150ms;/);
+  });
+
+  it('emits the semantic strip height with its frozen public CSS name', () => {
+    expect(css.match(/  --strip-h: 68px;/g)).toHaveLength(1);
+    expect(css).not.toContain('--size-stripH');
+    expect(css).not.toContain('--size-strip-h');
   });
 });

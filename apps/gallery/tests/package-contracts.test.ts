@@ -63,6 +63,7 @@ const EXISTING_UI_EXPORTS = {
 	'./card': './src/primitives/card/index.ts',
 	'./collapsible': './src/primitives/collapsible/index.ts',
 	'./combobox': './src/primitives/combobox/index.ts',
+	'./footer': './src/primitives/footer/index.ts',
 	'./resizable': './src/primitives/resizable/index.ts',
 	'./scroll-area': './src/primitives/scroll-area/index.ts',
 	'./separator': './src/primitives/separator/index.ts',
@@ -80,6 +81,7 @@ const EXISTING_MOTION_EXPORTS = {
 	'./tokens': './src/tokens.ts',
 	'./stores/reducedMotion': './src/stores/reducedMotion.ts',
 	'./utils/device': './src/utils/device.ts',
+	'./utils/globalRipple': './src/utils/globalRipple.ts',
 	'./utils/gsap': './src/utils/gsap.ts',
 	'./utils/lenis': './src/utils/lenis.ts',
 	'./utils/sectionMagnet': './src/utils/sectionMagnet.ts',
@@ -312,7 +314,7 @@ describe('browser authority script contract', () => {
 			const output = `${result.stdout}\n${result.stderr}`;
 
 			expect(result.status, output).toBe(0);
-			expect(output).toMatch(/Total: 14 tests in 4 files/);
+			expect(output).toMatch(/Total: 16 tests in 4 files/);
 		},
 		60_000,
 	);
@@ -345,6 +347,7 @@ describe('conditioned package export contract', () => {
 		]));
 		expect(new Set(Object.keys(readExports(manifests['@yesid/motion'])))).toEqual(new Set([
 			...Object.keys(EXISTING_MOTION_EXPORTS),
+			'./ripple.css',
 			'./tap-feedback.css',
 		]));
 		expect(new Set(Object.keys(readExports(manifests['@yesid/gates'])))).toEqual(new Set([
@@ -433,6 +436,7 @@ describe('conditioned package export contract', () => {
 	);
 
 	it.each([
+		['@yesid/motion', './ripple.css', './ripple.css'],
 		['@yesid/motion', './tap-feedback.css', './tap-feedback.css'],
 		['@yesid/tokens', './tokens.css', './tokens.css'],
 	] as const)('%s exposes package-owned CSS at %s', (packageName, key, expectedTarget) => {

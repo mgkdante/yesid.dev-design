@@ -35,6 +35,48 @@ test('renders the exact coverage matrix', async ({ page }) => {
 	expect(containment).toEqual({ childrenFit: true, pageFits: true });
 });
 
+test('renders both global ripple rings at the pointer coordinates', async ({ page }) => {
+	await openGallery(page);
+	const demo = page.locator('[data-gallery-demo="global-ripple"]');
+
+	await demo.dispatchEvent('pointerdown', { clientX: 124, clientY: 168 });
+
+	const ripples = await page
+		.locator('.global-ripple, .global-ripple-inner')
+		.evaluateAll((nodes) =>
+			nodes.map((node) => {
+				const style = getComputedStyle(node);
+				return {
+					className: node.className,
+					left: style.left,
+					top: style.top,
+					position: style.position,
+					borderTopStyle: style.borderTopStyle,
+					animationName: style.animationName,
+				};
+			}),
+		);
+
+	expect(ripples).toEqual([
+		{
+			className: 'global-ripple',
+			left: '124px',
+			top: '168px',
+			position: 'fixed',
+			borderTopStyle: 'solid',
+			animationName: 'global-ripple-expand',
+		},
+		{
+			className: 'global-ripple-inner',
+			left: '124px',
+			top: '168px',
+			position: 'fixed',
+			borderTopStyle: 'solid',
+			animationName: 'global-ripple-inner-expand',
+		},
+	]);
+});
+
 type Interaction = Readonly<{
 	name: string;
 	run: (page: Page) => Promise<void>;
@@ -69,6 +111,16 @@ const INTERACTIONS: readonly Interaction[] = [
 			await expect(page.getByRole('listbox')).toBeHidden();
 			await expect(combobox).toHaveValue('Accessibilité universelle');
 			await expect(family).toContainText('Selected: accessibility');
+		},
+	},
+	{
+		name: 'footer caller-owned status refresh',
+		async run(page) {
+			const family = page.locator('[data-gallery-family="primitive:footer"]');
+			const status = family.getByRole('status');
+			await expect(status).toHaveText('Status refreshes: 0');
+			await family.getByRole('button', { name: 'Request a Gallery status refresh' }).click();
+			await expect(status).toHaveText('Status refreshes: 1');
 		},
 	},
 	{

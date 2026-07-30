@@ -32,6 +32,10 @@
       "types": "./src/utils/device.ts",
       "default": "./src/utils/device.ts"
     },
+    "./utils/globalRipple": {
+      "types": "./src/utils/globalRipple.ts",
+      "default": "./src/utils/globalRipple.ts"
+    },
     "./utils/gsap": {
       "types": "./src/utils/gsap.ts",
       "default": "./src/utils/gsap.ts"
@@ -48,6 +52,7 @@
       "types": "./src/utils/ticker.ts",
       "default": "./src/utils/ticker.ts"
     },
+    "./ripple.css": "./ripple.css",
     "./tap-feedback.css": "./tap-feedback.css"
   },
   "scripts": {

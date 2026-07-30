@@ -46,6 +46,11 @@
       "svelte": "./src/primitives/combobox/index.ts",
       "default": "./src/primitives/combobox/index.ts"
     },
+    "./footer": {
+      "types": "./src/primitives/footer/index.ts",
+      "svelte": "./src/primitives/footer/index.ts",
+      "default": "./src/primitives/footer/index.ts"
+    },
     "./resizable": {
       "types": "./src/primitives/resizable/index.ts",
       "svelte": "./src/primitives/resizable/index.ts",

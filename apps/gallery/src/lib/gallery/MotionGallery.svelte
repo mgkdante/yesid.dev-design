@@ -9,6 +9,7 @@
 		wordmarkHover,
 	} from '@yesid/motion/actions';
 	import { duration, ease } from '@yesid/motion/tokens';
+	import * as Card from '@yesid/ui/card';
 
 	let wordmarkDot = $state<HTMLSpanElement | null>(null);
 </script>
@@ -121,6 +122,18 @@
 				<span bind:this={wordmarkDot} class="text-primary" aria-hidden="true">.</span>
 			</button>
 		</div>
+
+		<Card.Root data-gallery-demo="global-ripple" class="md:col-span-2">
+			<Card.Header>
+				<Card.Title>Global ripple</Card.Title>
+				<Card.Description>
+					Press anywhere on this card to see both opt-in pointer-feedback rings.
+				</Card.Description>
+			</Card.Header>
+			<Card.Content class="font-mono text-caption text-muted-foreground">
+				The Gallery imports the stylesheet and owns utility initialization.
+			</Card.Content>
+		</Card.Root>
 	</div>
 </section>
 

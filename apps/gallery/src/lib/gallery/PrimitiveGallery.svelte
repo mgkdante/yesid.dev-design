@@ -4,6 +4,7 @@
 	import * as Card from '@yesid/ui/card';
 	import * as Collapsible from '@yesid/ui/collapsible';
 	import { Combobox, type ComboboxOption } from '@yesid/ui/combobox';
+	import { FooterGroup, FooterLink } from '@yesid/ui/footer';
 	import {
 		ResizableHandle,
 		ResizablePane,
@@ -19,6 +20,7 @@
 
 	let collapsibleOpen = $state(true);
 	let comboboxValue = $state<string | null>('operations');
+	let footerStatusRefreshes = $state(0);
 	let sheetOpen = $state(false);
 	let togglePressed = $state(false);
 	let toggleGroupValue = $state('summary');
@@ -53,6 +55,10 @@
 			.replace(/\p{Diacritic}/gu, '')
 			.toLowerCase()
 			.trim();
+	}
+
+	function refreshFooterStatus() {
+		footerStatusRefreshes += 1;
 	}
 </script>
 
@@ -97,6 +103,31 @@
 						The submitted revision conflicts with a newer version. Reload before retrying.
 					</p>
 				</div>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="primitive:footer">
+			<Card.Header>
+				<Card.Title>Footer leaves</Card.Title>
+				<Card.Description>
+					The caller owns the landmark, destinations, labels, and button behavior.
+				</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<FooterGroup label="Gallery resources">
+					<nav aria-label="Gallery footer examples" class="flex flex-col items-start">
+						<FooterLink href="#gallery-primitives">Primitive index</FooterLink>
+						<FooterLink
+							aria-label="Request a Gallery status refresh"
+							onclick={refreshFooterStatus}
+						>
+							Refresh status
+						</FooterLink>
+					</nav>
+					<p role="status" class="font-mono text-caption text-muted-foreground">
+						Status refreshes: {footerStatusRefreshes}
+					</p>
+				</FooterGroup>
 			</Card.Content>
 		</Card.Root>
 

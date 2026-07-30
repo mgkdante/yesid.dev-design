@@ -41,7 +41,7 @@ describe('push-to-figma', () => {
     expect(Object.keys(colorCard!.values).sort()).toEqual(['dark', 'light']);
   });
 
-  it('produces 160 variables', () => {
+  it('produces 161 variables', () => {
     // Sanity check on the overall count. 82 at GO-W2.2 (69 after
     // slice-design's trim + 13: 3 theme-moded colors, 6 surface aliases,
     // 3 border aliases, shadow/sheet). GO2-W5 adds 19: 7 theme-invariant
@@ -70,8 +70,21 @@ describe('push-to-figma', () => {
     // v0.1.0 parity-anchor count (yesid.dev @ 2bdb611d).
     // WS-D/D1(a) adds 4 canonical breakpoint dimensions: tablet min/max and
     // desktop min/max.
+    // P3-035PR1 adds 1 semantic strip composite dimension: size/stripH.
     const vars = runScript();
-    expect(vars.length).toBe(160);
+    expect(vars.length).toBe(161);
+  });
+
+  it('preserves the semantic strip height name, value, and description', () => {
+    const vars = runScript();
+    const stripH = vars.find((v) => v.name === 'size/stripH');
+    expect(stripH).toEqual({
+      name: 'size/stripH',
+      type: 'STRING',
+      values: { default: '68px' },
+      description:
+        'Strip composite height: 3px hazard tape + band. Consumers derive band padding by subtracting tape and chip.',
+    });
   });
 
   it('theme re-pins of brand names merge as modes of one variable (no duplicates)', () => {

@@ -50,6 +50,12 @@
 - `svelte` → `./src/primitives/combobox/index.ts`
 - `default` → `./src/primitives/combobox/index.ts`
 
+### `./footer`
+
+- `types` → `./src/primitives/footer/index.ts`
+- `svelte` → `./src/primitives/footer/index.ts`
+- `default` → `./src/primitives/footer/index.ts`
+
 ### `./resizable`
 
 - `types` → `./src/primitives/resizable/index.ts`
@@ -111,6 +117,7 @@
 - `PrimitivesCard` → `./src/primitives/card/index.ts` (`./card`)
 - `PrimitivesCollapsible` → `./src/primitives/collapsible/index.ts` (`./collapsible`)
 - `PrimitivesCombobox` → `./src/primitives/combobox/index.ts` (`./combobox`)
+- `PrimitivesFooter` → `./src/primitives/footer/index.ts` (`./footer`)
 - `PrimitivesResizable` → `./src/primitives/resizable/index.ts` (`./resizable`)
 - `PrimitivesScrollArea` → `./src/primitives/scroll-area/index.ts` (`./scroll-area`)
 - `PrimitivesSeparator` → `./src/primitives/separator/index.ts` (`./separator`)
@@ -194,6 +201,9 @@ type AnchorOnlyProps = Exclude<keyof HTMLAnchorAttributes, keyof HTMLAttributes<
 
 // @public (undocumented)
 type AnchorOnlyProps_2 = Exclude<keyof HTMLAnchorAttributes, keyof HTMLButtonAttributes>;
+
+// @public (undocumented)
+type AnchorOnlyProps_3 = Exclude<keyof HTMLAnchorAttributes, keyof HTMLButtonAttributes>;
 
 // @public (undocumented)
 const Badge: Component<BadgeProps, {}, "ref">;
@@ -333,6 +343,9 @@ type ButtonElementProps = (WithElementRef<HTMLButtonAttributes, HTMLButtonElemen
 
 // @public (undocumented)
 type ButtonOnlyProps = Exclude<keyof HTMLButtonAttributes, keyof HTMLAnchorAttributes>;
+
+// @public (undocumented)
+type ButtonOnlyProps_2 = Exclude<keyof HTMLButtonAttributes, keyof HTMLAnchorAttributes>;
 
 // @public (undocumented)
 type ButtonOwnProps = {
@@ -580,12 +593,45 @@ type CustomSeparatorElementProps = WithElementRef<Omit<HTMLAttributes<HTMLDivEle
 };
 
 // @public (undocumented)
+const FooterGroup: Component<FooterGroupProps, {}, "ref">;
+
+// @public (undocumented)
+type FooterGroup = ReturnType<typeof FooterGroup>;
+
+// @public (undocumented)
+type FooterGroupProps = WithElementRef<Omit<HTMLAttributes<HTMLDivElement>, 'children'>, HTMLDivElement> & {
+    label: string;
+    children: Snippet;
+};
+
+// @public
+const FooterLink: Component<FooterLinkElementProps, {}, "ref">;
+
+// @public (undocumented)
+type FooterLink = ReturnType<typeof FooterLink>;
+
+// @public (undocumented)
+type FooterLinkElementProps = (WithElementRef<HTMLButtonAttributes, HTMLButtonElement> & ForbidProps_3<Exclude<AnchorOnlyProps_3, 'href'>> & {
+    href?: null | undefined;
+}) | (WithElementRef<HTMLAnchorAttributes, HTMLAnchorElement> & ForbidProps_3<ButtonOnlyProps_2> & {
+    href: string;
+});
+
+// @public (undocumented)
+type FooterLinkProps = FooterLinkElementProps;
+
+// @public (undocumented)
 type ForbidProps<Keys extends PropertyKey> = {
     [Key in Keys]?: never;
 };
 
 // @public (undocumented)
 type ForbidProps_2<Keys extends PropertyKey> = {
+    [Key in Keys]?: never;
+};
+
+// @public (undocumented)
+type ForbidProps_3<Keys extends PropertyKey> = {
     [Key in Keys]?: never;
 };
 
@@ -705,6 +751,17 @@ declare namespace PrimitivesCombobox {
         Combobox,
         ComboboxOption,
         ComboboxProps
+    }
+}
+
+declare namespace PrimitivesFooter {
+    export {
+        FooterGroup as Group,
+        FooterLink as Link,
+        FooterGroupProps,
+        FooterLinkProps,
+        FooterGroup,
+        FooterLink
     }
 }
 
