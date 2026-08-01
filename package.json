@@ -33,13 +33,13 @@
 		"setup:hooks": "git config core.hooksPath .githooks"
 	},
 	"devDependencies": {
-		"@google/design.md": "0.1.1",
-		"@microsoft/api-extractor": "7.58.11",
-		"@types/node": "^22.0.0",
+		"@google/design.md": "0.4.0",
+		"@microsoft/api-extractor": "7.58.12",
+		"@types/node": "^26.1.2",
 		"@yesid/config": "workspace:0.2.0",
-		"svelte2tsx": "0.7.58",
+		"svelte2tsx": "0.7.59",
 		"turbo": "^2.5.0",
-		"typescript": "^5.9.3",
+		"typescript": "^7.0.2",
 		"yaml": "2.9.0"
 	},
 	"patchedDependencies": {
