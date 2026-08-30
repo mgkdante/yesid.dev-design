@@ -83,14 +83,17 @@ describe('repository governance contract', () => {
 		expect(pullRequest).toContain('No consumer vendored files are patched');
 	});
 
-	it('records the exact v0.7.1 consumer receipts without inferring product verification', () => {
+	it('records the exact v0.13.0 consumer receipts without inferring product verification', () => {
 		const consumers = read('CONSUMERS.md');
 
-		expect(consumers).toContain('105893db42d9e9fd3f182de1534f34236dc3ef72');
-		expect(consumers).toContain('4ddfc5f934e31c9446f8014d0ae80e1fdb9a8fa6');
-		expect(consumers.match(/schema-2 Release receipt for `v0\.7\.1`/gu)).toHaveLength(2);
-		expect(consumers.match(/c0188172f07e6c4238b3397aa7e1b0d4ff154ee9/gu)).toHaveLength(3);
-		expect(consumers.match(/containing `tokens,motion,gates,ui`/gu)).toHaveLength(2);
+		expect(consumers).toContain('18aa3534c81a0cd5f2a0d81598fc5dc6196eecc6');
+		expect(consumers).toContain('44892dc3e6ce3528d6e98ea07719a6bc0217d241');
+		expect(consumers.match(/schema-2 Release receipt for `v0\.13\.0`/gu)).toHaveLength(2);
+		expect(consumers.match(/annotated tag object `1d86331`/gu)).toHaveLength(2);
+		expect(consumers.match(/eaf1b302421a103652a54b0e631b2fe09e55cb65/gu)).toHaveLength(3);
+		expect(
+			consumers.match(/containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core`/gu),
+		).toHaveLength(2);
 		expect(consumers).toContain('former embedded package copies are no longer present');
 		expect(consumers).toContain('workspace dogfood consumer');
 		expect(consumers).toContain('does not infer product verification');

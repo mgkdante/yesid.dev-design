@@ -34,14 +34,15 @@ If a change serves one product only, keep it in that product. If a consumer need
 
 ## Run the suite
 
-Use Bun 1.3 or newer. Install from the lockfile, then run the same checks as CI:
+The repository pins Bun 1.3.11. Install from the lockfile, then run the same
+root commands as CI:
 
 ```sh
 bun install --frozen-lockfile
-bun x turbo run test
-bun x turbo run check
+bun run check
+bun run test
 bun run ci:tokens
-bun run --cwd apps/gallery build
+bun run build
 ```
 
 `ci:tokens` regenerates the committed token outputs and fails if they drift. Edit `packages/tokens/tokens.json` or generator source, never a generated output by itself.

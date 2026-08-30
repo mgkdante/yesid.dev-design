@@ -22,7 +22,7 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 
 - **`v0.1.0` — THE PARITY RELEASE.** Contents byte-faithful to yesid.dev at the
   anchor SHA (deviations below are the exhaustive list). It preserves the
-  original zero-visual-change baseline; yesid.dev now consumes `v0.7.1`.
+  original zero-visual-change baseline.
 - Later brand changes bump PAST the parity tag (`v0.2.0` adds the dataviz
   scale; beautification-era changes go higher). The parity tag never moves.
 - **Lockstep started at `v0.7.0`.** The root manifest is canonical
@@ -84,13 +84,14 @@ It records what remains consumer-owned, why, and the receipt for each boundary.
 ## Commands
 
 ```sh
-bun install                 # workspace install
-bun run tokens:build        # regenerate the 4 repository artifacts (idempotent)
-bun run ci:tokens           # build + git-diff drift gate on generated outputs
-bun run test                # turbo: all package + app tests
-bun run check               # turbo: typechecks + svelte-check
+bun install --frozen-lockfile   # install the pinned workspace lockfile
+bun run check                   # API, TypeScript, and workspace checks
+bun run test                    # all package + app tests
+bun run ci:tokens               # build + git-diff drift gate on generated outputs
+bun run build                   # token generation + all workspace builds
+bun run tokens:build            # regenerate the 4 repository artifacts (idempotent)
 bun run --cwd apps/gallery dev   # the living gallery
-bun run setup:hooks         # enable .githooks (generated-files guard)
+bun run setup:hooks             # enable .githooks (generated-files guard)
 ```
 
 ## Distribution
@@ -124,10 +125,14 @@ use [`RELEASING.md`](RELEASING.md); compatibility follows
 ## Consumers
 
 The current evidence-backed Release receipts live in
-[`CONSUMERS.md`](CONSUMERS.md). Transit and yesid.dev each adopt all four
-packages through an immutable schema-2 Release receipt. Gallery remains the
-private workspace dogfood consumer. Release adoption and product verification
-are separate gates; neither is inferred from an upstream tag.
+[`CONSUMERS.md`](CONSUMERS.md). At Transit
+`18aa3534c81a0cd5f2a0d81598fc5dc6196eecc6` and yesid.dev
+`44892dc3e6ce3528d6e98ea07719a6bc0217d241`, each consumer adopts the seven
+lockstep packages from `v0.13.0` through an immutable schema-2 Release receipt.
+The annotated tag object `1d86331` peels to
+`eaf1b302421a103652a54b0e631b2fe09e55cb65`. Gallery remains the private
+workspace dogfood consumer. Release adoption and product verification are
+separate gates; neither is inferred from an upstream tag.
 
 ## AI-accelerated, human-owned
 
