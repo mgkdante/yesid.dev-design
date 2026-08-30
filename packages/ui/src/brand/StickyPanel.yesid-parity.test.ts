@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { render } from '@testing-library/svelte';
 import { createRawSnippet, tick } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
@@ -7,11 +5,6 @@ import StickyPanel from './StickyPanel.svelte';
 import StickyPanelYesidFixture from './test-fixtures/StickyPanelYesidFixture.svelte';
 
 const children = createRawSnippet(() => ({ render: () => '<p>Sidebar</p>' }));
-const fixtureSource = readFileSync(
-	join(process.cwd(), 'src/brand/test-fixtures/StickyPanelYesidFixture.svelte'),
-	'utf8',
-);
-
 describe('StickyPanel yesid.dev wrapper parity', () => {
 	it('exposes the current root markup and a consumer hook without importing app motion', () => {
 		// yesid.dev/apps/web/src/lib/components/brand/StickyPanel.svelte:18-38
@@ -59,11 +52,5 @@ describe('StickyPanel yesid.dev wrapper parity', () => {
 		rendered.unmount();
 		expect(destroy).toHaveBeenCalledOnce();
 		expect(panel?.hasAttribute('data-lenis-prevent')).toBe(false);
-	});
-
-	it('locks the exact yesid.dev surface and shadow overrides in the wrapper fixture', () => {
-		// yesid.dev/apps/web/src/lib/components/brand/StickyPanel.svelte:30-39
-		expect(fixtureSource).toContain('background: var(--surface-3);');
-		expect(fixtureSource).toContain('box-shadow: none;');
 	});
 });

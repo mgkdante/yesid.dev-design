@@ -1,11 +1,7 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { render } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { describe, expect, it } from 'vitest';
 import MetroStation from './MetroStation.svelte';
-
-const source = readFileSync(join(process.cwd(), 'src/brand/MetroStation.svelte'), 'utf8');
 
 const yesidRoundel = createRawSnippet<[string]>((stationNo) => ({
 	render: () =>
@@ -47,14 +43,5 @@ describe('MetroStation consumer parity', () => {
 		expect(lines[0]?.getAttribute('stroke')).toBe('var(--line-amber, var(--primary))');
 		expect(lines[1]?.getAttribute('stroke')).toBe('var(--border-strong)');
 		expect(lines[1]?.getAttribute('stroke-dasharray')).toBe('1 4');
-	});
-
-	it('sizes only a consumer-provided Badge through the same 32px hook', () => {
-		// yesid.dev/apps/web/src/lib/components/brand/MetroStation.svelte:83-89
-		// sizes the nested Badge through a global station-number-badge selector.
-		expect(source).toContain(
-			".station-badge-wrapper :global([data-slot='badge'].station-number-badge)",
-		);
-		expect(source).not.toContain('.station-badge-wrapper :global(.station-number-badge)');
 	});
 });

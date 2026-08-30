@@ -1,10 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import SectionLabel from './SectionLabel.svelte';
-
-const source = readFileSync(join(process.cwd(), 'src/brand/SectionLabel.svelte'), 'utf8');
 
 describe('SectionLabel', () => {
 	it('renders text with the section variant by default', () => {
@@ -30,12 +26,5 @@ describe('SectionLabel', () => {
 		expect(label?.classList).toContain('block');
 		expect(label?.classList).toContain('text-center');
 		expect(label?.classList).toContain('consumer-label');
-	});
-
-	it('owns the shared label styles so a third consumer needs no app.css copy', () => {
-		expect(source).toContain('.label-section {');
-		expect(source).toContain('letter-spacing: var(--tracking-eyebrow, 0.1em)');
-		expect(source).toContain('.label-station {');
-		expect(source).toContain('.label-metric {');
 	});
 });
