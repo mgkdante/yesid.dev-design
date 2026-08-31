@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,6 +50,11 @@ describe('real repository adoption cascade', () => {
 		const first = adoptFromSource(options);
 		expect(first.outcome).toBe('installed');
 		expect(checkAdoption(dest)).toEqual(first.manifest);
+		const uiReadme = readFileSync(join(dest, 'ui', 'README.md'), 'utf8');
+		expect(uiReadme).toContain(
+			'https://github.com/mgkdante/yesid.dev-design/blob/v0.13.1/docs/BUILD-A-YESID-PRODUCT.md#4-configure-ui-once-per-module-graph-at-boot',
+		);
+		expect(uiReadme).not.toContain('](../../docs/');
 		for (const module of ['acquisition.ts', 'contract.ts', 'payload.ts', 'transaction.ts']) {
 			expect(existsSync(join(dest, 'tools', 'adopt', module))).toBe(true);
 		}
