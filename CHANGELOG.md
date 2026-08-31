@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.1
+
+<!-- release-fragment: absolute-ui-guide-link -->
+- `@yesid/ui` (patch): Fix the vendored UI README link to the immutable v0.13.1 product setup guide.
+
 ## 0.13.0
 
 <!-- release-fragment: 035-footer-ripple-strip -->

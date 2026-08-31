@@ -1,6 +1,6 @@
 {
 	"name": "yesid-dev-design",
-	"version": "0.13.0",
+	"version": "0.13.1",
 	"private": true,
 	"type": "module",
 	"description": "yesid.dev brand foundation — tokens, motion, gates, UI, gallery. Parity anchor: yesid.dev @ 2bdb611d91749dc437c07586cb82129eabe9dfec.",
@@ -20,7 +20,6 @@
 		"config:release:verify": "bun tools/config-release.ts verify",
 		"release:check": "bun tools/release.ts check",
 		"release:prepare": "bun tools/release.ts prepare",
-		"scorecard:measure": "bun tools/phase2-scorecard.ts",
 		"build": "bun run tokens:build && turbo run build",
 		"test": "turbo run test",
 		"test:browser": "bun run --cwd apps/gallery test:browser",

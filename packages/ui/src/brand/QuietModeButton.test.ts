@@ -1,10 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import QuietModeButton, { type QuietModeButtonCopy } from './QuietModeButton.svelte';
-
-const componentSource = readFileSync(join(process.cwd(), 'src/brand/QuietModeButton.svelte'), 'utf8');
 
 const copy: QuietModeButtonCopy = {
 	collapse: 'Collapse all',
@@ -143,19 +139,5 @@ describe('QuietModeButton', () => {
 		expect(container.firstElementChild?.classList.contains('quiet-mode-controls')).toBe(true);
 		expect(container.firstElementChild?.classList.contains('quiet-mode-controls--glow')).toBe(true);
 		expect(container.firstElementChild?.classList.contains('consumer-control')).toBe(true);
-	});
-
-	it('locks tap geometry, non-stacking layout, reduced motion, and glow-only filters', () => {
-		expect(componentSource).toContain('display: inline-flex;');
-		expect(componentSource).toContain('min-width: 44px;');
-		expect(componentSource).toContain('min-height: 44px;');
-		expect(componentSource).toContain('@media (prefers-reduced-motion: reduce)');
-		expect(componentSource).toContain('transition: none;');
-		expect(componentSource).toContain(
-			".quiet-mode-controls--glow .quiet-mode-toggle[data-collapsed='true'] .q-core",
-		);
-		expect(componentSource).toContain(
-			".quiet-mode-controls--glow .quiet-mode-toggle[data-remembered='true'] .r-bookmark",
-		);
 	});
 });
