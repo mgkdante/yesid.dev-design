@@ -33,8 +33,16 @@ SOFTWARE.
 describe('repository governance contract', () => {
 	it('keeps LICENSE as the unmodified MIT grant and separates brand notices', () => {
 		expect(read('LICENSE')).toBe(MIT_LICENSE);
-		expect(read('NOTICE')).toContain('Copyright (c) 2026 Yesid Otalora');
-		expect(read('NOTICE')).toContain('TRADEMARK.md');
+
+		const notice = read('NOTICE');
+		expect(notice).toContain('Copyright (c) 2026 Yesid Otalora');
+		expect(notice).toContain('TRADEMARK.md');
+		expect(notice).toContain('GSAP 3.15.0');
+		expect(notice).toContain('Standard "No Charge" GSAP License');
+		expect(notice).toContain('https://gsap.com/community/standard-license/');
+		expect(notice).toContain('GSAP is not covered by this repository\'s MIT License');
+		expect(notice).toContain('including commercial projects');
+		expect(notice).toMatch(/visual animations without\s+code/u);
 
 		const trademark = read('TRADEMARK.md');
 		expect(trademark).toContain('The MIT License covers the software');
