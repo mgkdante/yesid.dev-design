@@ -94,8 +94,8 @@ Fix the defect upstream and prove the neutral regression passes. If the fix chan
 - Keep the pull request small enough to review directly.
 - Explain the observed problem, the decision, and the proof.
 - Add a regression test for behavior changes.
-- Preserve byte parity where a parity note requires it.
-- Update `PARITY-NOTES.md` or `DECISIONS.md` when a public contract changes.
+- Preserve generated-byte parity and every applicable consumer compatibility seam.
+- Update `packages/ui/README.md`, `BOUNDARIES.md`, or `DECISIONS.md` when its public contract changes.
 - Include the commands you ran and their results.
 - Do not include consumer patches in an upstream package pull request.
 

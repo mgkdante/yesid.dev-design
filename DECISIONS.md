@@ -1,8 +1,7 @@
 # Architecture decisions
 
 This file records the current public architecture contracts. Historical release detail remains
-available in Git history, `CHANGELOG.md`, and `packages/ui/PARITY-NOTES.md`; it does not govern
-the current package surface.
+available in Git history and `CHANGELOG.md`; it does not govern the current package surface.
 
 ## D1: The parity anchor is immutable
 
@@ -74,3 +73,33 @@ package contains no framework virtual-module imports or product locale registry.
 `@yesid/motion/ripple.css` exposes its visual contract. Neither is a Svelte action, and neither
 runs or injects CSS on import. Consumers explicitly initialize the utility, import the
 stylesheet, and supply any live exclusion selector.
+
+## D10: Fluid clamp tokens stay structured at the source
+
+Fluid values use the `yesid.clamp` extension with structured `min`, `preferred`, and `max`
+strings. Parsing rejects incomplete triples. CSS and ordinary YAML serialization produce
+`clamp(min, preferred, max)`, and Figma export carries that expression as a STRING variable.
+`DESIGN.md` typography uses the structured maximum because its font-size schema accepts one
+dimension; spacing may retain the quoted clamp expression. This preserves the three inputs for
+deterministic targets without pretending that clamp is a native DTCG dimension.
+
+## D11: UI compatibility is owned by durable package and consumer contracts
+
+`packages/ui/README.md` owns the shared component behavior and the known consumer compatibility
+seams. `BOUNDARIES.md` owns the cross-product placement decision, and each product owns the tests
+for its local policy and appearance. Product conflicts never become app checks in the package:
+yesid.dev's Button conversion and Card bevel/shadow stay local, Transit's flat Card contract stays
+local, and composed `CollapsibleSection` behavior stays local until the rule of three is met.
+
+Shared controlled views own only their rendered mechanics. Consumers continue to own copy,
+locale selection, state, persistence, actions, and adapters such as StopLabel prefixes,
+MetroStation roundels, and StickyPanel or TerminalCursor compatibility styling. Package and
+Gallery tests prove the neutral surface; every adoption still requires the consumer's source
+guards, generated outputs, tests, build, accessibility checks, and relevant browser comparison.
+
+## D12: Gallery is the repository browser authority, not consumer proof
+
+Gallery dogfoods the workspace packages and owns repository-level rendered integration,
+accessibility, reduced-motion, responsive, and visual-regression checks. It does not install the
+immutable Release asset and cannot prove a Transit or yesid.dev adoption. Release integrity and
+each product's verification remain separate gates.

@@ -245,7 +245,7 @@ product has custom vocabulary.
 
 This configuration is fixed application vocabulary. Never derive it from a
 request, tenant, user, locale, or other runtime-scoped value. Provider/context
-configuration is deferred and is not part of the v0.7 public API.
+configuration is deferred and is not part of the current public API.
 `ConfigureUiResult = 'initialized' | 'unchanged'` is observable public API, not
 an internal diagnostic.
 
@@ -359,7 +359,7 @@ bun run build
 
 ## 7. Keep localization authority and copy in the product
 
-`@yesid/i18n-core` does not discover product locale authority or ship product copy. Consumers inject their concrete locale values, routing policy, framework adapters, and runtime flag values. Other packages continue to receive translated labels, placeholders, clear labels, empty states, option labels, and `StopLabel` prefixes from the product. See the [Combobox copy levers](../packages/ui/PARITY-NOTES.md#combobox-wave-4-promotion) and the [localized StopLabel prefix](../packages/ui/PARITY-NOTES.md#stoplabel). The same notes ship at `vendor/design/ui/PARITY-NOTES.md` after adoption.
+`@yesid/i18n-core` does not discover product locale authority or ship product copy. Consumers inject their concrete locale values, routing policy, framework adapters, and runtime flag values. Other packages continue to receive translated labels, placeholders, clear labels, empty states, option labels, and `StopLabel` prefixes from the product. See the [Combobox contract](../packages/ui/README.md#combobox) and the [localized StopLabel prefix](../packages/ui/README.md#stoplabel). The same durable package guide ships at `vendor/design/ui/README.md` after adoption.
 
 Do not add product-specific locale checks, copy policy, or framework virtual-module imports to a package. If a third product needs a new copy seam, add a generic prop upstream with a default that preserves current consumers.
 
