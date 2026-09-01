@@ -42,8 +42,8 @@ describe('push-to-figma', () => {
   });
 
   it('produces 161 variables', () => {
-    // Sanity check on the overall count: 82 before the
-    // package trim, then 13 additions: 3 theme-moded colors, 6 surface aliases,
+    // Sanity check on the starting count: 69 after the package trim, plus 13
+    // additions, for 82: 3 theme-moded colors, 6 surface aliases,
     // 3 border aliases and shadow/sheet. The next 19 are 7 theme-invariant
     // signal-systems tokens (hazard-a/b, signage-bg/text, signal-
     // proceed/caution/stop) + 12 per-mode pairs that merge to one variable
@@ -66,7 +66,7 @@ describe('push-to-figma', () => {
     // ripple z-index tiers above nav).
     // The dataviz scale contributes 23 variables:
     // status 5, occupancy 5, severity 3 and heatmap 10, with per-mode pairs
-    // that merge to one moded color/dataviz-* variable each). 133 was the
+    // that merge to one moded color/dataviz-* variable each. 133 was the
     // prior parity-anchor count.
     // Four canonical breakpoint dimensions cover tablet min/max and
     // desktop min/max.
