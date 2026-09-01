@@ -93,14 +93,19 @@ describe('repository governance contract', () => {
 		expect(pullRequest).toContain('No consumer vendored files are patched');
 	});
 
-	it('records the exact v0.13.0 consumer receipts without inferring product verification', () => {
+	it('records the exact v0.13.1 consumer receipts without inferring product verification', () => {
 		const consumers = read('CONSUMERS.md');
 
-		expect(consumers).toContain('18aa3534c81a0cd5f2a0d81598fc5dc6196eecc6');
-		expect(consumers).toContain('44892dc3e6ce3528d6e98ea07719a6bc0217d241');
-		expect(consumers.match(/schema-2 Release receipt for `v0\.13\.0`/gu)).toHaveLength(2);
-		expect(consumers.match(/annotated tag object `1d86331`/gu)).toHaveLength(2);
-		expect(consumers.match(/eaf1b302421a103652a54b0e631b2fe09e55cb65/gu)).toHaveLength(3);
+		expect(consumers).toContain('ee2e565c86df4ffa40f11fcffb2ae23b56410a4e');
+		expect(consumers).toContain('8e23e70bcd564de09ac52f09141a9a848a128180');
+		expect(consumers.match(/schema-2 Release receipt for `v0\.13\.1`/gu)).toHaveLength(2);
+		expect(
+			consumers.match(
+				/annotated tag object `cb2a6d76423c33303b9e86257f5639d10eb20bc7`/gu,
+			),
+		).toHaveLength(2);
+		expect(consumers.match(/7cda0887287ef1e274582813d4c1a5795a54b7ea/gu)).toHaveLength(2);
+		expect(consumers).toContain('9a1535c36a731268131b1631c32eeac63d42bbcc');
 		expect(
 			consumers.match(/containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core`/gu),
 		).toHaveLength(2);
@@ -109,6 +114,36 @@ describe('repository governance contract', () => {
 		expect(consumers).toContain('does not infer product verification');
 		expect(consumers).not.toContain('legacy manifest');
 		expect(consumers).not.toContain('not yet adopted schema 2');
+	});
+
+	it('keeps migrated fluid-token and UI compatibility knowledge under durable owners', () => {
+		const decisions = read('DECISIONS.md');
+		const boundaries = read('BOUNDARIES.md');
+		const ui = read('packages/ui/README.md');
+		const readme = read('README.md');
+
+		expect(decisions).toContain('## D10: Fluid clamp tokens stay structured at the source');
+		expect(decisions).toContain('Figma export carries that expression as a STRING variable');
+		expect(decisions).toContain('## D11: UI compatibility is owned by durable package and consumer contracts');
+		expect(boundaries).toContain('[Card contract](packages/ui/README.md#card)');
+		for (const contract of [
+			'--size-tap-min: 44px',
+			'conversion signage colors',
+			'yesid.dev intentionally omits the shared `pressBounce` action',
+			'no-edge-highlight contract',
+			'force-mounts by default',
+			'localized prefix',
+			'app-local `scrollChain`',
+			'8px width, 14px height, and 4px left margin',
+			'Package tests and Gallery browser checks',
+		]) {
+			expect(ui, contract).toContain(contract);
+		}
+		expect(ui).toMatch(
+			/keeps `text-sm` for the\s+base, `text-xs` for `xs`, and `text-small` for `cta-sm`/u,
+		);
+		expect(ui).not.toMatch(/\bwave\s+\d/iu);
+		expect(readme).toContain('This repo is built with AI assistance under human direction');
 	});
 
 	it('defines a bounded deprecation lifecycle for stable contracts', () => {

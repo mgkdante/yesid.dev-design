@@ -1,7 +1,8 @@
 # yesid.dev-design
 
 The yesid brand's shared foundation as a standalone bun+turbo monorepo — design
-tokens, pure motion actions, UI primitives, quality gates, neutral SEO infrastructure, consent-aware analytics primitives, and consumer-configured locale-routing mechanics, extracted from
+tokens, pure motion actions, UI primitives, quality gates, neutral SEO infrastructure,
+consent-aware analytics primitives, and consumer-configured locale-routing mechanics, extracted from
 **yesid.dev @ `2bdb611d91749dc437c07586cb82129eabe9dfec`** (the **parity
 anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 
@@ -126,17 +127,17 @@ use [`RELEASING.md`](RELEASING.md); compatibility follows
 
 The current evidence-backed Release receipts live in
 [`CONSUMERS.md`](CONSUMERS.md). At Transit
-`18aa3534c81a0cd5f2a0d81598fc5dc6196eecc6` and yesid.dev
-`44892dc3e6ce3528d6e98ea07719a6bc0217d241`, each consumer adopts the seven
-lockstep packages from `v0.13.0` through an immutable schema-2 Release receipt.
-The annotated tag object `1d86331` peels to
-`eaf1b302421a103652a54b0e631b2fe09e55cb65`. Gallery remains the private
+`ee2e565c86df4ffa40f11fcffb2ae23b56410a4e` and yesid.dev
+`8e23e70bcd564de09ac52f09141a9a848a128180`, each consumer adopts the seven
+lockstep packages from `v0.13.1` through an immutable schema-2 Release receipt.
+The annotated tag object `cb2a6d76423c33303b9e86257f5639d10eb20bc7`
+peels to `7cda0887287ef1e274582813d4c1a5795a54b7ea`. Gallery remains the private
 workspace dogfood consumer. Release adoption and product verification are
 separate gates; neither is inferred from an upstream tag.
 
 ## AI-accelerated, human-owned
 
-This repo is built with AI assistance under strict human direction — every
-architectural and brand decision is the author's. The full operating model
-(adversarial review in both directions, machine-enforced brand doctrine) is
-documented in [docs/AI-WORKFLOW.md](docs/AI-WORKFLOW.md).
+This repo is built with AI assistance under human direction. Architecture,
+brand choices, release decisions, and acceptance remain human-owned; agent
+output is reviewed, claims are checked against source, and CI enforces the
+durable package, token, and release contracts.

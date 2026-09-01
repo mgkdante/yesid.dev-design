@@ -10,9 +10,12 @@ subdirectories. Every caller pins all three to the same reviewed 40-character co
 ```
 
 A branch, floating tag, abbreviated SHA, expression, or mixed set of SHAs is outside the
-contract. The exact ST3 merge commit recorded in the program handoff becomes the first usable
-pin. Consumer changes remain deliberate bump pull requests; this repository never edits their
-workflow paths, environment bindings, deploy credentials, or application smoke tests.
+contract. The current reviewed producer receipt is
+[`a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25`](https://github.com/mgkdante/yesid.dev-design/commit/a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25).
+The examples intentionally retain `<FULL_40_CHARACTER_COMMIT_SHA>` so every consumer must insert
+and review its own exact pin. Consumer changes remain deliberate bump pull requests; this
+repository never edits their workflow paths, environment bindings, deploy credentials, or
+application smoke tests.
 
 ## Drift manifest
 

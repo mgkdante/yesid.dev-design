@@ -1,14 +1,14 @@
 # Consumers
 
 This registry records Release-adoption facts observed at each repository's
-canonical `origin/main` on 2026-08-30. It does not infer product verification;
+canonical `origin/main` on 2026-09-01. It does not infer product verification;
 that remains consumer-owned.
 
 | Consumer | Observed ref | Release-adoption state | Required next transition |
 |---|---|---|---|
-| Transit | `18aa3534c81a0cd5f2a0d81598fc5dc6196eecc6` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.13.0`, annotated tag object `1d86331`, peeled commit `eaf1b302421a103652a54b0e631b2fe09e55cb65`, containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core`. | Future changes use a reviewed exact-tag adoption PR, followed by Transit's own vendor, generated-output, test, build, and product/browser verification. |
-| yesid.dev | `44892dc3e6ce3528d6e98ea07719a6bc0217d241` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.13.0`, annotated tag object `1d86331`, peeled commit `eaf1b302421a103652a54b0e631b2fe09e55cb65`, containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core`. The former embedded package copies are no longer present. | Future changes use a reviewed exact-tag adoption PR, followed by yesid.dev's own vendor, generated-output, test, build, and product/browser verification. |
-| Gallery | yesid.dev-design `eaf1b302421a103652a54b0e631b2fe09e55cb65` | `apps/gallery` is the private workspace dogfood consumer. It resolves packages through `workspace:*`; it is not an external Release consumer and its app version remains outside package lockstep. | Continue exercising package integration and browser authority here. Do not treat Gallery success as proof of an external consumer's product verification. |
+| Transit | `ee2e565c86df4ffa40f11fcffb2ae23b56410a4e` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.13.1`, annotated tag object `cb2a6d76423c33303b9e86257f5639d10eb20bc7`, peeled commit `7cda0887287ef1e274582813d4c1a5795a54b7ea`, containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core`. | Future changes use a reviewed exact-tag adoption PR, followed by Transit's own vendor, generated-output, test, build, and product/browser verification. |
+| yesid.dev | `8e23e70bcd564de09ac52f09141a9a848a128180` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.13.1`, annotated tag object `cb2a6d76423c33303b9e86257f5639d10eb20bc7`, peeled commit `7cda0887287ef1e274582813d4c1a5795a54b7ea`, containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core`. The former embedded package copies are no longer present. | Future changes use a reviewed exact-tag adoption PR, followed by yesid.dev's own vendor, generated-output, test, build, and product/browser verification. |
+| Gallery | yesid.dev-design `9a1535c36a731268131b1631c32eeac63d42bbcc` | `apps/gallery` is the private workspace dogfood consumer. It resolves packages through `workspace:*`; it is not an external Release consumer and its app version remains outside package lockstep. | Continue exercising package integration and browser authority here. Do not treat Gallery success as proof of an external consumer's product verification. |
 
 ## State vocabulary
 

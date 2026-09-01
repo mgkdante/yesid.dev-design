@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -19,6 +19,17 @@ function tempDir(): string {
 	const path = mkdtempSync(join(tmpdir(), 'yesid-adopt-cascade-'));
 	scratch.push(path);
 	return path;
+}
+
+function relativeMarkdownLinks(markdown: string): string[] {
+	return [...markdown.matchAll(/!?\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/gu)]
+		.map((match) => match[1]!)
+		.filter(
+			(target) =>
+				!target.startsWith('#') &&
+				!target.startsWith('//') &&
+				!/^[a-z][a-z0-9+.-]*:/iu.test(target),
+		);
 }
 
 afterEach(() => {
@@ -55,6 +66,17 @@ describe('real repository adoption cascade', () => {
 			'https://github.com/mgkdante/yesid.dev-design/blob/v0.13.1/docs/BUILD-A-YESID-PRODUCT.md#4-configure-ui-once-per-module-graph-at-boot',
 		);
 		expect(uiReadme).not.toContain('](../../docs/');
+		const uiRoot = join(dest, 'ui');
+		for (const target of relativeMarkdownLinks(uiReadme)) {
+			const linkedPath = resolve(uiRoot, decodeURIComponent(target.split(/[?#]/u, 1)[0]!));
+			const packageRelativePath = relative(uiRoot, linkedPath);
+			expect(packageRelativePath, `${target} must stay inside the installed UI package`).not.toMatch(
+				/^\.\.(?:[/\\]|$)|^(?:[/\\])/u,
+			);
+			expect(existsSync(linkedPath), `${target} must resolve inside the installed UI package`).toBe(
+				true,
+			);
+		}
 		for (const module of ['acquisition.ts', 'contract.ts', 'payload.ts', 'transaction.ts']) {
 			expect(existsSync(join(dest, 'tools', 'adopt', module))).toBe(true);
 		}
