@@ -149,7 +149,11 @@ general Badge token contract.
 The package owns the common variants, element split, disabled-link behavior, and `pressBounce`
 wiring. The yellow conversion CTA is product behavior, not a shared variant: yesid.dev retains
 its conversion signage colors and conversion-only lift/glow in a local wrapper or variant.
-Adoption must preserve those product tests rather than adding an app-specific package branch.
+The package baseline uses `text-control` for the base and `cta-sm` sizes and `text-caption` for
+`xs`. yesid.dev intentionally omits the shared `pressBounce` action and keeps `text-sm` for the
+base, `text-xs` for `xs`, and `text-small` for `cta-sm` in its local adapter. Adoption must
+preserve that motion absence, local typography, and the product tests rather than adding an
+app-specific package branch.
 
 ### Card
 
@@ -285,6 +289,5 @@ For every exact-tag adoption:
    accessibility states, and reduced motion.
 
 Package tests and Gallery browser checks remain required upstream, but neither proves that an
-external consumer retained its product-specific behavior. See [`DECISIONS.md` D11 and
-D12](../../DECISIONS.md#d11-ui-compatibility-is-owned-by-durable-package-and-consumer-contracts)
-and the cross-product [`BOUNDARIES.md`](../../BOUNDARIES.md).
+external consumer retained its product-specific behavior. This installed guide is the durable
+owner for the package/consumer UI seams and verification duties listed above.

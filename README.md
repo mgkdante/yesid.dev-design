@@ -141,10 +141,3 @@ This repo is built with AI assistance under human direction. Architecture,
 brand choices, release decisions, and acceptance remain human-owned; agent
 output is reviewed, claims are checked against source, and CI enforces the
 durable package, token, and release contracts.
-
-## Licence and brand identity
-
-Repository-authored software is available under the unmodified [MIT License](LICENSE).
-[`NOTICE`](NOTICE) records the separate GSAP licence boundary, and
-[`TRADEMARK.md`](TRADEMARK.md) explains brand-identifier use without changing
-the software grant.

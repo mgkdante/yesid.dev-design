@@ -129,6 +129,7 @@ describe('repository governance contract', () => {
 		for (const contract of [
 			'--size-tap-min: 44px',
 			'conversion signage colors',
+			'yesid.dev intentionally omits the shared `pressBounce` action',
 			'no-edge-highlight contract',
 			'force-mounts by default',
 			'localized prefix',
@@ -138,6 +139,9 @@ describe('repository governance contract', () => {
 		]) {
 			expect(ui, contract).toContain(contract);
 		}
+		expect(ui).toMatch(
+			/keeps `text-sm` for the\s+base, `text-xs` for `xs`, and `text-small` for `cta-sm`/u,
+		);
 		expect(ui).not.toMatch(/\bwave\s+\d/iu);
 		expect(readme).toContain('This repo is built with AI assistance under human direction');
 	});
