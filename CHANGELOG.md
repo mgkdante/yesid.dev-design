@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.2
+
+<!-- release-fragment: postphase3-contract-docs -->
+- `@yesid/tokens` (patch), `@yesid/ui` (patch): Move fluid-token and UI compatibility guidance into durable package contracts without changing public APIs, runtime behavior, or token values.
+
+<!-- release-fragment: postphase3-lineage-cleanup -->
+- `@yesid/tokens` (patch), `@yesid/motion` (patch), `@yesid/ui` (patch): Remove historical lineage labels from package comments and token descriptions without changing APIs, behavior, or token values.
+
 ## 0.13.1
 
 <!-- release-fragment: absolute-ui-guide-link -->
