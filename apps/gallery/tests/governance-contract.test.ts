@@ -93,19 +93,22 @@ describe('repository governance contract', () => {
 		expect(pullRequest).toContain('No consumer vendored files are patched');
 	});
 
-	it('records the exact v0.13.1 consumer receipts without inferring product verification', () => {
+	it('records the exact v0.13.2 consumer receipts without inferring product verification', () => {
 		const consumers = read('CONSUMERS.md');
 
-		expect(consumers).toContain('ee2e565c86df4ffa40f11fcffb2ae23b56410a4e');
-		expect(consumers).toContain('8e23e70bcd564de09ac52f09141a9a848a128180');
-		expect(consumers.match(/schema-2 Release receipt for `v0\.13\.1`/gu)).toHaveLength(2);
-		expect(
-			consumers.match(
-				/annotated tag object `cb2a6d76423c33303b9e86257f5639d10eb20bc7`/gu,
-			),
-		).toHaveLength(2);
-		expect(consumers.match(/7cda0887287ef1e274582813d4c1a5795a54b7ea/gu)).toHaveLength(2);
-		expect(consumers).toContain('9a1535c36a731268131b1631c32eeac63d42bbcc');
+		expect(consumers).toContain('1482d18a965b81f2762594fee484d8e5928a84a7');
+		expect(consumers).toContain('421299c8b28293f67a6615e81d804caa4fe7649a');
+		expect(consumers.match(/schema-2 Release receipt for `v0\.13\.2`/gu)).toHaveLength(2);
+		expect(consumers).toContain('2809b5a33ed08cf0c2e470cbc56d2a8ac68836cb');
+		expect(consumers).toContain('bcc628763245387c23eeeb7d81af7c0f75176421');
+		expect(consumers).toContain('yesid.dev-design-v0.13.2.tar');
+		expect(consumers).toContain('798720 bytes');
+		expect(consumers).toContain(
+			'sha256:1376c630f0c5288c13ca671bc78073ca70e1f5d7d16287d4bc731c05847565e9',
+		);
+		expect(consumers).toContain(
+			'Gallery | yesid.dev-design `bcc628763245387c23eeeb7d81af7c0f75176421`',
+		);
 		expect(
 			consumers.match(/containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core`/gu),
 		).toHaveLength(2);
