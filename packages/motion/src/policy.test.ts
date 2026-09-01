@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { shouldAnimate } from './policy.js';
 
-// GO-w2t5: the two-tier motion policy, formalized. SAFE-ALWAYS ignores the
-// OS reduced-motion setting; MOTION-GATED honors it.
+// SAFE-ALWAYS ignores the OS reduced-motion setting; MOTION-GATED honors it.
 
 function mockMatchMedia(matches: boolean): void {
 	Object.defineProperty(window, 'matchMedia', {

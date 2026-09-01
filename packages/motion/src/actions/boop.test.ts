@@ -85,7 +85,7 @@ describe('boop action', () => {
 		// The point is destroy() doesn't throw.
 	});
 
-	it('GO-w2t5 retier: boops under prefers-reduced-motion (SAFE-ALWAYS, ≤1.05 scale)', async () => {
+	it('boops under prefers-reduced-motion at the SAFE-ALWAYS default scale of ≤1.05', async () => {
 		mockMatchMedia(true);
 		vi.resetModules();
 		const { boop } = await import('./boop.js');

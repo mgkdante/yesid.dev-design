@@ -11,10 +11,8 @@ function runScript(): FigmaVariable[] {
 
 describe('push-to-figma', () => {
   it('produces no name collisions across collections', () => {
-    // Regression: in PR #61's use_figma push code, collection-prefix stripping
-    // collapsed `shadow/card` and `color/card` to the same name. The output of
-    // push-to-figma.ts itself must never contain duplicate names — even if a
-    // downstream consumer wants to display them differently in Figma.
+    // Collection prefixes are part of the public variable name. In particular,
+    // `shadow/card` and `color/card` must never collapse to the same name.
     const vars = runScript();
     const names = vars.map((v) => v.name);
     const dupes = names.filter((n, i) => names.indexOf(n) !== i);
@@ -42,35 +40,13 @@ describe('push-to-figma', () => {
   });
 
   it('produces 161 variables', () => {
-    // Sanity check on the overall count. 82 at GO-W2.2 (69 after
-    // slice-design's trim + 13: 3 theme-moded colors, 6 surface aliases,
-    // 3 border aliases, shadow/sheet). GO2-W5 adds 19: 7 theme-invariant
-    // signal-systems tokens (hazard-a/b, signage-bg/text, signal-
-    // proceed/caution/stop) + 12 per-mode pairs that merge to one variable
-    // each (terminal-chrome, terminal-ink, terminal-ink-muted, signal-lunar,
-    // lamp-bezel, line-amber, accent-surface, grid-line-major/minor,
-    // grid-block-marker, grid-glow, edge-highlight). destructive-foreground
-    // moved brand → per-mode, which re-modes the existing variable without
-    // changing the count. Taste round 2 adds 2: the BOLD structural rules
-    // border/rule + border/rule-accent (solid orange / yellow voices).
-    // Round 4 adds 1: color/reflective — the theme-invariant WHITE voice of
-    // the four-color infrastructure doctrine.
-    // Typography token system (listing/detail consolidation) adds 24 number
-    // variables: detail-body, nav, menu, tag, metric-chip, card title/body/meta,
-    // back-link and control sizes across mobile + desktop scales.
-    // Glow token system adds 1: color/glow — the theme-invariant decorative
-    // glow color (glows ride --glow, vivid in both themes; never text, so not
-    // AA-bound), so glows read in light without per-component overrides.
-    // consolidation-vibe-style-fixes adds 4: shadow/cta + shadow/cta-hover
-    // (hero CTA shadow folded into tokens) and z/overlay + z/ripple (modal and
-    // ripple z-index tiers above nav).
-    // yesid.dev-design v0.2.0 adds 23: the dataviz scale reconciled from
-    // transit (status 5, occupancy 5, severity 3, heatmap 10 — per-mode pairs
-    // that merge to one moded color/dataviz-* variable each). 133 was the
-    // v0.1.0 parity-anchor count (yesid.dev @ 2bdb611d).
-    // WS-D/D1(a) adds 4 canonical breakpoint dimensions: tablet min/max and
-    // desktop min/max.
-    // P3-035PR1 adds 1 semantic strip composite dimension: size/stripH.
+    // Current projection: 67 color + 3 font + 35 text + 1 size + 3 space +
+    // 5 radius + 9 shadow + 6 surface + 5 border + 8 z + 5 duration + 4 ease +
+    // 4 opacity + 4 breakpoint + 2 container variables = 161. The color set
+    // includes theme modes, signal-system and dataviz scales, reflective and
+    // decorative-glow roles; same-name themed pairs merge into one variable.
+    // Structural rules, CTA shadows, overlay/ripple tiers, canonical breakpoint
+    // dimensions and the semantic strip height are part of this count.
     const vars = runScript();
     expect(vars.length).toBe(161);
   });
@@ -88,8 +64,8 @@ describe('push-to-figma', () => {
   });
 
   it('theme re-pins of brand names merge as modes of one variable (no duplicates)', () => {
-    // GO-W2.2: color.dark.primary + color.light.primary collapse onto the
-    // brand color/primary variable as dark/light modes alongside default.
+    // Theme-specific primary values merge into the brand color/primary variable
+    // as dark/light modes alongside default.
     const vars = runScript();
     const primary = vars.filter((v) => v.name === 'color/primary');
     expect(primary).toHaveLength(1);

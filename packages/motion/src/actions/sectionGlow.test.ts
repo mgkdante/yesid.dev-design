@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { sectionGlow } from './sectionGlow.js';
 
-// Slice-23 Task 5. `sectionGlow` is a Svelte action that tracks cursor
-// proximity inside a section via CSS custom properties (--glow-x / --glow-y /
+// `sectionGlow` tracks cursor proximity inside a section via CSS custom
+// properties (--glow-x / --glow-y /
 // --glow-opacity). Consumers paint a radial gradient using those vars in a
 // background layer (e.g. `::before`). Action is a no-op on touch-only
-// devices; SAFE-ALWAYS under reduced motion since GO-w2t5.
+// devices and SAFE-ALWAYS under reduced motion.
 
 describe('motion/actions/sectionGlow', () => {
 	let node: HTMLElement;
@@ -61,7 +61,7 @@ describe('motion/actions/sectionGlow', () => {
 		vi.useRealTimers();
 	});
 
-	it('GO-w2t5 retier: ACTIVE under prefers-reduced-motion (SAFE-ALWAYS — alpha-only glow)', () => {
+	it('stays active under prefers-reduced-motion as a SAFE-ALWAYS alpha-only glow', () => {
 		// Reduce ON and hover-capable: the action must still wire up.
 		window.matchMedia = vi.fn().mockImplementation((query: string) => ({
 			matches:

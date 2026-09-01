@@ -3,8 +3,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { findSettleTarget, initSectionMagnet } from './sectionMagnet.js';
 import { initLenis, destroyLenis, getLenis } from './lenis.js';
 
-// GO-w2t5 matchMedia control (lenis.test.ts pattern) — isPrefersReducedMotion
-// reads live, so swapping the mock per test flips the magnet's settle style.
+// MatchMedia control lets each test set the reduced-motion settle style.
 function mockMatchMedia(matches: boolean): void {
 	Object.defineProperty(window, 'matchMedia', {
 		writable: true,
@@ -137,10 +136,9 @@ describe('motion/utils/sectionMagnet — initSectionMagnet (wiring)', () => {
 		expect(scrollToSpy).not.toHaveBeenCalled();
 	});
 
-	// Taste round 2: STRONGER desktop pull — radius 0.32×viewport (capped
-	// 360px). At a 1000px viewport that is 320px; round 1's 240px cap would
-	// have ignored a 300px-out settle.
-	it('desktop tier pulls from 300px out (decisive radius, round-2)', () => {
+	// The desktop radius is 0.32×viewport, capped at 360px. At a 1000px
+	// viewport, a settle 300px from the section remains within range.
+	it('desktop tier pulls from 300px out within its decisive radius', () => {
 		const sections = [fakeSection(0), fakeSection(2000)];
 		destroy = initSectionMagnet(() => sections);
 		window.dispatchEvent(new Event('wheel')); // precise modality
@@ -156,8 +154,8 @@ describe('motion/utils/sectionMagnet — initSectionMagnet (wiring)', () => {
 		expect(scrollToSpy).not.toHaveBeenCalled();
 	});
 
-	// Taste round 2: touch is GENTLER than round 1 — radius 0.16×viewport
-	// (capped 160px) so natural touch scrolling is never fought.
+	// Touch uses a 0.16×viewport radius capped at 160px so natural scrolling is
+	// never fought.
 	it('touch tier ignores a settle the desktop tier would magnetize', () => {
 		const sections = [fakeSection(0), fakeSection(2000)];
 		destroy = initSectionMagnet(() => sections);
@@ -264,8 +262,8 @@ describe('motion/utils/sectionMagnet — initSectionMagnet (wiring)', () => {
 		expect(scrollToSpy).toHaveBeenCalledWith({ top: 2000, behavior: 'smooth' });
 	});
 
-	// slice-34.4: the suppress predicate stands the magnet down while a
-	// locale-switch scroll restore is in flight — the restore's forced jump
+	// The suppress predicate stands the magnet down while a locale-switch
+	// scroll restore is in flight; the restore's forced jump
 	// fires scroll events that would otherwise yank the restored position to
 	// the nearest section top.
 	it('suppress(): magnet stands down while the predicate is true', () => {

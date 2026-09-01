@@ -68,8 +68,8 @@
 
 ## Direct public assets
 
-- `./ripple.css` — direct asset `./ripple.css` (`default`), sha256 `fca8bcce82ad466ac567e4ca892b14b0e6db898c95bb810ebfa683372b4f10db`
-- `./tap-feedback.css` — direct asset `./tap-feedback.css` (`default`), sha256 `5501446ba351c14ba6c6220f3fe8623aa66b48f3130bd28e3c523796da3e9652`
+- `./ripple.css` — direct asset `./ripple.css` (`default`), sha256 `82b517fcefcae016cb209c4837100c37283e108b906a0cdac8d2400f4f796235`
+- `./tap-feedback.css` — direct asset `./tap-feedback.css` (`default`), sha256 `238c46d07f5bc16b8c9b6057d92e1a4930af6f9709710da50375deaa117c5319`
 
 ## Declaration namespaces
 

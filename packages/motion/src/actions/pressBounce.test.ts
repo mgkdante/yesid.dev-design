@@ -43,9 +43,8 @@ describe('pressBounce action', () => {
 		expect(addSpy).not.toHaveBeenCalled();
 	});
 
-	it('STAYS ACTIVE under prefers-reduced-motion (slice-23 operator policy)', () => {
-		// <200ms scale feedback on user action isn't a vestibular trigger.
-		// Operator chose to keep pressBounce active under reduced motion.
+	it('stays active under prefers-reduced-motion for brief user feedback', () => {
+		// <200ms scale feedback on user action is not a vestibular trigger.
 		mockIsPrefersReducedMotion.mockReturnValue(true);
 		mockIsTouchDevice.mockReturnValue(true);
 		const el = document.createElement('button');
