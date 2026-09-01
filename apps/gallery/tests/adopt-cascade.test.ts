@@ -63,7 +63,7 @@ describe('real repository adoption cascade', () => {
 		expect(checkAdoption(dest)).toEqual(first.manifest);
 		const uiReadme = readFileSync(join(dest, 'ui', 'README.md'), 'utf8');
 		expect(uiReadme).toContain(
-			'https://github.com/mgkdante/yesid.dev-design/blob/v0.13.1/docs/BUILD-A-YESID-PRODUCT.md#4-configure-ui-once-per-module-graph-at-boot',
+			'https://github.com/mgkdante/yesid.dev-design/blob/v0.13.2/docs/BUILD-A-YESID-PRODUCT.md#4-configure-ui-once-per-module-graph-at-boot',
 		);
 		expect(uiReadme).not.toContain('](../../docs/');
 		const uiRoot = join(dest, 'ui');
