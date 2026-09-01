@@ -35,9 +35,11 @@ describe('repository governance contract', () => {
 		expect(read('LICENSE')).toBe(MIT_LICENSE);
 
 		const notice = read('NOTICE');
+		const resolvedGsapVersion = /"gsap": \["gsap@([^"\]]+)"/u.exec(read('bun.lock'))?.[1];
+		expect(resolvedGsapVersion).toBeDefined();
 		expect(notice).toContain('Copyright (c) 2026 Yesid Otalora');
 		expect(notice).toContain('TRADEMARK.md');
-		expect(notice).toContain('GSAP 3.15.0');
+		expect(notice).toContain(`GSAP ${resolvedGsapVersion}`);
 		expect(notice).toContain('Standard "No Charge" GSAP License');
 		expect(notice).toContain('https://gsap.com/community/standard-license/');
 		expect(notice).toContain('GSAP is not covered by this repository\'s MIT License');
