@@ -3,9 +3,8 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-		<!-- Theming channel inherited from yesid.dev (GO-W2.2 pre-paint theme
-		     resolution). Markup default stays dark (no-JS, crawlers). Synchronous +
-		     before CSSOM => zero flash. localStorage choice wins; otherwise dark. -->
+		<!-- Resolve the theme before CSSOM to prevent a flash. Markup defaults to
+		     dark for no-JS clients and crawlers; a stored light or dark choice wins. -->
 		<script>
 			(function () {
 				var d = document.documentElement, t = null;

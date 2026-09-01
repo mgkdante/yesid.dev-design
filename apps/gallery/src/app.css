@@ -4,7 +4,7 @@
 /* Tailwind CSS v4 (CSS-first config, no tailwind.config.js needed) */
 @import 'tailwindcss';
 
-/* Cross-browser mobile resets — inherited from yesid.dev app.css */
+/* Gallery-owned cross-browser mobile resets. */
 *,
 *::before,
 *::after {
@@ -15,8 +15,8 @@ html {
 	text-size-adjust: 100%;
 }
 
-/* Tap-feedback primitive layer (Layer 1) — pairs with @yesid/motion's
-   pressBounce (Layer 2). Inherited from yesid.dev slice-19 Phase 3. */
+/* Tap-feedback primitive layer (Layer 1) pairs with @yesid/motion's
+   pressBounce action (Layer 2). */
 @utility tap-press {
 	transition:
 		scale 120ms cubic-bezier(0.2, 0, 0, 1),
@@ -44,7 +44,7 @@ html {
 	}
 }
 
-/* Map dark: variant to attribute-based theme switching (yesid.dev GO-W2.2). */
+/* Map the dark variant to attribute-based theme switching. */
 @custom-variant dark (&:is([data-theme="dark"] *, .theme-dark *));
 
 /*
@@ -110,8 +110,8 @@ html {
 /* ===== TOKENS:END ===== */
 
 /* Hand-maintained @theme inline color map — every semantic var exposed as a
-   Tailwind color utility (shadcn convention + brand extensions). Copied from
-   yesid.dev apps/web/src/app.css @ 2bdb611d; owned by this app, NOT generated. */
+   Tailwind color utility (shadcn convention + brand extensions). This region
+   is owned by Gallery, not generated. */
 @theme inline {
 	/* Core semantic — shadcn convention */
 	--color-background: var(--background);

@@ -1017,7 +1017,7 @@ describe('analytics consent state', () => {
 		},
 	);
 
-	it.each(['dev.metrics.example', 'localhost', 'slice-35.vercel.app', 'www.metrics.example', 'METRICS.EXAMPLE'])(
+	it.each(['dev.metrics.example', 'localhost', 'preview.metrics.example', 'www.metrics.example', 'METRICS.EXAMPLE'])(
 		'remains unavailable and unknown on non-production hostname %s',
 		(hostname) => {
 			const harness = createHarness({ hostname, stored: 'granted', marker: '1' });

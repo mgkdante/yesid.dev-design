@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cardParallax } from './cardParallax.js';
 
-// Slice-23 Task 6. `cardParallax` is a Svelte action that tracks cursor
+// `cardParallax` is a Svelte action that tracks cursor
 // position inside a card and writes two CSS custom properties:
 //   --parallax-x, --parallax-y  (clamped pixel offsets, ±4px max)
 // Consumers wire these onto inner elements via `transform: translate(...)`

@@ -1,5 +1,5 @@
-// Test setup for @yesid/motion — the GSAP mock block is copied byte-faithful
-// from yesid.dev apps/web/src/tests/setup.dom.ts @ 2bdb611d (the motion tests
+// Test setup for @yesid/motion — keep the GSAP mock block intact
+// as the exact action-test contract (the motion tests
 // were written against these exact mocks). Plugins this package no longer
 // ships eagerly (MorphSVG/DrawSVG/CustomEase — see utils/gsap.ts deviation
 // note) keep their mocks: the extracted tests never import them, and keeping
@@ -10,7 +10,7 @@ import { vi } from 'vitest';
 // GSAP relies on DOM measurement APIs (getBoundingClientRect, computed styles, scroll
 // position) that happy-dom does not fully support. Actions and components that use GSAP
 // are tested for correct invocation, not for visual animation output — that belongs
-// to Playwright E2E tests in slice 10.
+// to Playwright E2E tests.
 vi.mock('gsap', () => {
 	const mockTimeline = {
 		to: vi.fn().mockReturnThis(),

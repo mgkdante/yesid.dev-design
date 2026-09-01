@@ -44,7 +44,7 @@ describe('cursorGlow', () => {
 		Object.defineProperty(navigator, 'maxTouchPoints', { value: 0, configurable: true });
 	});
 
-	it('GO-w2t5 retier: stays ACTIVE under reduced motion (SAFE-ALWAYS — opacity-only light)', async () => {
+	it('stays active under reduced motion as SAFE-ALWAYS opacity-only light', async () => {
 		const { isPrefersReducedMotion } = await import('../stores/reducedMotion.js');
 		(isPrefersReducedMotion as ReturnType<typeof vi.fn>).mockReturnValueOnce(true);
 		const action = cursorGlow(node);

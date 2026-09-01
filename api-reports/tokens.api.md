@@ -68,7 +68,7 @@
 
 ## Direct public assets
 
-- `./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `c98f6d34da99d6a1d4a6edcc87ba93dd3df5398db97c671a1e46fceab209f69c`
+- `./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `7f410ee48fda7ba6dcb49e6703b1de3e41c59176b7b88688da363c9599baf1e3`
 - `./tokens.css` — direct asset `./tokens.css` (`default`), sha256 `785774c45f48f7b2e0c9aaad766364a69bc22d019ed23c5bf174a4f8368e1a9b`
 
 ## Declaration namespaces
