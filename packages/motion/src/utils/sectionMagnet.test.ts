@@ -138,7 +138,7 @@ describe('motion/utils/sectionMagnet — initSectionMagnet (wiring)', () => {
 
 	// The desktop radius is 0.32×viewport, capped at 360px. At a 1000px
 	// viewport, a settle 300px from the section remains within range.
-	it('desktop tier pulls from 300px out within its decisive radius', () => {
+	it('desktop tier pulls from 300px out (decisive radius, round-2)', () => {
 		const sections = [fakeSection(0), fakeSection(2000)];
 		destroy = initSectionMagnet(() => sections);
 		window.dispatchEvent(new Event('wheel')); // precise modality
