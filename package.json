@@ -24,6 +24,7 @@
 		"test": "bun run test:repository && turbo run test",
 		"test:repository": "vitest run --config vitest.repository.config.ts",
 		"test:browser": "bun run --cwd apps/gallery test:browser",
+		"test:browser:list": "bun run --cwd apps/gallery test:browser:list",
 		"browser:install": "bun run --cwd apps/gallery browser:install",
 		"check": "bun run api:check && tsc --project tsconfig.tools.json && tsc --project tsconfig.repository-tests.json && turbo run check",
 		"dev": "turbo run dev",

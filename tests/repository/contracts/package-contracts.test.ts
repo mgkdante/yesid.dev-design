@@ -298,6 +298,9 @@ describe('browser authority script contract', () => {
 		expect(rootManifest.scripts?.['test:browser']).toBe(
 			'bun run --cwd apps/gallery test:browser',
 		);
+		expect(rootManifest.scripts?.['test:browser:list']).toBe(
+			'bun run --cwd apps/gallery test:browser:list',
+		);
 		expect(rootManifest.scripts?.['browser:install']).toBe(
 			'bun run --cwd apps/gallery browser:install',
 		);
@@ -306,17 +309,19 @@ describe('browser authority script contract', () => {
 	it(
 		'discovers the complete browser matrix through the root command',
 		() => {
-			const result = spawnSync('bun', ['run', 'test:browser', '--', '--list'], {
+			const result = spawnSync('bun', ['run', 'test:browser:list'], {
 				cwd: REPOSITORY_PATH,
 				encoding: 'utf8',
-				timeout: 60_000,
+				timeout: 10_000,
 			});
 			const output = `${result.stdout}\n${result.stderr}`;
 
 			expect(result.status, output).toBe(0);
 			expect(output).toMatch(/Total: 16 tests in 4 files/);
+			expect(output).not.toContain('vite v');
+			expect(output).not.toContain('Wrote site to "build"');
 		},
-		60_000,
+		10_000,
 	);
 });
 
