@@ -6,7 +6,8 @@
 - `@yesid/tokens` (patch), `@yesid/motion` (patch), `@yesid/gates` (patch), `@yesid/seo-kit` (patch), `@yesid/ui` (patch), `@yesid/analytics` (patch), `@yesid/i18n-core` (patch): Give every coordinated package a local ownership contract covering its interface, invariants,
   consumers, commands, failure modes, deterministic rules, and release implications. Remove
   duplicated tokens and motion narration from package manifests after those facts move to the
-  nearest README.
+  nearest README. Make style-regression scans read each source file once while preserving finding
+  order, diagnostics, and caller-owned RegExp state.
 
 ## 0.13.2
 

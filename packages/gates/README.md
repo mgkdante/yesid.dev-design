@@ -13,6 +13,8 @@ contrast, dataviz, Tailwind-variant, and SEO coverage engines. The exact public 
 ## Invariants
 
 - Engines accept consumer configuration and return deterministic findings.
+- Style-regression scans read each source file once, preserve configured pattern/file order, and
+  restore caller-owned RegExp state after matching.
 - Product names, paths, colors, thresholds, and policy never enter package defaults.
 - Filesystem traversal is ordered and reports useful relative path/line diagnostics.
 - Gate engines do not depend on Vitest or another runner.
