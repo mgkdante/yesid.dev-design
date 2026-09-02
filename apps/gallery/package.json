@@ -12,7 +12,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"test": "vitest run",
 		"browser:install": "playwright install chromium",
-		"test:browser": "bun run build && playwright test --config playwright.config.ts"
+		"test:browser": "bun run build && playwright test --config playwright.config.ts",
+		"test:browser:list": "playwright test --config playwright.config.ts --list"
 	},
 	"dependencies": {
 		"@fontsource-variable/inter": "5.2.8",
