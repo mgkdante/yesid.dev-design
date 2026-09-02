@@ -105,12 +105,13 @@ describe('Design shared-config canary', () => {
 			dependencies?: Record<string, string>;
 			devDependencies?: Record<string, string>;
 		};
+		const configManifest = json('packages/config/package.json') as { version: string };
 		const resolutions = [
 			manifest.dependencies?.['@yesid/config'],
 			manifest.devDependencies?.['@yesid/config'],
 		].filter((value): value is string => value !== undefined);
 
-		expect(resolutions).toEqual(['workspace:0.2.0']);
+		expect(resolutions).toEqual([`workspace:${configManifest.version}`]);
 	});
 
 	it.each(LIBRARY_CONFIGS)('%s extends the library preset with only its local overlay', (path, expected) => {
@@ -163,8 +164,11 @@ describe('Design shared-config canary', () => {
 
 	it('keeps the producer self-canary distinct from downstream Release acquisition', () => {
 		const documentation = text('docs/SHARED-TOOLING-CI.md');
+		const configManifest = json('packages/config/package.json') as { version: string };
 		expect(documentation).toContain('one deliberate self-canary exception');
-		expect(documentation).toContain('`@yesid/config@0.2.0` workspace contract');
+		expect(documentation).toContain(
+			`\`@yesid/config@${configManifest.version}\` workspace contract`,
+		);
 		expect(documentation).toContain('Transit and yesid.dev must consume the immutable Release asset');
 	});
 });

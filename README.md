@@ -10,14 +10,17 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 
 | Path | What it is |
 |---|---|
-| `packages/tokens` | `@yesid/tokens` — the DTCG `tokens.json` source of truth, package-owned generated `tokens.css`, pure logical build engine, generators, and Figma round-trip scripts. Repository artifact mapping stays downstream in `tools/build-tokens.ts`. |
-| `packages/motion` | `@yesid/motion` — the Snappy-Doctrine Tier-1 vocabulary: `boop`, `magnetic`, `cursorGlow`, `sectionGlow`, `cardParallax`, `pressBounce`, `wordmarkHover`, `sectionMagnet` + `policy.ts` (the motion doctrine), reduced-motion store, device/gsap/lenis helpers, generated `tokens.ts`, and optional `tap-feedback.css`. Byte-faithful except `$lib` → relative import rewrites and the DEVIATION register below. |
-| `packages/gates` | `@yesid/gates` — pure, parameterized brand-quality engines: tokens-only style regressions, color-mix and WCAG contrast checks, no-raw-brand-hex, dataviz doctrine, and tv()-only-in-ui. Product policy stays in each consumer; upstream regression fixtures are neutral and test-only. |
-| `packages/seo-kit` | `@yesid/seo-kit` — framework-neutral JSON-LD builders, byte-configurable sitemap emitters, and a Satori core with consumer-injected rasterization. SEO content, routing policy, fonts, templates, and rasterizer dependencies stay consumer-owned. |
-| `packages/ui` | `@yesid/ui` — source-shipped Svelte 5 primitives and promoted brand components, with package-owned class merging and product vocabulary configured once at boot. |
-| `packages/analytics` | `@yesid/analytics` — consumer-configured analytics presets, consent state and policy, sanitized ordered clients, and an injected Plausible Events API transport. Domains, event names, storage keys, controls, and product copy stay consumer-owned. |
-| `packages/i18n-core` | `@yesid/i18n-core` — pure, consumer-configured locale-routing mechanics: prefix membership and parsing, path localization, URL-state preservation, locale-switch detection, and route-id normalization. Locale values, route exemptions, framework adapters, and runtime flags stay consumer-owned. |
-| `apps/gallery` | `@yesid/gallery` — the living brand gallery: token sheets + motion demos rendered from `tokens.json`; the dogfood consumer of `@yesid/tokens/tokens.css`. |
+| [`packages/tokens`](packages/tokens/README.md) | `@yesid/tokens` — canonical DTCG source, deterministic generators, package CSS, and manual Figma round-trip contract. |
+| [`packages/motion`](packages/motion/README.md) | `@yesid/motion` — Tier-1 actions, policy, reduced-motion state, helpers, generated tokens, and opt-in CSS. |
+| [`packages/gates`](packages/gates/README.md) | `@yesid/gates` — pure parameterized quality engines; consumers own policy and pass/fail doctrine. |
+| [`packages/seo-kit`](packages/seo-kit/README.md) | `@yesid/seo-kit` — framework-neutral JSON-LD, sitemap, and injected-rasterizer mechanics. |
+| [`packages/ui`](packages/ui/README.md) | `@yesid/ui` — source-shipped Svelte primitives and promoted brand components. |
+| [`packages/analytics`](packages/analytics/README.md) | `@yesid/analytics` — consent, policy, sanitization, ordered clients, and injected transport. |
+| [`packages/i18n-core`](packages/i18n-core/README.md) | `@yesid/i18n-core` — pure consumer-configured locale-routing mechanics. |
+| [`packages/config`](packages/config/README.md) | `@yesid/config` — independently released compiler/task configuration; outside coordinated lockstep. |
+| [`apps/gallery`](apps/gallery/README.md) | Private rendered dogfood and browser authority; not consumer proof. |
+| [`tests/repository`](tests/repository/README.md) | Root-owned tooling and cross-package contract authority; separate from Gallery. |
+| `tools` | Repository adapters for tokens, API reports, releases, archives, config releases, and adoption; operational owners are linked from the Commands section. |
 
 ## Versioning + the parity contract
 

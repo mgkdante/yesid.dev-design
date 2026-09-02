@@ -114,10 +114,10 @@ Its fragments live in `.config-changes/`, its changelog is
 Prepare and verify that line independently:
 
 ```sh
-bun run config:release:prepare -- --version 0.2.0
-bun run config:release:check -- --version 0.2.0
-git tag -a config-v0.2.0 -m config-v0.2.0
-bun run config:release:check -- --version 0.2.0 --tag config-v0.2.0
+bun run config:release:prepare -- --version X.Y.Z
+bun run config:release:check -- --version X.Y.Z
+git tag -a config-vX.Y.Z -m config-vX.Y.Z
+bun run config:release:check -- --version X.Y.Z --tag config-vX.Y.Z
 ```
 
 The `config-release.yml` tag workflow publishes only

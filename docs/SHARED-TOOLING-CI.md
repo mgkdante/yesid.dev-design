@@ -71,7 +71,7 @@ overlay is the explicit, reviewable consumer escape hatch. Downstream config pac
 come from the exact immutable `@yesid/config` release selected by the consumer lockfile.
 
 The producer repository is the one deliberate self-canary exception: it consumes the exact
-`@yesid/config@0.2.0` workspace contract and binds `packages/config/turbo/base.json` directly.
+`@yesid/config@0.2.1` workspace contract and binds `packages/config/turbo/base.json` directly.
 This avoids a same-name package acquisition loop and keeps the drift source a regular file
 instead of a workspace symlink. The config release contract separately proves those checked-in
 package bytes and version. Transit and yesid.dev must consume the immutable Release asset; they

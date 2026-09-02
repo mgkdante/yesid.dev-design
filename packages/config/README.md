@@ -53,3 +53,20 @@ outputs, environment variables, app-only tasks, and credentials never belong in 
 
 ESLint, Prettier, Vitest, deploy bindings, and product path literals remain consumer-owned
 until they independently satisfy the third-consumer rule.
+
+## Commands, failures, and release implications
+
+```sh
+bun run config:release:prepare -- --version X.Y.Z
+bun run config:release:check -- --version X.Y.Z
+bun run config:release:build -- --tag config-vX.Y.Z --output <outside-repository-path>
+```
+
+Unsupported compiler/runtime versions, source drift, an unallowlisted file, a mismatched tag,
+checksum drift, or a non-deterministic archive fails the config contracts. Consumers keep their
+current exact asset until a corrected immutable release exists.
+
+Config bytes, compatibility text, or exports use the independent `.config-changes` and
+`config-vX.Y.Z` process in [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/config-v0.2.1/RELEASING.md). They never force a coordinated
+runtime-package release. Shared-action ownership remains in
+[`docs/SHARED-TOOLING-CI.md`](https://github.com/mgkdante/yesid.dev-design/blob/config-v0.2.1/docs/SHARED-TOOLING-CI.md).
