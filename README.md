@@ -87,7 +87,7 @@ It records what remains consumer-owned, why, and the receipt for each boundary.
 ```sh
 bun install --frozen-lockfile   # install the pinned workspace lockfile
 bun run check                   # API, TypeScript, and workspace checks
-bun run test                    # all package + app tests
+bun run test                    # repository contracts + all package and app tests
 bun run ci:tokens               # build + git-diff drift gate on generated outputs
 bun run build                   # token generation + all workspace builds
 bun run tokens:build            # regenerate the 4 repository artifacts (idempotent)

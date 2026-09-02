@@ -97,7 +97,7 @@ From a clean checkout of the reviewed commit:
 
 ```sh
 bun install --frozen-lockfile
-bun run --cwd apps/gallery test -- tests/ci-contract.test.ts tests/shared-tooling-drift.test.ts
+bun run test:repository -- tests/repository/contracts/ci-contract.test.ts tests/repository/contracts/shared-tooling-drift.test.ts
 bun run test -- --force
 bun run check -- --force
 ```

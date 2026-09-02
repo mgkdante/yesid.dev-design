@@ -42,7 +42,7 @@ const RELEASED_MANIFESTS: ReadonlySet<ReleasedPackageName> = new Set([
 
 const ROOT_MANIFEST_URL = new URL('../../../package.json', import.meta.url);
 const REPOSITORY_PATH = fileURLToPath(new URL('../../../', import.meta.url));
-const GALLERY_MANIFEST_URL = new URL('../package.json', import.meta.url);
+const GALLERY_MANIFEST_URL = new URL('../../../apps/gallery/package.json', import.meta.url);
 const CONFIG_MANIFEST_URL = new URL('../../../packages/config/package.json', import.meta.url);
 const RELEASED_MANIFEST_URLS: Record<ReleasedPackageName, URL> = {
 	'@yesid/analytics': new URL('../../../packages/analytics/package.json', import.meta.url),

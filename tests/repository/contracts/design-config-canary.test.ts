@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import gallerySvelteConfig from '../svelte.config.js';
+import gallerySvelteConfig from '../../../apps/gallery/svelte.config.js';
 import uiSvelteConfig from '../../../packages/ui/svelte.config.js';
 
 type JsonObject = Record<string, unknown>;

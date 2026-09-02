@@ -60,7 +60,7 @@ The release pull request must prove:
 bun install --frozen-lockfile
 bun run api:check
 bun run check
-bun x turbo run test
+bun run test
 bun run ci:tokens
 bun run build
 git diff --check

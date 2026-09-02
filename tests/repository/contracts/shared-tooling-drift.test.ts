@@ -436,7 +436,7 @@ describe('published action contract', () => {
 		}
 		expect(documentation).toContain('a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25');
 		expect(documentation).toContain('bun install --frozen-lockfile');
-		expect(documentation).toContain('tests/shared-tooling-drift.test.ts');
+		expect(documentation).toContain('tests/repository/contracts/shared-tooling-drift.test.ts');
 		expect(documentation).not.toMatch(/@(main|master|v\d+(?:\.\d+)*)\b/u);
 	});
 
