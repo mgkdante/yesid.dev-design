@@ -56,6 +56,8 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 
 The standing cross-product ownership map is [`BOUNDARIES.md`](BOUNDARIES.md).
 It records what remains consumer-owned, why, and the receipt for each boundary.
+The bounded repository dependency map, ranked efficiency candidates, and reproducible measurement
+receipt live in [`docs/ARCHITECTURE-MAP.md`](docs/ARCHITECTURE-MAP.md).
 
 ## Deviation register (v0.1.0 vs the anchor — exhaustive)
 

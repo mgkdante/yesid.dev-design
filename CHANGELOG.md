@@ -9,69 +9,6 @@
   nearest README. Make style-regression scans read each source file once while preserving finding
   order, diagnostics, and caller-owned RegExp state.
 
-### Architecture and efficiency receipt
-
-| Measure | Exact-main baseline `03dfdd8` | Prepared candidate |
-| --- | ---: | ---: |
-| Tracked files | 349 | 356 |
-| Maintained product files / LOC | 125 / 7,851 | 125 / 7,871 |
-| Package source modules | 120 | 120 |
-| Test files / LOC | 109 / 20,666 | 109 / 20,706 |
-| Tooling/config files / LOC | 71 / 10,699 | 71 / 10,698 |
-| Public-document files / LOC | 20 / 1,863 | 27 / 2,328 |
-| Generated text LOC | 3,647 | 3,647 |
-| Vendor-adjacent patch LOC / visual baselines | 43 / 4 | 43 / 4 |
-| Maintained source directories | 33 | 33 |
-| Public manifest entrypoints | 55 coordinated + 6 config | unchanged |
-| Direct exported types / interfaces | 98 / 52 interfaces | unchanged |
-| Async candidates | 133 sites in 26 modules | unchanged |
-| Classes | 1 (`AdoptError`) | unchanged |
-| Workspace dependency edges | 7 total / 5 runtime-or-dogfood | unchanged |
-| Forwarding `index.ts` modules | 21 | 21 |
-| Raw churn for the architecture branch | — | +597 / −73 = +524 net |
-
-Categorized net change reconciles to raw net change: product `+20`, tests `+40`, tooling `−1`,
-public documentation `+465`, generated `0`, and vendor `0`, totaling `+524` maintained lines.
-
-| Timed gate | Baseline | Prepared candidate |
-| --- | ---: | ---: |
-| Token generation/check | 0.02 s | 0.01 s |
-| API authority check | 19.67 s | 16.97 s |
-| Cache-bypassed full check | 31.33 s | 24.39 s |
-| Cache-bypassed production build | 10.47 s | 7.55 s |
-| Direct Gallery build | 10.39 s | 7.08 s |
-| Cache-bypassed 756-test matrix | 75.32 s | 62.46–68.93 s |
-| Hosted `ci-work` | PR #59: 3m21s | final protected-PR gate |
-| Archive build / bytes / digest | 0.11 s / 798720 / `1376c630…565e9` | final tag gate |
-| Archive adoption / offline check | 0.03 s / 0.02 s | final tag gate |
-
-The browser-discovery contract previously built Gallery before listing 16 cases: 9.94 seconds and
-1,273,932 KiB peak RSS. Direct Playwright list mode reports the same matrix in 0.43 seconds and
-184,152 KiB. A fresh cache-bypassed 756-test run measured 75.32 seconds before the change and
-62.46–68.93 seconds across valid after runs; the isolated repeated build is the attributable win.
-
-The style-regression benchmark uses 400 16-KiB files and 30 patterns, with five timed samples after
-one warm-up. Median time moved from 119.35 ms to 60.83 ms. The implementation reads every file once,
-preserves pattern/file result order, and restores caller-owned RegExp state after every match.
-
-Candidate disposition:
-
-- **Implemented:** package/Gallery README ownership, build-free browser discovery, and single-read
-  style-regression scanning.
-- **Retained:** 21 forwarding barrels are public package/UI compatibility surfaces or small family
-  façades. Internal barrel cleanup alone did not justify another behavioral contract.
-- **Retained:** the sole class, `AdoptError`, owns stable operational identity and exit codes.
-- **Retained:** public types/interfaces, async acquisition/rendering boundaries, injected adapters,
-  and isolated release/adoption fixtures all have real callers or failure semantics.
-- **Deferred:** API-program batching, receipt-only archive inspection, registry consolidation, and
-  test parallelism need separate byte/fault/performance tranches.
-- **Rejected:** merging coordinated/config release engines, centralizing independent test parsers,
-  deleting Windows API checks, or retiring public aliases without the deprecation gates.
-
-The README and gate-engine bytes change the coordinated package payload, so this pass prepares
-`v0.13.3`. Config README bytes use the independent `config-v0.2.1` line. Neither release edits a
-consumer; each consumer receives a separate exact-tag adoption handoff after both assets verify.
-
 ## 0.13.2
 
 <!-- release-fragment: postphase3-contract-docs -->
