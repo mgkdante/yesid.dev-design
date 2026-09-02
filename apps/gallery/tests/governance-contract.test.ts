@@ -93,22 +93,85 @@ describe('repository governance contract', () => {
 		expect(pullRequest).toContain('No consumer vendored files are patched');
 	});
 
-	it('records the exact v0.13.1 consumer receipts without inferring product verification', () => {
+	it('records the exact v0.13.2 consumer receipts without inferring product verification', () => {
 		const consumers = read('CONSUMERS.md');
+		const rows = consumers.split('\n').flatMap((line) => {
+			if (!/^\| (?:Transit|yesid\.dev|Gallery) \|/u.test(line)) return [];
 
-		expect(consumers).toContain('ee2e565c86df4ffa40f11fcffb2ae23b56410a4e');
-		expect(consumers).toContain('8e23e70bcd564de09ac52f09141a9a848a128180');
-		expect(consumers.match(/schema-2 Release receipt for `v0\.13\.1`/gu)).toHaveLength(2);
-		expect(
-			consumers.match(
-				/annotated tag object `cb2a6d76423c33303b9e86257f5639d10eb20bc7`/gu,
-			),
-		).toHaveLength(2);
-		expect(consumers.match(/7cda0887287ef1e274582813d4c1a5795a54b7ea/gu)).toHaveLength(2);
-		expect(consumers).toContain('9a1535c36a731268131b1631c32eeac63d42bbcc');
-		expect(
-			consumers.match(/containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core`/gu),
-		).toHaveLength(2);
+			const cells = line
+				.slice(1, -1)
+				.split('|')
+				.map((cell) => cell.trim());
+			expect(cells).toHaveLength(4);
+			return [cells];
+		});
+		const rowsByConsumer = new Map(rows.map((row) => [row[0], row]));
+
+		expect(rows).toHaveLength(3);
+		expect(rowsByConsumer.size).toBe(3);
+		expect([...rowsByConsumer.keys()]).toEqual(['Transit', 'yesid.dev', 'Gallery']);
+
+		for (const [consumer, sha] of [
+			['Transit', '1482d18a965b81f2762594fee484d8e5928a84a7'],
+			['yesid.dev', '421299c8b28293f67a6615e81d804caa4fe7649a'],
+		] as const) {
+			const row = rowsByConsumer.get(consumer);
+			expect(row?.[1], consumer).toBe(`\`${sha}\``);
+			expect(/schema-2 Release receipt for `([^`]+)`/u.exec(row?.[2] ?? '')?.[1]).toBe(
+				'v0.13.2',
+			);
+			expect(/containing `([^`]+)`/u.exec(row?.[2] ?? '')?.[1]?.split(',')).toEqual([
+				'tokens',
+				'motion',
+				'gates',
+				'seo-kit',
+				'ui',
+				'analytics',
+				'i18n-core',
+			]);
+		}
+		expect(rowsByConsumer.get('Gallery')?.[1]).toBe(
+			'yesid.dev-design `bcc628763245387c23eeeb7d81af7c0f75176421`',
+		);
+
+		const authorityHeadings = [...consumers.matchAll(/^## Release authority$/gmu)];
+		expect(authorityHeadings).toHaveLength(1);
+		const authorityStart = authorityHeadings[0]?.index ?? -1;
+		const authorityEnd = consumers.indexOf('\n## ', authorityStart + 1);
+		const authority = consumers.slice(
+			authorityStart,
+			authorityEnd === -1 ? undefined : authorityEnd,
+		);
+		expect(/annotated tag object\s+`([0-9a-f]{40})`/u.exec(authority)?.[1]).toBe(
+			'2809b5a33ed08cf0c2e470cbc56d2a8ac68836cb',
+		);
+		expect(/peeled commit\s+`([0-9a-f]{40})`/u.exec(authority)?.[1]).toBe(
+			'bcc628763245387c23eeeb7d81af7c0f75176421',
+		);
+		expect(/sole immutable asset\s+`([^`]+)`/u.exec(authority)?.[1]).toBe(
+			'yesid.dev-design-v0.13.2.tar',
+		);
+		expect(/\((\d+) bytes,/u.exec(authority)?.[1]).toBe('798720');
+		expect(/`(sha256:[0-9a-f]{64})`/u.exec(authority)?.[1]).toBe(
+			'sha256:1376c630f0c5288c13ca671bc78073ca70e1f5d7d16287d4bc731c05847565e9',
+		);
+
+		const stableDocs = [read('README.md'), read('BOUNDARIES.md')];
+		for (const document of stableDocs) {
+			expect(document).toContain('[`CONSUMERS.md`](CONSUMERS.md)');
+			for (const volatileReceipt of [
+				'1482d18a965b81f2762594fee484d8e5928a84a7',
+				'421299c8b28293f67a6615e81d804caa4fe7649a',
+				'v0.13.2',
+				'2809b5a33ed08cf0c2e470cbc56d2a8ac68836cb',
+				'bcc628763245387c23eeeb7d81af7c0f75176421',
+				'yesid.dev-design-v0.13.2.tar',
+				'798720',
+				'sha256:1376c630f0c5288c13ca671bc78073ca70e1f5d7d16287d4bc731c05847565e9',
+			]) {
+				expect(document).not.toContain(volatileReceipt);
+			}
+		}
 		expect(consumers).toContain('former embedded package copies are no longer present');
 		expect(consumers).toContain('workspace dogfood consumer');
 		expect(consumers).toContain('does not infer product verification');

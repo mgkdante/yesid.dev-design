@@ -125,15 +125,13 @@ use [`RELEASING.md`](RELEASING.md); compatibility follows
 
 ## Consumers
 
-The current evidence-backed Release receipts live in
-[`CONSUMERS.md`](CONSUMERS.md). At Transit
-`ee2e565c86df4ffa40f11fcffb2ae23b56410a4e` and yesid.dev
-`8e23e70bcd564de09ac52f09141a9a848a128180`, each consumer adopts the seven
-lockstep packages from `v0.13.1` through an immutable schema-2 Release receipt.
-The annotated tag object `cb2a6d76423c33303b9e86257f5639d10eb20bc7`
-peels to `7cda0887287ef1e274582813d4c1a5795a54b7ea`. Gallery remains the private
-workspace dogfood consumer. Release adoption and product verification are
-separate gates; neither is inferred from an upstream tag.
+The current evidence-backed Release registry lives only in
+[`CONSUMERS.md`](CONSUMERS.md). This repository owns immutable release
+provenance and adoption mechanics; each external consumer owns its reviewed
+version bump, generated outputs, tests, build, and product/browser verification.
+Gallery remains the private workspace dogfood consumer. Upstream release
+evidence, external adoption, and product verification are separate gates; none
+is inferred from another.
 
 ## AI-accelerated, human-owned
 
