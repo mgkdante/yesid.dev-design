@@ -14,8 +14,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const CONFIG_TAG = 'config-v0.2.0';
-const CONFIG_VERSION = '0.2.0';
+const CONFIG_TAG = 'config-v0.2.1';
+const CONFIG_VERSION = '0.2.1';
 const CONFIG_FILES = [
 	'README.md',
 	'LICENSE',

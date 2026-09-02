@@ -25,6 +25,9 @@ beforeAll(() => {
 	// styleRegressions + brandHex fixtures
 	writeFileSync(join(root, 'Bad.svelte'), '<div class="bg-legacy text-foreground"></div>\n');
 	writeFileSync(join(root, 'Good.svelte'), '<div class="bg-card text-foreground"></div>\n');
+	for (const name of ['GlobalA.probe', 'GlobalB.probe', 'GlobalC.probe']) {
+		writeFileSync(join(root, name), 'legacy legacy\n');
+	}
 	writeFileSync(
 		join(root, 'RawHex.svelte'),
 		'<div style="color: #123ABC"></div>\n<!-- #FEDCBA named in a comment: must NOT trip -->\n',
@@ -50,10 +53,27 @@ afterAll(() => {
 });
 
 describe('styleRegressions engine', () => {
-	it('catches a forbidden utility and passes clean files', () => {
+	it('catches forbidden utilities without leaking RegExp state across files', () => {
 		const results = styleRegressionViolations({ root, forbidden: FROZEN_FORBIDDEN });
 		expect(results).toHaveLength(1);
 		expect(results[0]?.hits).toEqual(['src/Bad.svelte']);
+
+		const globalPattern = /legacy/gu;
+		globalPattern.lastIndex = 4;
+		expect(
+			styleRegressionViolations({
+				root,
+				extensions: ['.probe'],
+				forbidden: [{ pattern: globalPattern, reason: 'legacy marker is forbidden' }],
+			}),
+		).toEqual([
+			{
+				pattern: globalPattern,
+				reason: 'legacy marker is forbidden',
+				hits: ['src/GlobalA.probe', 'src/GlobalB.probe', 'src/GlobalC.probe'],
+			},
+		]);
+		expect(globalPattern.lastIndex).toBe(4);
 	});
 });
 

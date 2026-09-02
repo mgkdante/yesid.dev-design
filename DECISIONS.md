@@ -103,3 +103,17 @@ Gallery dogfoods the workspace packages and owns repository-level rendered integ
 accessibility, reduced-motion, responsive, and visual-regression checks. It does not install the
 immutable Release asset and cannot prove a Transit or yesid.dev adoption. Release integrity and
 each product's verification remain separate gates.
+
+## D13: Package contracts are local and efficiency work is measured
+
+Each package README owns that package's responsibility, interface links, invariants, consumer
+obligations, commands, failure modes, compatibility, deterministic rules, and release impact.
+The root README is an index. Generated API reports remain interface authority; `BOUNDARIES.md`,
+`RELEASING.md`, `DEPRECATION.md`, and `CONSUMERS.md` retain their existing cross-package owners.
+Package READMEs link those owners at the immutable release tag so vendored copies never depend on
+paths outside the installed package. Gallery has its own README because it is a private app with a
+different authority and release boundary.
+
+Architecture and efficiency changes require a reproducible baseline and one observed failure or
+cost. Line counts are physical `wc -l` counts over tracked path sets, not semantic estimates.
+Generated and vendor material are reported separately. Raw churn is not net maintained change.

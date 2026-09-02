@@ -1,6 +1,6 @@
 {
 	"name": "yesid-dev-design",
-	"version": "0.13.2",
+	"version": "0.13.3",
 	"private": true,
 	"type": "module",
 	"description": "yesid.dev brand foundation — tokens, motion, gates, UI, gallery. Parity anchor: yesid.dev @ 2bdb611d91749dc437c07586cb82129eabe9dfec.",
@@ -37,7 +37,7 @@
 		"@google/design.md": "0.1.1",
 		"@microsoft/api-extractor": "7.58.11",
 		"@types/node": "^22.0.0",
-		"@yesid/config": "workspace:0.2.0",
+		"@yesid/config": "workspace:0.2.1",
 		"@yesid/motion": "workspace:*",
 		"svelte2tsx": "0.7.58",
 		"turbo": "^2.5.0",

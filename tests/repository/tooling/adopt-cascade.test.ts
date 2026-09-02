@@ -58,25 +58,36 @@ describe('real repository adoption cascade', () => {
 			},
 		};
 
-		const first = adoptFromSource(options);
-		expect(first.outcome).toBe('installed');
-		expect(checkAdoption(dest)).toEqual(first.manifest);
-		const uiReadme = readFileSync(join(dest, 'ui', 'README.md'), 'utf8');
-		expect(uiReadme).toContain(
-			'https://github.com/mgkdante/yesid.dev-design/blob/v0.13.2/docs/BUILD-A-YESID-PRODUCT.md#4-configure-ui-once-per-module-graph-at-boot',
-		);
-		expect(uiReadme).not.toContain('](../../docs/');
-		const uiRoot = join(dest, 'ui');
-		for (const target of relativeMarkdownLinks(uiReadme)) {
-			const linkedPath = resolve(uiRoot, decodeURIComponent(target.split(/[?#]/u, 1)[0]!));
-			const packageRelativePath = relative(uiRoot, linkedPath);
-			expect(packageRelativePath, `${target} must stay inside the installed UI package`).not.toMatch(
-				/^\.\.(?:[/\\]|$)|^(?:[/\\])/u,
+			const first = adoptFromSource(options);
+			expect(first.outcome).toBe('installed');
+			expect(checkAdoption(dest)).toEqual(first.manifest);
+			const repositoryVersion = (
+				JSON.parse(readFileSync(join(repository, 'package.json'), 'utf8')) as { version: string }
+			).version;
+			const uiReadme = readFileSync(join(dest, 'ui', 'README.md'), 'utf8');
+			expect(uiReadme).toContain(
+				`https://github.com/mgkdante/yesid.dev-design/blob/v${repositoryVersion}/docs/BUILD-A-YESID-PRODUCT.md#4-configure-ui-once-per-module-graph-at-boot`,
 			);
-			expect(existsSync(linkedPath), `${target} must resolve inside the installed UI package`).toBe(
-				true,
-			);
-		}
+			expect(uiReadme).not.toContain('](../../docs/');
+			for (const packageName of options.packages) {
+				const packageRoot = join(dest, packageName);
+				const packageReadme = readFileSync(join(packageRoot, 'README.md'), 'utf8');
+				for (const target of relativeMarkdownLinks(packageReadme)) {
+					const linkedPath = resolve(
+						packageRoot,
+						decodeURIComponent(target.split(/[?#]/u, 1)[0]!),
+					);
+					const packageRelativePath = relative(packageRoot, linkedPath);
+					expect(
+						packageRelativePath,
+						`${packageName}: ${target} must stay inside the installed package`,
+					).not.toMatch(/^\.\.(?:[/\\]|$)|^(?:[/\\])/u);
+					expect(
+						existsSync(linkedPath),
+						`${packageName}: ${target} must resolve inside the installed package`,
+					).toBe(true);
+				}
+			}
 		for (const module of ['acquisition.ts', 'contract.ts', 'payload.ts', 'transaction.ts']) {
 			expect(existsSync(join(dest, 'tools', 'adopt', module))).toBe(true);
 		}

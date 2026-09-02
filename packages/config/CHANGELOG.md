@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+<!-- config-release-fragment: architecture-efficiency-pass-2 -->
+- Document the independent config package commands, failure modes, compatibility owner, and release
+  implications in its package README.
+
 ## 0.2.0
 
 <!-- config-release-fragment: st1-neutral-config -->

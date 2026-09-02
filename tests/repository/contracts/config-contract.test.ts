@@ -57,7 +57,7 @@ describe('@yesid/config neutral contracts', () => {
 		const manifest = readJson('package.json');
 		expect(manifest).toMatchObject({
 			name: '@yesid/config',
-			version: '0.2.0',
+			version: '0.2.1',
 			private: true,
 			files: CONFIG_FILES,
 			exports: {
