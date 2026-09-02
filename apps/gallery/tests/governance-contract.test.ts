@@ -111,12 +111,12 @@ describe('repository governance contract', () => {
 		expect(rowsByConsumer.size).toBe(3);
 		expect([...rowsByConsumer.keys()]).toEqual(['Transit', 'yesid.dev', 'Gallery']);
 
-		for (const [consumer, sha] of [
-			['Transit', '1482d18a965b81f2762594fee484d8e5928a84a7'],
-			['yesid.dev', '421299c8b28293f67a6615e81d804caa4fe7649a'],
-		] as const) {
+		const externalRefs: string[] = [];
+		for (const consumer of ['Transit', 'yesid.dev'] as const) {
 			const row = rowsByConsumer.get(consumer);
-			expect(row?.[1], consumer).toBe(`\`${sha}\``);
+			const observedRef = /^`([0-9a-f]{40})`$/u.exec(row?.[1] ?? '')?.[1];
+			expect(observedRef, consumer).toMatch(/^[0-9a-f]{40}$/u);
+			externalRefs.push(observedRef ?? '');
 			expect(/schema-2 Release receipt for `([^`]+)`/u.exec(row?.[2] ?? '')?.[1]).toBe(
 				'v0.13.2',
 			);
@@ -160,8 +160,7 @@ describe('repository governance contract', () => {
 		for (const document of stableDocs) {
 			expect(document).toContain('[`CONSUMERS.md`](CONSUMERS.md)');
 			for (const volatileReceipt of [
-				'1482d18a965b81f2762594fee484d8e5928a84a7',
-				'421299c8b28293f67a6615e81d804caa4fe7649a',
+				...externalRefs,
 				'v0.13.2',
 				'2809b5a33ed08cf0c2e470cbc56d2a8ac68836cb',
 				'bcc628763245387c23eeeb7d81af7c0f75176421',

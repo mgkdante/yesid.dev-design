@@ -1,13 +1,13 @@
 # Consumers
 
 This registry records Release-adoption facts observed at each repository's
-canonical `origin/main` on 2026-09-01. It does not infer product verification;
+canonical `origin/main` on 2026-09-02. It does not infer product verification;
 that remains consumer-owned.
 
 | Consumer | Observed ref | Release-adoption state | Required next transition |
 |---|---|---|---|
-| Transit | `1482d18a965b81f2762594fee484d8e5928a84a7` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.13.2`, containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core` and the authority below. | Future changes use a reviewed exact-tag adoption PR, followed by Transit's own vendor, generated-output, test, build, and product/browser verification. |
-| yesid.dev | `421299c8b28293f67a6615e81d804caa4fe7649a` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.13.2`, containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core` and the authority below. The former embedded package copies are no longer present. | Future changes use a reviewed exact-tag adoption PR, followed by yesid.dev's own vendor, generated-output, test, build, and product/browser verification. |
+| Transit | `9fee5aba71cc70c7d120bd6ea384d16131e02a3e` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.13.2`, containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core` and the authority below. | Future changes use a reviewed exact-tag adoption PR, followed by Transit's own vendor, generated-output, test, build, and product/browser verification. |
+| yesid.dev | `eba0ac23d66c7c7027dce013a120e8d1938e03e6` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.13.2`, containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core` and the authority below. The former embedded package copies are no longer present. | Future changes use a reviewed exact-tag adoption PR, followed by yesid.dev's own vendor, generated-output, test, build, and product/browser verification. |
 | Gallery | yesid.dev-design `bcc628763245387c23eeeb7d81af7c0f75176421` | `apps/gallery` is the private workspace dogfood consumer. It resolves packages through `workspace:*`; it is not an external Release consumer and its app version remains outside package lockstep. | Continue exercising package integration and browser authority here. Do not treat Gallery success as proof of an external consumer's product verification. |
 
 ## Release authority
