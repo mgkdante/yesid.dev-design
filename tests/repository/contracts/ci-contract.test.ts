@@ -122,6 +122,7 @@ const REPORTER_ACTION_URL = new URL(
 );
 const ATTRIBUTES_URL = new URL('../../../.gitattributes', import.meta.url);
 const CI_WORKFLOW_URL = new URL('../../../.github/workflows/ci.yml', import.meta.url);
+const ROOT_MANIFEST_URL = new URL('../../../package.json', import.meta.url);
 const scratch: string[] = [];
 
 function tempDirectory(): string {
@@ -736,10 +737,18 @@ describe('always-reporting required context', () => {
 		expect(readFileSync(ATTRIBUTES_URL, 'utf8')).toMatch(/^\*\.mjs text eol=lf$/mu);
 	});
 
-	it('routes analytics and i18n-core changes through the main and Windows API parity gates', () => {
+	it('routes repository tests and released-package changes through their authority gates', () => {
 		const workflow = readFileSync(CI_WORKFLOW_URL, 'utf8');
+		const manifest = JSON.parse(readFileSync(ROOT_MANIFEST_URL, 'utf8')) as {
+			scripts: Record<string, string>;
+		};
 
-		expect(workflow).toContain('"prefixes": [".changes/", "api-reports/", "apps/", "packages/", "tools/"]');
+		expect(manifest.scripts['test:repository']).toBe(
+			'vitest run --config vitest.repository.config.ts',
+		);
+		expect(manifest.scripts.test).toBe('bun run test:repository && turbo run test');
+		expect(workflow).toContain('"prefixes": [".changes/", "api-reports/", "apps/", "packages/", "tests/", "tools/"]');
+		expect(workflow).toContain('run: bun run test');
 		expect(workflow).toContain(
 			'"prefixes": ["api-reports/", "packages/analytics/", "packages/gates/", "packages/i18n-core/"',
 		);

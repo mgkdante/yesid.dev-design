@@ -1,0 +1,9 @@
+{
+	"extends": "@yesid/config/tsconfig/library.json",
+	"compilerOptions": {
+		"allowJs": true,
+		"module": "ESNext",
+		"types": ["node"]
+	},
+	"include": ["tests/repository/**/*.ts", "vitest.repository.config.ts"]
+}

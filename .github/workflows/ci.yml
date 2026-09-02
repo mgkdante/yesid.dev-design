@@ -40,8 +40,8 @@ jobs:
               },
               "jobs": {
                 "ci-work": {
-                  "paths": ["DESIGN.md", "tsconfig.tools.json"],
-                  "prefixes": [".changes/", "api-reports/", "apps/", "packages/", "tools/"]
+                  "paths": ["DESIGN.md", "tsconfig.repository-tests.json", "tsconfig.tools.json", "vitest.repository.config.ts"],
+                  "prefixes": [".changes/", "api-reports/", "apps/", "packages/", "tests/", "tools/"]
                 },
                 "browser-authority-work": {
                   "paths": ["apps/gallery/package.json", "apps/gallery/playwright.config.ts", "apps/gallery/svelte.config.js", "apps/gallery/tsconfig.json", "apps/gallery/vite.config.ts", "packages/motion/package.json", "packages/motion/tsconfig.json", "packages/tokens/package.json", "packages/tokens/tokens.json", "packages/tokens/tsconfig.json", "packages/ui/package.json", "packages/ui/svelte.config.js", "packages/ui/tsconfig.json"],
@@ -89,7 +89,7 @@ jobs:
       - name: typecheck
         run: bun run check
       - name: tests
-        run: bun x turbo run test
+        run: bun run test
       - name: token drift gate
         run: bun run ci:tokens
       - name: Upload Ubuntu token outputs
