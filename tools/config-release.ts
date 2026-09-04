@@ -3,15 +3,11 @@
 import { spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import {
-	closeSync,
 	constants,
 	copyFileSync,
 	existsSync,
-	fstatSync,
 	lstatSync,
 	mkdtempSync,
-	openSync,
-	readSync,
 	realpathSync,
 	rmSync,
 	writeFileSync,
@@ -21,6 +17,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { REPOSITORY_ID, pathInside, type TagIdentity } from './adopt/contract.js';
+import { guardExistingFile, readStableFile } from './adopt/path-safety.js';
 import {
 	CONFIG_ARCHIVE_LIMITS,
 	parseConfigArchive,
@@ -111,11 +108,22 @@ function taggedFileBytes(
 	}
 	const result = spawnSync(
 		'git',
-		['-c', 'core.fsmonitor=false', '-c', 'core.hooksPath=', 'show', `${commit}:${path}`],
+		[
+			'--no-replace-objects',
+			'-c',
+			'core.fsmonitor=false',
+			'-c',
+			'core.hooksPath=',
+			'-c',
+			`core.attributesFile=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`,
+			'show',
+			`${commit}:${path}`,
+		],
 		{
-		cwd: repositoryRoot,
-		maxBuffer: maxBytes + 1,
-		timeout: GIT_READ_TIMEOUT_MS,
+			cwd: repositoryRoot,
+			env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
+			maxBuffer: maxBytes + 1,
+			timeout: GIT_READ_TIMEOUT_MS,
 		},
 	);
 	if (result.error || result.status !== 0 || !Buffer.isBuffer(result.stdout)) {
@@ -319,10 +327,13 @@ function generateConfigArchive(
 	const archive = spawnSync(
 		'git',
 		[
+			'--no-replace-objects',
 			'-c',
 			'core.fsmonitor=false',
 			'-c',
 			'core.hooksPath=',
+			'-c',
+			`core.attributesFile=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`,
 			'-c',
 			'tar.umask=0002',
 			'-c',
@@ -341,6 +352,7 @@ function generateConfigArchive(
 		{
 			cwd: repositoryRoot,
 			encoding: 'utf8',
+			env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
 			maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
 			timeout: GIT_ARCHIVE_TIMEOUT_MS,
 		},
@@ -353,55 +365,9 @@ function generateConfigArchive(
 	return plan;
 }
 
-function readBoundedRegularFile(path: string, maxBytes: number, limitMessage: string): Buffer {
-	const before = lstatSync(path);
-	if (before.isSymbolicLink() || !before.isFile()) {
-		throw new Error(`${limitMessage}; expected a regular file`);
-	}
-	if (before.size <= 0 || before.size > maxBytes) throw new Error(limitMessage);
-	let descriptor: number;
-	try {
-		const noFollow = process.platform === 'win32' ? 0 : (constants.O_NOFOLLOW ?? 0);
-		descriptor = openSync(
-			path,
-			constants.O_RDONLY | noFollow,
-		);
-	} catch (cause) {
-		throw new Error(`${limitMessage}; could not open a stable regular file`, { cause });
-	}
-	try {
-		const opened = fstatSync(descriptor);
-		if (
-			!opened.isFile() ||
-			opened.dev !== before.dev ||
-			opened.ino !== before.ino ||
-			opened.size !== before.size
-		) {
-			throw new Error(`${limitMessage}; file identity changed before reading`);
-		}
-		const bytes = Buffer.allocUnsafe(opened.size);
-		let offset = 0;
-		while (offset < bytes.length) {
-			const count = readSync(descriptor, bytes, offset, bytes.length - offset, null);
-			if (count === 0) throw new Error(`${limitMessage}; file changed while reading`);
-			offset += count;
-		}
-		if (readSync(descriptor, Buffer.alloc(1), 0, 1, null) !== 0) {
-			throw new Error(`${limitMessage}; file grew while reading`);
-		}
-		const after = fstatSync(descriptor);
-		if (after.dev !== opened.dev || after.ino !== opened.ino || after.size !== opened.size) {
-			throw new Error(`${limitMessage}; file identity changed while reading`);
-		}
-		return bytes;
-	} finally {
-		closeSync(descriptor);
-	}
-}
-
 function readConfigArchive(path: string): Buffer {
-	return readBoundedRegularFile(
-		path,
+	return readStableFile(
+		guardExistingFile(path, 'config release archive'),
 		CONFIG_ARCHIVE_LIMITS.compressedBytes,
 		'config release archive compressed size limit is 8 MiB',
 	);
@@ -417,8 +383,8 @@ function verifyChecksum(archive: string, tag: string, archiveBytes: Buffer): str
 		throw new Error(`config release checksum does not exist: ${checksumPath}`);
 	}
 	const expected = `${sha256(archiveBytes)}  ${configReleaseAssetName(tag)}\n`;
-	const checksumBytes = readBoundedRegularFile(
-		checksumPath,
+	const checksumBytes = readStableFile(
+		guardExistingFile(checksumPath, 'config release checksum'),
 		MAX_CHECKSUM_BYTES,
 		'config release checksum size limit is 256 bytes',
 	);
@@ -494,7 +460,9 @@ export function buildConfigRelease(
 		options,
 		CONFIG_IDENTITY_CONTRACT,
 	);
-	const temporaryRoot = mkdtempSync(join(tmpdir(), 'yesid-config-release-build-'));
+	const temporaryRoot = realpathSync.native(
+		mkdtempSync(join(tmpdir(), 'yesid-config-release-build-')),
+	);
 	const temporaryArchive = join(temporaryRoot, configReleaseAssetName(options.tag));
 	try {
 		const plan = generateConfigArchive(repositoryRoot, identity, temporaryArchive);
@@ -546,7 +514,9 @@ export function verifyConfigRelease(
 		options,
 		CONFIG_IDENTITY_CONTRACT,
 	);
-	const expectedRoot = mkdtempSync(join(tmpdir(), 'yesid-config-release-verify-'));
+	const expectedRoot = realpathSync.native(
+		mkdtempSync(join(tmpdir(), 'yesid-config-release-verify-')),
+	);
 	const expected = join(expectedRoot, configReleaseAssetName(options.tag));
 	try {
 		const plan = generateConfigArchive(repositoryRoot, identity, expected);

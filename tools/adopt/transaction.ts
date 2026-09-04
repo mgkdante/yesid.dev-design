@@ -340,11 +340,29 @@ function parseReclaimGuard(path: string): LockOwner {
 	return parseLock(path);
 }
 
+function staleReclaimArtifacts(paths: AdoptTransactionPaths): string[] {
+	const prefix = `${basename(paths.reclaim)}.stale-`;
+	return readdirSync(dirname(paths.reclaim))
+		.filter((entry) => entry.startsWith(prefix) && TOKEN.test(entry.slice(prefix.length)))
+		.map((entry) => {
+			const path = join(dirname(paths.reclaim), entry);
+			entryIdentity(path, 'stale adoption reclaim guard', 'file');
+			return path;
+		});
+}
+
 function acquireReclaimGuard(
 	paths: AdoptTransactionPaths,
 	owner: LockOwner,
 	candidate: string,
 ): EntryIdentity {
+	const preexistingStale = staleReclaimArtifacts(paths);
+	if (preexistingStale.length > 0) {
+		throw new AdoptError(
+			ADOPT_EXIT.RECOVERY_REQUIRED,
+			`stale reclaim guard requires manual recovery at ${preexistingStale[0]}`,
+		);
+	}
 	const retired: Array<{ path: string; identity: EntryIdentity }> = [];
 	for (;;) {
 		try {
@@ -1012,14 +1030,20 @@ function recoverFromEvidence(
 		return {};
 	}
 
-	if (destinationHasStaged && !stageHasStaged) {
+	if (destinationHasStaged && !pathExists(paths.stage)) {
 		const assertInstalled = (): void => {
 			assertEvidence();
 			assertEntryIdentity(paths.dest, 'adoption destination', stagedIdentity);
 		};
 		guardedCall(assertInstalled, () => inspect(paths.dest));
 		let cleanupPath: string | null = null;
-		if (previous && backupHasPrevious && !tombstoneHasPrevious) {
+		if (
+			!previous &&
+			(cleanupAuthorized || pathExists(paths.backup) || pathExists(paths.tombstone))
+		) {
+			throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, `adoption recovery topology is ambiguous`);
+		}
+		if (previous && backupHasPrevious && !pathExists(paths.tombstone)) {
 			if (cleanupAuthorized) {
 				throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, `adoption recovery phase is ambiguous`);
 			}
@@ -1028,7 +1052,7 @@ function recoverFromEvidence(
 			renameOwnedEntry(paths.backup, paths.tombstone, 'adoption backup', previous.identity);
 			syncDirectory(dirname(paths.dest));
 			cleanupPath = paths.tombstone;
-		} else if (previous && tombstoneHasPrevious && !backupHasPrevious) {
+		} else if (previous && tombstoneHasPrevious && !pathExists(paths.backup)) {
 			if (!cleanupAuthorized) assertPreviousHash(paths.tombstone);
 			else assertEntryIdentity(paths.tombstone, 'adoption tombstone', previous.identity);
 			cleanupPath = paths.tombstone;
@@ -1088,6 +1112,20 @@ function recover(
 			);
 		}
 		evidence.set(token, true);
+	}
+	if (evidence.size === 1) {
+		for (const token of owners.keys()) {
+			if (evidence.has(token)) continue;
+			const attempted = transactionPaths(paths.dest, token);
+			if (
+				!pathExists(attempted.stage) &&
+				!pathExists(attempted.tombstone) &&
+				!pathExists(attempted.recovery) &&
+				!pathExists(attempted.cleanup)
+			) {
+				owners.delete(token);
+			}
+		}
 	}
 	const tokens = new Set([...owners.keys(), ...evidence.keys()]);
 	if (tokens.size > 1) {
@@ -1419,6 +1457,7 @@ export function installAdoption(
 			verifiedManifest(paths.dest, manifest!, options.inspect),
 		);
 		checkpoint('postverify.passed');
+		rollbackAllowed = false;
 		if (pathExists(paths.backup)) {
 			if (!identities.backup) {
 				throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, `adoption backup identity is unavailable`);
@@ -1490,6 +1529,13 @@ export function installAdoption(
 	} catch (error) {
 		if (error instanceof PathIdentityChangedError) {
 			parentUnsafe = !error.cleanupSafe;
+			if (!rollbackAllowed) {
+				retainLock = parentUnsafe;
+				throw new CleanupPendingError(
+					`committed adoption requires cleanup recovery for ${paths.dest}`,
+					{ cause: error },
+				);
+			}
 			if (error.subject === 'source' && destinationStateCaptured) {
 				try {
 					rollback(

@@ -79,9 +79,10 @@ Add the vendored packages to the product's `package.json`:
 }
 ```
 
-Run `bun install`. Commit `vendor/design`, including `manifest.json`, the
-self-vendored `tools/adopt.ts` bundle, `LICENSE`, `NOTICE`, and `TRADEMARK.md`. Do not add the vendor
-directory to `.gitignore`.
+Run `bun install`. Commit `vendor/design`, including `manifest.json` and the
+self-vendored `tools/adopt.ts` bundle. For `v0.13.4` and later, this also includes `LICENSE`,
+`NOTICE`, and `TRADEMARK.md`; for an older immutable tag, commit the legal-file set that tag's
+historical archive installs. Do not add the vendor directory to `.gitignore`.
 
 ## 3. Generate the product token outputs
 

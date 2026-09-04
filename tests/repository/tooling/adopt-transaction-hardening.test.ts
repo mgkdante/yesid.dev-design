@@ -286,6 +286,23 @@ describe('transaction lock hardening', () => {
 			false,
 		);
 	});
+
+	it('surfaces a reclaim-rename crash artifact instead of leaving it silently', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		const stale = `${prefix(dest)}.lock.reclaim.stale-${randomUUID()}`;
+		write(stale, 'preserved reclaim evidence\n');
+		let thrown: unknown;
+
+		try {
+			install(dest, 'v1.0.0');
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(readFileSync(stale, 'utf8')).toBe('preserved reclaim evidence\n');
+	});
 });
 
 describe('transaction durability hardening', () => {
@@ -400,6 +417,62 @@ describe('transaction durability hardening', () => {
 		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
 		expect(readFileSync(join(backup, 'foreign.txt'), 'utf8')).toBe('foreign\n');
 		expect(existsSync(displaced)).toBe(true);
+	});
+
+	it('preserves recovery evidence when a stopped stage path is replaced', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		install(dest, 'v1.0.0');
+		const crashed = crashInstall(root, dest, 'v1.0.1', 'destination.installed');
+		expect(crashed.status, String(crashed.stderr)).toBe(97);
+		const parent = dirname(dest);
+		const evidenceName = readdirSync(parent).find((entry) => entry.includes('.recovery-'));
+		expect(evidenceName).toBeDefined();
+		const token = evidenceName?.match(/\.recovery-([0-9a-f-]{36})\.json$/u)?.[1];
+		expect(token).toBeDefined();
+		const stage = `${prefix(dest)}.stage-${token}`;
+		write(join(stage, 'foreign.txt'), 'foreign\n');
+		let thrown: unknown;
+
+		try {
+			install(dest, 'v1.0.1');
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(readFileSync(join(stage, 'foreign.txt'), 'utf8')).toBe('foreign\n');
+		expect(existsSync(join(parent, evidenceName!))).toBe(true);
+		expect(existsSync(`${prefix(dest)}.backup`)).toBe(true);
+		expect(inspect(dest).provenance.tag.name).toBe('v1.0.1');
+	});
+
+	it('preserves recovery evidence when a stopped committed backup path is added', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		install(dest, 'v1.0.0');
+		const crashed = crashInstall(root, dest, 'v1.0.1', 'commit.durable');
+		expect(crashed.status, String(crashed.stderr)).toBe(97);
+		const parent = dirname(dest);
+		const backup = `${prefix(dest)}.backup`;
+		write(join(backup, 'foreign.txt'), 'foreign\n');
+		const evidenceName = readdirSync(parent).find((entry) => entry.includes('.recovery-'));
+		const tombstoneName = readdirSync(parent).find((entry) => entry.includes('.tombstone-'));
+		expect(evidenceName).toBeDefined();
+		expect(tombstoneName).toBeDefined();
+		let thrown: unknown;
+
+		try {
+			install(dest, 'v1.0.1');
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(readFileSync(join(backup, 'foreign.txt'), 'utf8')).toBe('foreign\n');
+		expect(existsSync(join(parent, evidenceName!))).toBe(true);
+		expect(existsSync(join(parent, tombstoneName!))).toBe(true);
+		expect(inspect(dest).provenance.tag.name).toBe('v1.0.1');
 	});
 
 	it('refuses a linked durable backup without touching its target', () => {
@@ -560,6 +633,26 @@ describe('transaction durability hardening', () => {
 		expect(inspect(dest).provenance.tag.name).toBe('v1.0.1');
 		expect(install(dest, 'v1.0.2').outcome).toBe('installed');
 		expect(inspect(dest).provenance.tag.name).toBe('v1.0.2');
+	});
+
+	it('recovers when a cleanup-retry process dies under a newer lock token', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		install(dest, 'v1.0.0');
+		const blocked = runtime((point) => {
+			if (point === 'tombstone.cleanup') throw new Error('cleanup blocked');
+		});
+		expect(install(dest, 'v1.0.1', blocked).outcome).toBe('installed');
+		const crashed = crashInstall(root, dest, 'v1.0.1', 'tombstone.cleanup');
+
+		expect(crashed.status, String(crashed.stderr)).toBe(97);
+		expect(inspect(dest).provenance.tag.name).toBe('v1.0.1');
+		expect(install(dest, 'v1.0.1').outcome).toBe('noop');
+		expect(
+			readdirSync(dirname(dest)).some(
+				(entry) => entry.includes('.cleanup-') || entry.endsWith('.yesid-adopt.lock'),
+			),
+		).toBe(false);
 	});
 
 	it('preserves a regular tombstone replacement detected during cleanup', () => {
@@ -787,6 +880,28 @@ describe('transaction durability hardening', () => {
 		expect(inspect(dest).provenance.tag.name).toBe('v1.0.1');
 		expect(readdirSync(dirname(dest)).some((entry) => entry.includes('.cleanup-'))).toBe(true);
 		expect(install(dest, 'v1.0.1').outcome).toBe('noop');
+	});
+
+	it('preserves a committed first install when evidence finalization fails', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		let thrown: unknown;
+
+		try {
+			install(
+				dest,
+				'v1.0.0',
+				runtime((point) => {
+					if (point === 'recovery.finalize') throw new Error('evidence unlink failed');
+				}),
+			);
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(inspect(dest).provenance.tag.name).toBe('v1.0.0');
+		expect(install(dest, 'v1.0.0').outcome).toBe('noop');
 	});
 
 	it('resumes an authorized partial committed-tombstone cleanup', () => {

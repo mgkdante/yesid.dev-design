@@ -29,7 +29,6 @@ import { guardExistingFile, readStableFile } from './adopt/path-safety.js';
 import {
 	DEFAULT_MAIN_REF,
 	canonicalRepositoryRoot,
-	git,
 	readManifestAt,
 	resolveReleaseIdentity,
 	runGit,
@@ -103,19 +102,21 @@ function assertReleaseVersions(repositoryRoot: string, tag: string, commit: stri
 const RELEASE_IDENTITY_CONTRACT = { assertTag, assertVersions: assertReleaseVersions } as const;
 
 function releaseLegalFiles(repositoryRoot: string, tag: string, commit: string): string[] {
-	if (!requiresCompleteLegalBundle(tag)) {
-		const legacy = ['LICENSE'];
-		if (git(repositoryRoot, ['cat-file', '-e', `${commit}:NOTICE`]).status === 0) {
-			legacy.push('NOTICE');
-		}
-		return legacy;
-	}
-	for (const name of REQUIRED_LEGAL_FILES) {
+	const trackedLegalFile = (name: string, required: boolean): boolean => {
 		const entry = runGit(repositoryRoot, ['ls-tree', commit, '--', name]);
+		if (entry === '' && !required) return false;
 		if (!entry.startsWith('100644 blob ') || !entry.endsWith(`\t${name}`) || entry.includes('\n')) {
 			throw new Error(`required legal file ${name} must be one tracked regular file`);
 		}
+		return true;
+	};
+	if (!requiresCompleteLegalBundle(tag)) {
+		trackedLegalFile('LICENSE', true);
+		const legacy = ['LICENSE'];
+		if (trackedLegalFile('NOTICE', false)) legacy.push('NOTICE');
+		return legacy;
 	}
+	for (const name of REQUIRED_LEGAL_FILES) trackedLegalFile(name, true);
 	return [...REQUIRED_LEGAL_FILES];
 }
 
@@ -235,10 +236,13 @@ function generateDeterministicArchive(
 	const archive = spawnSync(
 		'git',
 		[
+			'--no-replace-objects',
 			'-c',
 			'core.fsmonitor=false',
 			'-c',
 			'core.hooksPath=',
+			'-c',
+			`core.attributesFile=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`,
 			'-c',
 			'tar.umask=0002',
 			'archive',
@@ -255,6 +259,7 @@ function generateDeterministicArchive(
 		{
 			cwd: repositoryRoot,
 			encoding: 'utf8',
+			env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
 			maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
 			timeout: GIT_ARCHIVE_TIMEOUT_MS,
 		},

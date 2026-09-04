@@ -234,6 +234,21 @@ describe('@yesid/config distribution boundary', () => {
 		expect(existsSync(marker)).toBe(false);
 	});
 
+	it('ignores local Git replacement refs when archiving the config tag', () => {
+		const source = repository();
+		write(join(source.root, 'packages/config/README.md'), '# Replacement config\n');
+		git(source.root, 'add', 'packages/config/README.md');
+		git(source.root, 'commit', '-qm', 'replacement config tree');
+		const replacement = git(source.root, 'rev-parse', 'HEAD');
+		git(source.root, 'replace', source.peeledCommit, replacement);
+		const root = tempDir();
+		const asset = join(root, `yesid-${CONFIG_TAG}.tgz`);
+
+		const built = runTool('build', source.root, asset);
+		expect(built.status, `${built.stdout}\n${built.stderr}`).toBe(0);
+		expect(tar(root, '-xOzf', asset, 'package/README.md')).toBe('# Config package\n');
+	});
+
 	it('owns an independently versioned neutral configuration release line', () => {
 		expect(existsSync(CONFIG_MANIFEST_URL)).toBe(true);
 		const manifestValue = JSON.parse(readFileSync(CONFIG_MANIFEST_URL, 'utf8')) as {

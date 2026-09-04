@@ -10,7 +10,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import {
 	REPOSITORY_ID,
 	assertCommit,
@@ -34,7 +34,15 @@ const RECEIPT_NAME = '.yesid-release.json';
 const DEFAULT_RELEASE_TIMEOUT_MS = 60_000;
 const GIT_TIMEOUT_MS = 30_000;
 const MAX_GIT_OUTPUT_BYTES = 1024 * 1024;
-const SAFE_GIT_CONFIG = ['-c', 'core.fsmonitor=false', '-c', 'core.hooksPath='] as const;
+const SAFE_GIT_CONFIG = [
+	'--no-replace-objects',
+	'-c',
+	'core.fsmonitor=false',
+	'-c',
+	'core.hooksPath=',
+	'-c',
+	`core.attributesFile=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`,
+] as const;
 
 export interface AcquiredSource {
 	source: string;
@@ -63,6 +71,7 @@ function runGit(source: string, args: string[]): string {
 	const result = spawnSync('git', [...SAFE_GIT_CONFIG, ...args], {
 		cwd: source,
 		encoding: 'utf8',
+		env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
 		maxBuffer: MAX_GIT_OUTPUT_BYTES,
 		timeout: GIT_TIMEOUT_MS,
 	});
@@ -74,6 +83,21 @@ function runGit(source: string, args: string[]): string {
 	return result.stdout.trim();
 }
 
+function assertNoLocalGitOverrides(source: string): void {
+	for (const relative of ['info/attributes', 'info/grafts']) {
+		const path = resolve(source, runGit(source, ['rev-parse', '--git-path', relative]));
+		try {
+			const stats = lstatSync(path);
+			if (stats.isSymbolicLink() || !stats.isFile() || stats.size !== 0) {
+				throw new Error(`worktree adoption refuses local Git override ${relative} at ${path}`);
+			}
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+			throw error;
+		}
+	}
+}
+
 function annotatedTagIdentity(source: string, tag: string): TagIdentity {
 	assertTag(tag);
 	let object: string;
@@ -82,11 +106,24 @@ function annotatedTagIdentity(source: string, tag: string): TagIdentity {
 	} catch (error) {
 		throw new Error(`worktree requires an annotated tag ${tag}`, { cause: error });
 	}
-	const peeledCommit = runGit(source, ['rev-parse', `refs/tags/${tag}^{commit}`]);
+	const peeledCommit = runGit(source, ['rev-parse', `${object}^{commit}`]);
 	assertCommit(object);
 	assertCommit(peeledCommit);
 	if (runGit(source, ['cat-file', '-t', object]) !== 'tag') {
 		throw new Error(`worktree requires an annotated tag ${tag}`);
+	}
+	const headers = new Map<string, string>();
+	for (const line of runGit(source, ['cat-file', '-p', object]).split('\n')) {
+		if (line === '') break;
+		const separator = line.indexOf(' ');
+		if (separator > 0) headers.set(line.slice(0, separator), line.slice(separator + 1));
+	}
+	if (
+		headers.get('object') !== peeledCommit ||
+		headers.get('type') !== 'commit' ||
+		headers.get('tag') !== tag
+	) {
+		throw new Error(`annotated tag ${tag} does not bind its captured commit identity`);
 	}
 	return { name: tag, object, peeledCommit };
 }
@@ -95,6 +132,7 @@ export function acquireWorktree(sourceInput: string, tag: string): AcquiredSourc
 	const sourceGuard = guardExistingDirectory(sourceInput, 'worktree source');
 	const source = sourceGuard.path;
 	sourceGuard.assertStable();
+	assertNoLocalGitOverrides(source);
 	const identity = annotatedTagIdentity(source, tag);
 	const head = runGit(source, ['rev-parse', 'HEAD']);
 	assertCommit(head);
@@ -112,6 +150,7 @@ export function acquireWorktree(sourceInput: string, tag: string): AcquiredSourc
 		[...SAFE_GIT_CONFIG, 'archive', '--format=tar', `--prefix=${rootName}/`, tree],
 		{
 			cwd: source,
+			env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
 			maxBuffer: MAX_ARCHIVE_BYTES,
 			timeout: GIT_TIMEOUT_MS,
 		},

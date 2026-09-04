@@ -103,6 +103,7 @@ type Checkpoint =
 	| 'backup.durable'
 	| 'destination.installed'
 	| 'postverify.passed'
+	| 'recovery.finalize'
 	| 'rollback.started';
 
 interface TransactionPaths {
@@ -857,6 +858,39 @@ describe('adoption path safety', () => {
 		expect(existsSync(dest)).toBe(true);
 		if (existsSync(dest)) expect(adoptionSnapshot(dest)).toEqual(before);
 		expect(existsSync(join(dirname(dest), `.${basename(dest)}.yesid-adopt.backup`))).toBe(false);
+	});
+
+	it('preserves the committed destination when the source changes during finalization', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const displaced = join(root, 'source-displaced');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		const base: Parameters<typeof adoptFromSource>[0] = {
+			source,
+			dest,
+			packages: ['tokens'],
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+		};
+		adoptWithRuntime(base);
+		let thrown: unknown;
+
+		try {
+			adoptWithRuntime(
+				{ ...base, provenance: worktreeProvenance('v1.0.1', NEW_COMMIT) },
+				(point) => {
+					if (point !== 'recovery.finalize') return;
+					renameSync(source, displaced);
+					makeSource(source);
+				},
+			);
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(checkAdoption(dest).provenance.tag.name).toBe('v1.0.1');
+		expect(existsSync(displaced)).toBe(true);
 	});
 
 	it('returns recovery-required without following a replaced destination parent', () => {

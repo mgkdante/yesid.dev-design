@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { realpathSync } from 'node:fs';
+import { lstatSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { assertCommit, type TagIdentity } from '../adopt/contract.js';
@@ -38,7 +38,15 @@ export interface GitOptions {
 const DEFAULT_GIT_TIMEOUT_MS = 10_000;
 const DEFAULT_GIT_OUTPUT_BYTES = 64 * 1024;
 const MAX_RELEASE_MANIFEST_BYTES = 64 * 1024;
-const SAFE_GIT_CONFIG = ['-c', 'core.fsmonitor=false', '-c', 'core.hooksPath='] as const;
+const SAFE_GIT_CONFIG = [
+	'--no-replace-objects',
+	'-c',
+	'core.fsmonitor=false',
+	'-c',
+	'core.hooksPath=',
+	'-c',
+	`core.attributesFile=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`,
+] as const;
 
 export function git(
 	repositoryRoot: string,
@@ -48,6 +56,7 @@ export function git(
 	const result = spawnSync(options.executable ?? 'git', [...SAFE_GIT_CONFIG, ...args], {
 		cwd: repositoryRoot,
 		encoding: 'utf8',
+		env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
 		timeout: options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS,
 		maxBuffer: options.maxOutputBytes ?? DEFAULT_GIT_OUTPUT_BYTES,
 	});
@@ -81,7 +90,26 @@ export function canonicalRepositoryRoot(input: string): string {
 	const root = realpathSync(resolve(input));
 	const topLevel = realpathSync(runGit(root, ['rev-parse', '--show-toplevel']));
 	if (topLevel !== root) throw new Error(`repository root must be the Git top level: ${topLevel}`);
+	assertNoLocalGitOverrides(root);
 	return root;
+}
+
+function assertNoLocalGitOverrides(repositoryRoot: string): void {
+	for (const relative of ['info/attributes', 'info/grafts']) {
+		const configured = resolve(
+			repositoryRoot,
+			runGit(repositoryRoot, ['rev-parse', '--git-path', relative]),
+		);
+		try {
+			const stats = lstatSync(configured);
+			if (stats.isSymbolicLink() || !stats.isFile() || stats.size !== 0) {
+				throw new Error(`release tooling refuses local Git override ${relative} at ${configured}`);
+			}
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+			throw error;
+		}
+	}
 }
 
 export function assertClean(repositoryRoot: string): void {

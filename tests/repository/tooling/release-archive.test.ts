@@ -9,7 +9,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -295,6 +295,45 @@ describe('immutable release archive', () => {
 		expect(existsSync(join(adoption, 'NOTICE'))).toBe(false);
 		expect(existsSync(join(adoption, 'TRADEMARK.md'))).toBe(false);
 	});
+
+	it('ignores local Git replacement refs when building the exact tagged tree', () => {
+		const source = repository();
+		write(
+			join(source.root, 'packages', 'tokens', 'src', 'index.ts'),
+			"export const name = 'replacement';\n",
+		);
+		git(source.root, 'add', 'packages/tokens/src/index.ts');
+		git(source.root, 'commit', '-qm', 'replacement tree');
+		const replacement = git(source.root, 'rev-parse', 'HEAD');
+		git(source.root, 'replace', source.peeledCommit, replacement);
+		const root = tempDir();
+		const output = join(root, releaseAssetName(TAG));
+
+		buildReleaseArchive({ repositoryRoot: source.root, tag: TAG, output });
+		expect(
+			tar(
+				root,
+				'-xOf',
+				output,
+				`yesid.dev-design-${TAG}/packages/tokens/src/index.ts`,
+			),
+		).toBe("export const name = 'tokens';\n");
+	});
+
+	it.each(['info/attributes', 'info/grafts'])(
+		'refuses nonempty local Git override %s',
+		(relative) => {
+			const source = repository();
+			const gitPath = git(source.root, 'rev-parse', '--git-path', relative);
+			write(isAbsolute(gitPath) ? gitPath : join(source.root, gitPath), 'local override\n');
+			const output = join(tempDir(), releaseAssetName(TAG));
+
+			expect(() =>
+				buildReleaseArchive({ repositoryRoot: source.root, tag: TAG, output }),
+			).toThrow(/refuses local Git override/iu);
+			expect(existsSync(output)).toBe(false);
+		},
+	);
 
 	it('fails closed before writing for dirty, lightweight, or version-mismatched trust roots', () => {
 		const dirty = repository();

@@ -12,7 +12,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -64,6 +64,7 @@ function makeTaggedWorktree(root: string): { tagObject: string; commit: string }
 	write(join(root, 'tools', 'adopt.ts'), 'export {};\n');
 	write(join(root, 'tools', 'adopt', 'contract.ts'), 'export {};\n');
 	write(join(root, 'packages', 'tokens', 'package.json'), '{"name":"@yesid/tokens"}\n');
+	write(join(root, 'packages', 'tokens', 'value.txt'), 'original\n');
 	git(root, 'init', '-q');
 	git(root, 'config', 'user.name', 'Test');
 	git(root, 'config', 'user.email', 'test@example.com');
@@ -255,6 +256,26 @@ describe('worktree acquisition', () => {
 		}
 	});
 
+	it('ignores local Git replacement refs when snapshotting the captured tag', () => {
+		const root = tempDir();
+		const expected = makeTaggedWorktree(root);
+		write(join(root, 'packages', 'tokens', 'value.txt'), 'replacement\n');
+		git(root, 'add', 'packages/tokens/value.txt');
+		git(root, 'commit', '-qm', 'replacement tree');
+		const replacement = git(root, 'rev-parse', 'HEAD');
+		git(root, 'checkout', '-q', '--detach', expected.commit);
+		git(root, 'replace', expected.commit, replacement);
+
+		const acquired = acquireWorktree(root, TAG);
+		try {
+			expect(readFileSync(join(acquired.source, 'packages', 'tokens', 'value.txt'), 'utf8')).toBe(
+				'original\n',
+			);
+		} finally {
+			close(acquired);
+		}
+	});
+
 	it.skipIf(process.platform === 'win32')('does not execute a repository-configured fsmonitor', () => {
 		const root = tempDir();
 		makeTaggedWorktree(root);
@@ -268,6 +289,18 @@ describe('worktree acquisition', () => {
 		close(acquired);
 		expect(existsSync(marker)).toBe(false);
 	});
+
+	it.each(['info/attributes', 'info/grafts'])(
+		'refuses nonempty worktree-local Git override %s',
+		(relative) => {
+			const root = tempDir();
+			makeTaggedWorktree(root);
+			const gitPath = git(root, 'rev-parse', '--git-path', relative);
+			write(isAbsolute(gitPath) ? gitPath : join(root, gitPath), 'local override\n');
+
+			expect(() => acquireWorktree(root, TAG)).toThrow(/refuses local Git override/iu);
+		},
+	);
 
 	it('rejects a dirty or lightweight-tagged worktree', () => {
 		const dirty = tempDir();
