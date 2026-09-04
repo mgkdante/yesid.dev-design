@@ -17,25 +17,67 @@ import { blockingAxeViolations } from './browser/authority.js';
 const ROOT = resolve(import.meta.dirname, '../../..');
 const AUTHORITY_IMAGE =
 	'mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48';
+const TEST_VOLUME = 'yesid-browser-authority-test-volume';
+const PROXY_VARIABLES = [
+	'HTTP_PROXY',
+	'HTTPS_PROXY',
+	'FTP_PROXY',
+	'ALL_PROXY',
+	'NO_PROXY',
+	'http_proxy',
+	'https_proxy',
+	'ftp_proxy',
+	'all_proxy',
+	'no_proxy',
+] as const;
 
-function fakeDocker(exitCode = 0) {
+function fakeDocker({ failCall = 0, exitCode = 23 } = {}) {
 	const root = mkdtempSync(join(tmpdir(), 'yesid-browser-authority-'));
 	const bin = join(root, 'bin');
 	const capture = join(root, 'capture');
+	const dockerConfig = join(root, 'docker-config');
 	mkdirSync(bin);
 	mkdirSync(capture);
+	mkdirSync(dockerConfig);
+	writeFileSync(
+		join(dockerConfig, 'config.json'),
+		JSON.stringify({
+			proxies: {
+				default: {
+					httpProxy: 'http://proxy-user:proxy-password@proxy.example.invalid:8080',
+				},
+			},
+		}),
+	);
 	const docker = join(bin, 'docker');
 	writeFileSync(
 		docker,
-		`#!/bin/sh\nset -eu\nprintf '%s\\0' "$@" >"$TEST_CAPTURE_DIR/args"\ncat >"$TEST_CAPTURE_DIR/stdin"\nexit "$FAKE_DOCKER_EXIT"\n`,
+		`#!/bin/sh
+set -eu
+count=0
+if [ -f "$TEST_CAPTURE_DIR/count" ]; then read -r count <"$TEST_CAPTURE_DIR/count"; fi
+count=$((count + 1))
+printf '%s\n' "$count" >"$TEST_CAPTURE_DIR/count"
+printf '%s\\0' "$@" >"$TEST_CAPTURE_DIR/$count.args"
+cat >"$TEST_CAPTURE_DIR/$count.stdin"
+if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
+if [ "\${1-}" = volume ] && [ "\${2-}" = create ]; then printf '%s\n' "$FAKE_DOCKER_VOLUME"; fi
+`,
 	);
 	chmodSync(docker, 0o755);
+	const proxyEnv = Object.fromEntries(
+		PROXY_VARIABLES.map((name) => [name, `credential-must-not-enter-${name}`]),
+	);
 
 	return {
 		capture,
 		env: {
 			...process.env,
+			...proxyEnv,
+			DOCKER_CONFIG: dockerConfig,
 			FAKE_DOCKER_EXIT: String(exitCode),
+			FAKE_DOCKER_FAIL_CALL: String(failCall),
+			FAKE_DOCKER_VOLUME: TEST_VOLUME,
 			PATH: `${bin}${delimiter}${process.env.PATH ?? ''}`,
 			TEST_CAPTURE_DIR: capture,
 		},
@@ -43,8 +85,23 @@ function fakeDocker(exitCode = 0) {
 	};
 }
 
-function dockerArgs(capture: string) {
-	return readFileSync(join(capture, 'args'), 'utf8').split('\0').filter(Boolean);
+function dockerCalls(capture: string) {
+	const countPath = join(capture, 'count');
+	const count = Number(readFileSync(countPath, 'utf8'));
+	return Array.from({ length: count }, (_, index) => {
+		const call = index + 1;
+		return {
+			args: readFileSync(join(capture, `${call}.args`), 'utf8').split('\0').filter(Boolean),
+			stdin: readFileSync(join(capture, `${call}.stdin`)),
+		};
+	});
+}
+
+function expectProxyCredentialsNeutralized(args: string[]) {
+	for (const name of PROXY_VARIABLES) {
+		expect(args).toContain(`${name}=`);
+		expect(args).not.toContain(`credential-must-not-enter-${name}`);
+	}
 }
 
 function authorityFixture(changes: {
@@ -84,7 +141,7 @@ function authorityFixture(changes: {
 }
 
 describe('browser accessibility authority', () => {
-	it('runs the committed tree in the digest-pinned Noble authority container', () => {
+	it('creates one volume, streams the committed tree to bootstrap, runs offline, then cleans up', () => {
 		const fake = fakeDocker();
 		try {
 			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
@@ -92,38 +149,109 @@ describe('browser accessibility authority', () => {
 				env: fake.env,
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
-			const receivedArchive = readFileSync(join(fake.capture, 'stdin'));
+			const calls = dockerCalls(fake.capture);
+			expect(calls).toHaveLength(4);
+			expect(calls[0]!.args.slice(0, 2)).toEqual(['volume', 'create']);
+			expect(calls[3]!.args).toEqual(['volume', 'rm', '--force', TEST_VOLUME]);
 			const committedArchive = execFileSync('git', ['archive', '--format=tar', 'HEAD'], {
 				cwd: ROOT,
 				maxBuffer: 32 * 1024 * 1024,
 			});
-			expect(Buffer.compare(receivedArchive, committedArchive)).toBe(0);
+			expect(Buffer.compare(calls[1]!.stdin, committedArchive)).toBe(0);
+			expect(calls[2]!.stdin).toHaveLength(0);
+		} finally {
+			fake.remove();
+		}
+	});
 
-			const args = dockerArgs(fake.capture);
-			expect(args.slice(0, 10)).toEqual([
-				'run',
-				'--platform',
-				'linux/amd64',
-				'--rm',
-				'--init',
-				'--shm-size=1g',
-				'--interactive',
-				'--env',
-				'CI=1',
-				'--workdir',
-			]);
-			expect(args[10]).toBe('/work');
-			expect(args[11]).toBe(AUTHORITY_IMAGE);
-			expect(args).not.toContain('--volume');
-			expect(args).not.toContain('-v');
-			expect(args).not.toContain('--ipc=host');
-			expect(args.join(' ')).not.toContain(ROOT);
-			expect(args.at(-1)).toContain(
+	it('neutralizes Docker client proxy credentials in both containers', () => {
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: ROOT,
+				env: fake.env,
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			const runs = dockerCalls(fake.capture).filter(({ args }) => args[0] === 'run');
+			expectProxyCredentialsNeutralized(runs[0]!.args);
+			expect(runs).toHaveLength(2);
+			expectProxyCredentialsNeutralized(runs[1]!.args);
+		} finally {
+			fake.remove();
+		}
+	});
+
+	it('bootstraps dependencies without executing candidate or dependency scripts', () => {
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: ROOT,
+				env: fake.env,
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			const calls = dockerCalls(fake.capture);
+			expect(calls).toHaveLength(4);
+			const bootstrapCommand = calls[1]!.args.at(-1)!;
+			expect(bootstrapCommand).toContain(
 				'8611ba935af886f05a6f38740a15160326c15e5d5d07adef966130b4493607ed  /tmp/bun-linux-x64.zip',
 			);
-			expect(args.at(-1)).toContain('bun install --frozen-lockfile');
-			expect(args.at(-1)).toContain("Total: 16 tests in 4 files");
-			expect(args.at(-1)).toContain('bun run test:browser');
+			expect(bootstrapCommand).toContain('install --frozen-lockfile --ignore-scripts');
+			expect(bootstrapCommand).not.toContain('bun run');
+			expect(bootstrapCommand).not.toContain('test:browser');
+		} finally {
+			fake.remove();
+		}
+	});
+
+	it('runs candidate preparation and the fixed browser inventory without network or capabilities', () => {
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: ROOT,
+				env: fake.env,
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			const calls = dockerCalls(fake.capture);
+			expect(calls).toHaveLength(4);
+			const offline = calls[2]!;
+			expect(offline.args).toContain('--network=none');
+			expect(offline.args).toContain('--pull=never');
+			expect(offline.args).toContain('--cap-drop=ALL');
+			expect(offline.args).toContain('--security-opt=no-new-privileges');
+			expect(offline.args).toContain('--shm-size=1g');
+			const offlineCommand = offline.args.at(-1)!;
+			expect(offlineCommand.indexOf('bun run --cwd apps/gallery prepare')).toBeLessThan(
+				offlineCommand.indexOf('bun run test:browser:list'),
+			);
+			expect(offlineCommand).toContain('Total: 16 tests in 4 files');
+			expect(offlineCommand).toContain('bun run test:browser');
+		} finally {
+			fake.remove();
+		}
+	});
+
+	it('uses the same named volume, image, and platform without host mounts or IPC', () => {
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: ROOT,
+				env: fake.env,
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			const runs = dockerCalls(fake.capture).filter(({ args }) => args[0] === 'run');
+			expect(runs).toHaveLength(2);
+			for (const call of runs) {
+				expect(call.args).toContain('linux/amd64');
+				expect(call.args).toContain(AUTHORITY_IMAGE);
+				expect(call.args).toContain(
+					`type=volume,source=${TEST_VOLUME},target=/authority,volume-nocopy`,
+				);
+				expect(call.args).not.toContain('--volume');
+				expect(call.args).not.toContain('-v');
+				expect(call.args).not.toContain('--ipc=host');
+				expect(call.args.join(' ')).not.toContain('type=bind');
+				expect(call.args.join(' ')).not.toContain(ROOT);
+			}
 		} finally {
 			fake.remove();
 		}
@@ -145,7 +273,9 @@ describe('browser accessibility authority', () => {
 				env: fake.env,
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
-			const receivedArchive = readFileSync(join(fake.capture, 'stdin'));
+			const calls = dockerCalls(fake.capture);
+			expect(calls).toHaveLength(4);
+			const receivedArchive = calls[1]!.stdin;
 			const committedArchive = execFileSync('git', ['archive', '--format=tar', commit], {
 				cwd: fixture,
 				maxBuffer: 32 * 1024 * 1024,
@@ -180,7 +310,9 @@ describe('browser accessibility authority', () => {
 				env: fake.env,
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
-			const receivedArchive = readFileSync(join(fake.capture, 'stdin'));
+			const calls = dockerCalls(fake.capture);
+			expect(calls).toHaveLength(4);
+			const receivedArchive = calls[1]!.stdin;
 			const originalArchive = execFileSync(
 				'git',
 				['--no-replace-objects', 'archive', '--format=tar', original],
@@ -238,14 +370,54 @@ describe('browser accessibility authority', () => {
 	});
 
 	it('exposes the authority runner from the root and propagates Docker failure', () => {
-		const fake = fakeDocker(23);
+		const fake = fakeDocker({ failCall: 3, exitCode: 23 });
 		try {
 			const result = spawnSync('bun', ['run', 'test:browser:noble'], {
 				cwd: ROOT,
 				env: fake.env,
 			});
 			expect(result.status).toBe(23);
-			expect(dockerArgs(fake.capture)[11]).toBe(AUTHORITY_IMAGE);
+			const calls = dockerCalls(fake.capture);
+			expect(calls).toHaveLength(4);
+			expect(calls[2]!.args).toContain(AUTHORITY_IMAGE);
+			expect(calls[3]!.args).toEqual(['volume', 'rm', '--force', TEST_VOLUME]);
+		} finally {
+			fake.remove();
+		}
+	});
+
+	it('cleans the volume and skips candidate execution when bootstrap fails', () => {
+		const fake = fakeDocker({ failCall: 2, exitCode: 24 });
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: ROOT,
+				env: fake.env,
+			});
+			expect(result.status).toBe(24);
+			const calls = dockerCalls(fake.capture);
+			expect(calls).toHaveLength(3);
+			expect(calls[1]!.args[0]).toBe('run');
+			expect(calls[2]!.args).toEqual(['volume', 'rm', '--force', TEST_VOLUME]);
+		} finally {
+			fake.remove();
+		}
+	});
+
+	it('fails when cleanup cannot remove an otherwise successful authority volume', () => {
+		const fake = fakeDocker({ failCall: 4, exitCode: 25 });
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: ROOT,
+				env: fake.env,
+			});
+			expect(result.status).toBe(25);
+			expect(dockerCalls(fake.capture)[3]!.args).toEqual([
+				'volume',
+				'rm',
+				'--force',
+				TEST_VOLUME,
+			]);
+			expect(result.stderr.toString()).toContain('failed to remove browser authority volume');
 		} finally {
 			fake.remove();
 		}

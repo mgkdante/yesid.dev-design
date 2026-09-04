@@ -40,10 +40,13 @@ bun run test:browser:noble -- <commit-or-tag>
 
 `test:browser:list` discovers the fixed matrix without building. `test:browser` deliberately
 builds the production Gallery before executing the browser suite. `test:browser:noble` streams
-one resolved commit archive (default `HEAD`) into the same digest-pinned Playwright Noble
-container used by CI, installs the checksum-verified Bun pin there, then runs `test:browser`. It
-requires Docker and network access. Working-tree changes, including ignored and untracked files,
-are intentionally excluded; commit the exact candidate you want to verify first.
+one resolved commit archive (default `HEAD`) into a disposable Docker volume. A networked
+bootstrap container uses the same digest-pinned Playwright Noble image as CI, clears proxy
+credentials, verifies the Bun checksum, and installs dependencies without lifecycle scripts. A
+second container prepares and tests the candidate with no network or Linux capabilities; cleanup
+removes the volume on success or failure. Docker and bootstrap network access are required.
+Working-tree changes, including ignored and untracked files, are intentionally excluded; commit
+the exact candidate you want to verify first.
 
 ## Failure modes and release implications
 

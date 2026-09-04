@@ -84,17 +84,56 @@ require_pin 'CI browser authority image' "$workflow_image" "$IMAGE"
 
 printf 'browser authority: source=%s platform=linux/amd64 image=%s\n' "$commit" "$IMAGE" >&2
 
+proxy_env=(
+	--env HTTP_PROXY=
+	--env HTTPS_PROXY=
+	--env FTP_PROXY=
+	--env ALL_PROXY=
+	--env NO_PROXY=
+	--env http_proxy=
+	--env https_proxy=
+	--env ftp_proxy=
+	--env all_proxy=
+	--env no_proxy=
+)
+
+volume=
+cleanup_volume() {
+	local status=$?
+	local cleanup_status
+	trap - EXIT
+	if [[ -n "$volume" ]]; then
+		if docker volume rm --force "$volume" >/dev/null; then
+			:
+		else
+			cleanup_status=$?
+			printf 'failed to remove browser authority volume %s\n' "$volume" >&2
+			if (( status == 0 )); then status=$cleanup_status; fi
+		fi
+	fi
+	exit "$status"
+}
+trap cleanup_volume EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+volume=$(docker volume create)
+mount="type=volume,source=$volume,target=/authority,volume-nocopy"
+
 trusted_git archive --format=tar "$commit" | docker run \
 	--platform linux/amd64 \
 	--rm \
 	--init \
-	--shm-size=1g \
 	--interactive \
+	--mount "$mount" \
+	"${proxy_env[@]}" \
 	--env CI=1 \
-	--workdir /work \
+	--workdir /authority \
 	"$IMAGE" \
 	bash -euo pipefail -c '
-		tar --extract --file=-
+		mkdir -p /authority/repo /authority/toolchain
+		tar --extract --file=- --directory=/authority/repo
 		apt-get update
 		apt-get install --yes --no-install-recommends ca-certificates curl unzip
 		rm -rf /var/lib/apt/lists/*
@@ -103,9 +142,33 @@ trusted_git archive --format=tar "$commit" | docker run \
 			--output /tmp/bun-linux-x64.zip
 		echo "8611ba935af886f05a6f38740a15160326c15e5d5d07adef966130b4493607ed  /tmp/bun-linux-x64.zip" | sha256sum --check --strict
 		unzip -q /tmp/bun-linux-x64.zip -d /tmp/bun
-		install -m 0755 /tmp/bun/bun-linux-x64/bun /usr/local/bin/bun
+		install -m 0755 /tmp/bun/bun-linux-x64/bun /authority/toolchain/bun
+		test "$(/authority/toolchain/bun --version)" = "1.3.11"
+		cd /authority/repo
+		/authority/toolchain/bun install --frozen-lockfile --ignore-scripts
+	'
+
+docker run \
+	--platform linux/amd64 \
+	--pull=never \
+	--rm \
+	--init \
+	--network=none \
+	--cap-drop=ALL \
+	--security-opt=no-new-privileges \
+	--shm-size=1g \
+	--mount "$mount" \
+	"${proxy_env[@]}" \
+	--env CI=1 \
+	--env HOME=/tmp/home \
+	--env XDG_CACHE_HOME=/tmp/cache \
+	--workdir /authority/repo \
+	"$IMAGE" \
+	bash -euo pipefail -c '
+		export PATH="/authority/toolchain:$PATH"
+		mkdir -p "$HOME" "$XDG_CACHE_HOME"
 		test "$(bun --version)" = "1.3.11"
-		bun install --frozen-lockfile
+		bun run --cwd apps/gallery prepare
 		browser_list=$(bun run test:browser:list)
 		printf "%s\n" "$browser_list"
 		if ! grep -Fqx "Total: 16 tests in 4 files" <<< "$browser_list"; then
