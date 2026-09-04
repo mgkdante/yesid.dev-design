@@ -125,8 +125,6 @@ function taggedFileBytes(
 			env: {
 				...process.env,
 				GIT_ATTR_NOSYSTEM: '1',
-				GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
-				GIT_CONFIG_NOSYSTEM: '1',
 			},
 			maxBuffer: maxBytes + 1,
 			timeout: GIT_READ_TIMEOUT_MS,
@@ -361,8 +359,6 @@ function generateConfigArchive(
 			env: {
 				...process.env,
 				GIT_ATTR_NOSYSTEM: '1',
-				GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
-				GIT_CONFIG_NOSYSTEM: '1',
 			},
 			maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
 			timeout: GIT_ARCHIVE_TIMEOUT_MS,

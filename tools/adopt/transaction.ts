@@ -222,9 +222,15 @@ function syncDirectory(path: string): void {
 }
 
 function syncFile(path: string): void {
-	const descriptor = openSync(path, 'r');
+	const descriptor = openSync(path, process.platform === 'win32' ? 'r+' : 'r');
 	try {
-		fsyncSync(descriptor);
+		try {
+			fsyncSync(descriptor);
+		} catch (error) {
+			if (process.platform !== 'win32' || (error as NodeJS.ErrnoException).code !== 'EPERM') {
+				throw error;
+			}
+		}
 	} finally {
 		closeSync(descriptor);
 	}

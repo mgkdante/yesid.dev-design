@@ -263,8 +263,6 @@ function generateDeterministicArchive(
 			env: {
 				...process.env,
 				GIT_ATTR_NOSYSTEM: '1',
-				GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
-				GIT_CONFIG_NOSYSTEM: '1',
 			},
 			maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
 			timeout: GIT_ARCHIVE_TIMEOUT_MS,

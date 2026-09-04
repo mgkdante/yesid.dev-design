@@ -75,8 +75,6 @@ function runGit(source: string, args: string[]): string {
 		env: {
 			...process.env,
 			GIT_ATTR_NOSYSTEM: '1',
-			GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
-			GIT_CONFIG_NOSYSTEM: '1',
 		},
 		maxBuffer: MAX_GIT_OUTPUT_BYTES,
 		timeout: GIT_TIMEOUT_MS,
@@ -120,8 +118,6 @@ function localFilterNeutralizers(source: string): string[] {
 			env: {
 				...process.env,
 				GIT_ATTR_NOSYSTEM: '1',
-				GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
-				GIT_CONFIG_NOSYSTEM: '1',
 			},
 			maxBuffer: MAX_GIT_OUTPUT_BYTES,
 			timeout: GIT_TIMEOUT_MS,
@@ -202,8 +198,6 @@ export function acquireWorktree(sourceInput: string, tag: string): AcquiredSourc
 			env: {
 				...process.env,
 				GIT_ATTR_NOSYSTEM: '1',
-				GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
-				GIT_CONFIG_NOSYSTEM: '1',
 			},
 			maxBuffer: MAX_ARCHIVE_BYTES,
 			timeout: GIT_TIMEOUT_MS,

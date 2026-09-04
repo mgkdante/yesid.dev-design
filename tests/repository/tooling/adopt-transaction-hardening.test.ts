@@ -6,13 +6,14 @@ import {
 	mkdtempSync,
 	readFileSync,
 	readdirSync,
+	realpathSync,
 	renameSync,
 	rmSync,
 	symlinkSync,
 	writeFileSync,
 } from 'node:fs';
 import { hostname, tmpdir } from 'node:os';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -115,8 +116,14 @@ function prefix(dest: string): string {
 	return join(dirname(dest), `.${basename(dest)}.yesid-adopt`);
 }
 
+function canonicalDestination(dest: string): string {
+	mkdirSync(dirname(dest), { recursive: true });
+	return join(realpathSync.native(dirname(dest)), basename(dest));
+}
+
 function writeLock(dest: string, token: string, pid: number): string {
 	const path = `${prefix(dest)}.lock`;
+	const canonicalDest = canonicalDestination(dest);
 	write(
 		path,
 		`${JSON.stringify({
@@ -124,7 +131,7 @@ function writeLock(dest: string, token: string, pid: number): string {
 			token,
 			pid,
 			hostname: hostname(),
-			dest: resolve(dest),
+			dest: canonicalDest,
 			startedAt: new Date().toISOString(),
 		})}\n`,
 	);
@@ -311,7 +318,7 @@ describe('transaction lock hardening', () => {
 		expect(crashed.status, String(crashed.stderr)).toBe(97);
 		expect(JSON.parse(readFileSync(reclaim, 'utf8'))).toMatchObject({
 			schema: 1,
-			dest: resolve(dest),
+			dest: canonicalDestination(dest),
 		});
 		expect(install(dest, 'v1.0.0').outcome).toBe('installed');
 		expect(existsSync(reclaim)).toBe(false);

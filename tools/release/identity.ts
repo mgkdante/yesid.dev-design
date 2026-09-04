@@ -60,8 +60,6 @@ export function git(
 		env: {
 			...process.env,
 			GIT_ATTR_NOSYSTEM: '1',
-			GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
-			GIT_CONFIG_NOSYSTEM: '1',
 		},
 		timeout: options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS,
 		maxBuffer: options.maxOutputBytes ?? DEFAULT_GIT_OUTPUT_BYTES,
