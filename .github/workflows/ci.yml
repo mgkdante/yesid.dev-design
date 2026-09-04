@@ -48,8 +48,8 @@ jobs:
                   "prefixes": ["apps/gallery/src/", "apps/gallery/tests/browser/", "packages/motion/src/", "packages/tokens/src/", "packages/ui/src/"]
                 },
                 "noble-runner-work": {
-                  "paths": ["apps/gallery/tests/browser-authority.test.ts", "tools/browser-authority-noble.sh"],
-                  "prefixes": []
+                  "paths": ["apps/gallery/package.json", "apps/gallery/playwright.config.ts", "apps/gallery/svelte.config.js", "apps/gallery/tests/browser-authority.test.ts", "apps/gallery/tsconfig.json", "apps/gallery/vite.config.ts", "packages/motion/package.json", "packages/motion/tsconfig.json", "packages/tokens/package.json", "packages/tokens/tokens.json", "packages/tokens/tsconfig.json", "packages/ui/package.json", "packages/ui/svelte.config.js", "packages/ui/tsconfig.json", "tools/browser-authority-noble.sh"],
+                  "prefixes": ["apps/gallery/src/", "apps/gallery/tests/browser/", "packages/motion/src/", "packages/tokens/src/", "packages/ui/src/"]
                 },
                 "token-outputs-windows-work": {
                   "paths": ["DESIGN.md", "apps/gallery/src/app.css", "tests/repository/tooling/adopt-acquisition.test.ts", "tests/repository/tooling/adopt-transaction-hardening.test.ts", "tests/repository/tooling/adopt.test.ts", "tools/adopt.ts", "tools/api-authority.ts", "tools/build-tokens.ts", "tools/release-core.ts", "vitest.repository.config.ts"],

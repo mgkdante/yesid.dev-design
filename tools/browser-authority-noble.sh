@@ -98,10 +98,41 @@ proxy_env=(
 )
 
 volume=
-cleanup_volume() {
+scratch=
+archive=
+volume_output=
+active_pid=
+active_container=
+
+load_created_volume() {
+	local candidate
+	if [[ -n "$volume" || -z "$volume_output" || ! -s "$volume_output" ]]; then return; fi
+	IFS= read -r candidate < "$volume_output"
+	if [[ "$candidate" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]; then volume=$candidate; fi
+}
+
+stop_active_container() {
+	local pid=$active_pid
+	local container=$active_container
+	if [[ -n "$pid" ]]; then kill -TERM "$pid" 2>/dev/null || true; fi
+	if [[ -n "$container" ]]; then docker rm --force "$container" >/dev/null 2>&1 || true; fi
+	if [[ -n "$pid" ]]; then wait "$pid" 2>/dev/null || true; fi
+	active_pid=
+	active_container=
+}
+
+handle_signal() {
+	local status=$1
+	trap - HUP INT TERM
+	stop_active_container
+	exit "$status"
+}
+
+cleanup() {
 	local status=$?
 	local cleanup_status
 	trap - EXIT
+	load_created_volume
 	if [[ -n "$volume" ]]; then
 		if docker volume rm --force "$volume" >/dev/null; then
 			:
@@ -111,17 +142,57 @@ cleanup_volume() {
 			if (( status == 0 )); then status=$cleanup_status; fi
 		fi
 	fi
+	if [[ -n "$scratch" && -d "$scratch" ]]; then
+		if ! rm -rf -- "$scratch"; then
+			printf 'failed to remove browser authority scratch directory %s\n' "$scratch" >&2
+			if (( status == 0 )); then status=1; fi
+		fi
+	fi
 	exit "$status"
 }
-trap cleanup_volume EXIT
-trap 'exit 129' HUP
-trap 'exit 130' INT
-trap 'exit 143' TERM
+trap cleanup EXIT
+trap 'handle_signal 129' HUP
+trap 'handle_signal 130' INT
+trap 'handle_signal 143' TERM
 
-volume=$(docker volume create)
+run_active() {
+	local status
+	"$@" &
+	active_pid=$!
+	if wait "$active_pid"; then status=0; else status=$?; fi
+	active_pid=
+	return "$status"
+}
+
+run_container() {
+	local name=$1
+	local input=$2
+	local status
+	shift 2
+	active_container=$name
+	docker run --name "$name" "$@" < "$input" &
+	active_pid=$!
+	if wait "$active_pid"; then status=0; else status=$?; fi
+	active_pid=
+	active_container=
+	return "$status"
+}
+
+scratch=$(mktemp -d "${TMPDIR:-/tmp}/yesid-browser-authority.XXXXXXXX")
+archive="$scratch/source.tar"
+volume_output="$scratch/volume"
+trusted_git archive --format=tar --output="$archive" "$commit"
+run_active docker volume create > "$volume_output"
+load_created_volume
+if [[ -z "$volume" ]]; then
+	printf 'browser authority could not resolve the created Docker volume\n' >&2
+	exit 2
+fi
 mount="type=volume,source=$volume,target=/authority,volume-nocopy"
+bootstrap_container="yesid-browser-bootstrap-$volume"
+test_container="yesid-browser-test-$volume"
 
-trusted_git archive --format=tar "$commit" | docker run \
+run_container "$bootstrap_container" "$archive" \
 	--platform linux/amd64 \
 	--rm \
 	--init \
@@ -148,7 +219,7 @@ trusted_git archive --format=tar "$commit" | docker run \
 		/authority/toolchain/bun install --frozen-lockfile --ignore-scripts
 	'
 
-docker run \
+run_container "$test_container" /dev/null \
 	--platform linux/amd64 \
 	--pull=never \
 	--rm \

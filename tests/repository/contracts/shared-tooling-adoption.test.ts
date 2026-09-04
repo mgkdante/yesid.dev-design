@@ -273,8 +273,19 @@ describe('ST4 Design shared-tooling adoption', () => {
 				relevant: {
 					'ci-work': true,
 					'browser-authority-work': true,
-					'noble-runner-work': false,
+					'noble-runner-work': true,
 					'token-outputs-windows-work': true,
+					'token-byte-parity-work': false,
+				},
+			},
+			{
+				paths: ['apps/gallery/playwright.config.ts'],
+				reason: 'matched',
+				relevant: {
+					'ci-work': true,
+					'browser-authority-work': true,
+					'noble-runner-work': true,
+					'token-outputs-windows-work': false,
 					'token-byte-parity-work': false,
 				},
 			},
@@ -317,7 +328,7 @@ describe('ST4 Design shared-tooling adoption', () => {
 				relevant: {
 					'ci-work': true,
 					'browser-authority-work': true,
-					'noble-runner-work': false,
+					'noble-runner-work': true,
 					'token-outputs-windows-work': true,
 					'token-byte-parity-work': true,
 				},
@@ -342,6 +353,17 @@ describe('ST4 Design shared-tooling adoption', () => {
 				expect(result.relevant['token-outputs-windows-work']).toBe(true);
 			}
 		}
+	});
+
+	it('runs the hosted Noble command for every browser-authority input', () => {
+		const rules = classifierRules(text(CI_PATH));
+		const browser = rules.jobs['browser-authority-work']!;
+		const noble = rules.jobs['noble-runner-work']!;
+
+		expect(new Set(noble.prefixes)).toEqual(new Set(browser.prefixes));
+		for (const path of browser.paths) expect(noble.paths).toContain(path);
+		expect(noble.paths).toContain('apps/gallery/tests/browser-authority.test.ts');
+		expect(noble.paths).toContain('tools/browser-authority-noble.sh');
 	});
 
 	it('binds schema-1 configuration sources and the exact caller set', () => {
