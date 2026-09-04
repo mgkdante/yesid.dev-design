@@ -149,7 +149,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Run the immutable Noble harness against the candidate
-        uses: mgkdante/yesid.dev-design/.github/actions/browser-authority@4b92ac4317d592af3339da8b9008b6cc42e1ac3d
+        uses: mgkdante/yesid.dev-design/.github/actions/browser-authority@48f79f4213411b321e8126363592e10e90a3c1c2
         with:
           target-root: ${{ github.workspace }}
           target-ref: ${{ github.sha }}
