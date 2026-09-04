@@ -72,8 +72,11 @@ export function createAnalyticsConsentStore(
 	let listenerTeardownFailed = false;
 
 	function commit(next: AnalyticsConsentState): void {
-		current = next;
-		set(next);
+		const safeNext = listenerTeardownFailed && next.available
+			? { ...next, available: false }
+			: next;
+		current = safeNext;
+		set(safeNext);
 	}
 
 	function requestPreferencesFocus(): void {
@@ -109,15 +112,19 @@ export function createAnalyticsConsentStore(
 
 	function stopStorageListener(expected = stopListening): boolean {
 		if (!expected || stopListening !== expected) return true;
+		listenerTeardownFailed = true;
 		try {
 			expected();
 		} catch {
-			listenerTeardownFailed = true;
 			return false;
 		}
 		listenerTeardownFailed = false;
 		if (stopListening === expected) stopListening = null;
 		return true;
+	}
+
+	function disposeStorageListener(expected: (() => void) | null): void {
+		if (!stopStorageListener(expected)) commitUnavailable(current.choice);
 	}
 
 	function commitUnavailable(choice: AnalyticsConsentChoice = 'unknown'): void {
@@ -251,9 +258,10 @@ export function createAnalyticsConsentStore(
 		subscribe,
 		preferencesFocusRequests,
 		init(): () => void {
-			if (!stopStorageListener()) {
+			const previousListener = stopListening;
+			if (!stopStorageListener(previousListener)) {
 				commitUnavailable(current.choice);
-				return () => {};
+				return () => disposeStorageListener(previousListener);
 			}
 			let available: boolean;
 			try {
@@ -336,9 +344,7 @@ export function createAnalyticsConsentStore(
 			} else if (preferencesMarker !== null) {
 				clearPreferencesMarker();
 			}
-			return () => {
-				if (!stopStorageListener(unsubscribe)) commitUnavailable(current.choice);
-			};
+			return () => disposeStorageListener(unsubscribe);
 		},
 		grant(): void {
 			chooseGranted();
