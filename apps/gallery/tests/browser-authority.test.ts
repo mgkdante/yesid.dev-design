@@ -38,6 +38,7 @@ function fakeDocker({
 	exitCode = 23,
 	preexistingWrongLabel = false,
 	sleepCall = 0,
+	sleepEveryVolumeInspect = false,
 	sleepSeconds = 3,
 } = {}) {
 	const root = mkdtempSync(join(tmpdir(), 'yesid-browser-authority-'));
@@ -91,7 +92,7 @@ fi
 if [ "\${1-}" = volume ] && [ "\${2-}" = inspect ]; then
 	name=
 	for arg in "$@"; do name=$arg; done
-	if [ "$FAKE_DOCKER_SLEEP_CALL" -eq "$count" ]; then exec sleep "$FAKE_DOCKER_SLEEP_SECONDS"; fi
+	if [ "$FAKE_DOCKER_SLEEP_VOLUME_INSPECT" = 1 ] || [ "$FAKE_DOCKER_SLEEP_CALL" -eq "$count" ]; then exec sleep "$FAKE_DOCKER_SLEEP_SECONDS"; fi
 	if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
 	[ -e "$volume_state/$name" ] || exit 44
 	cat "$volume_state/$name"
@@ -126,6 +127,7 @@ if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
 			FAKE_DOCKER_FAIL_CALL: String(failCall),
 			FAKE_DOCKER_PREEXISTING_WRONG_LABEL: preexistingWrongLabel ? '1' : '0',
 			FAKE_DOCKER_SLEEP_CALL: String(sleepCall),
+			FAKE_DOCKER_SLEEP_VOLUME_INSPECT: sleepEveryVolumeInspect ? '1' : '0',
 			FAKE_DOCKER_SLEEP_SECONDS: String(sleepSeconds),
 			PATH: `${bin}${delimiter}${process.env.PATH ?? ''}`,
 			TEST_CAPTURE_DIR: capture,
@@ -624,6 +626,50 @@ describe('browser accessibility authority', () => {
 			expect(calls[1]!.args.slice(0, 2)).toEqual(['volume', 'inspect']);
 			expect(calls[1]!.args).toContain(volume);
 			expect(calls[2]!.args).toEqual(['volume', 'rm', '--force', volume]);
+		} finally {
+			if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+			fake.remove();
+		}
+	});
+
+	it('bounds cleanup ownership checks after terminating a hung inspection', async () => {
+		const fake = fakeDocker({ sleepEveryVolumeInspect: true });
+		const child = spawn('bash', ['tools/browser-authority-noble.sh'], {
+			cwd: ROOT,
+			env: fake.env,
+			stdio: ['ignore', 'ignore', 'pipe'],
+		});
+		let stderr = '';
+		child.stderr!.setEncoding('utf8');
+		child.stderr!.on('data', (chunk: string) => {
+			stderr += chunk;
+		});
+		const exited = once(child, 'exit').then(([code, signal]) => ({
+			code: code as number | null,
+			signal: signal as NodeJS.Signals | null,
+		}));
+
+		try {
+			await waitForDockerCall(fake.capture, 2);
+			child.kill('SIGTERM');
+			const promptExit = await Promise.race([
+				exited.then((result) => ({ result })),
+				delay(1_750).then(() => null),
+			]);
+			if (!promptExit) {
+				child.kill('SIGKILL');
+				await exited;
+			}
+
+			expect(promptExit, stderr).not.toBeNull();
+			if (!promptExit) return;
+			expect(promptExit.result).toEqual({ code: 143, signal: null });
+			expect(stderr).toContain('ownership could not be verified');
+			expect(
+				dockerCalls(fake.capture).some(
+					({ args }) => args[0] === 'volume' && args[1] === 'rm',
+				),
+			).toBe(false);
 		} finally {
 			if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
 			fake.remove();

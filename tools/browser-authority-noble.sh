@@ -6,6 +6,7 @@ IMAGE='mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a
 BUN_VERSION='1.3.11'
 PLAYWRIGHT_VERSION='1.61.1'
 VOLUME_OWNER_LABEL='dev.yesid.browser-authority.owner'
+CLEANUP_DOCKER_TIMEOUT_SECONDS=1
 
 trusted_git() {
 	GIT_ATTR_NOSYSTEM=1 git \
@@ -118,9 +119,49 @@ stop_active_container() {
 
 handle_signal() {
 	local status=$1
-	trap - HUP INT TERM
+	trap '' HUP INT TERM
 	stop_active_container
 	exit "$status"
+}
+
+run_cleanup_bounded() {
+	local seconds=$1
+	local marker
+	local pid
+	local status
+	local watchdog
+	shift
+	marker="$scratch/docker-timeout-${BASHPID}-${RANDOM}${RANDOM}"
+	"$@" &
+	pid=$!
+	(
+		timer_pid=
+		stop_timer() {
+			if [[ -n "$timer_pid" ]]; then kill -TERM "$timer_pid" 2>/dev/null || true; fi
+			if [[ -n "$timer_pid" ]]; then wait "$timer_pid" 2>/dev/null || true; fi
+			exit 0
+		}
+		trap stop_timer HUP INT TERM
+		sleep "$seconds" &
+		timer_pid=$!
+		wait "$timer_pid" || exit 0
+		timer_pid=
+		if kill -0 "$pid" 2>/dev/null; then
+			: > "$marker"
+			kill -TERM "$pid" 2>/dev/null || true
+			sleep 0.1
+			kill -KILL "$pid" 2>/dev/null || true
+		fi
+	) &
+	watchdog=$!
+	if wait "$pid"; then status=0; else status=$?; fi
+	kill "$watchdog" 2>/dev/null || true
+	wait "$watchdog" 2>/dev/null || true
+	if [[ -e "$marker" ]]; then
+		rm -f -- "$marker"
+		return 124
+	fi
+	return "$status"
 }
 
 cleanup() {
@@ -128,9 +169,11 @@ cleanup() {
 	local cleanup_status
 	local verification_status
 	trap - EXIT
+	trap '' HUP INT TERM
 	if [[ -n "$volume" && "$volume_state" != foreign ]]; then
-		if verify_volume_owner; then
-			if docker volume rm --force "$volume" >/dev/null; then
+		if verify_volume_owner cleanup; then
+			if run_cleanup_bounded "$CLEANUP_DOCKER_TIMEOUT_SECONDS" \
+				docker volume rm --force "$volume" >/dev/null; then
 				:
 			else
 				cleanup_status=$?
@@ -177,13 +220,23 @@ run_container() {
 }
 
 verify_volume_owner() {
+	local mode=${1:-active}
 	local output="$scratch/volume-owner"
 	local observed
 	: > "$output"
-	if ! run_active docker volume inspect \
-		--format "{{ index .Labels \"$VOLUME_OWNER_LABEL\" }}" \
-		"$volume" > "$output"; then
-		return 2
+	if [[ "$mode" == cleanup ]]; then
+		if ! run_cleanup_bounded "$CLEANUP_DOCKER_TIMEOUT_SECONDS" \
+			docker volume inspect \
+			--format "{{ index .Labels \"$VOLUME_OWNER_LABEL\" }}" \
+			"$volume" > "$output"; then
+			return 2
+		fi
+	else
+		if ! run_active docker volume inspect \
+			--format "{{ index .Labels \"$VOLUME_OWNER_LABEL\" }}" \
+			"$volume" > "$output"; then
+			return 2
+		fi
 	fi
 	observed=$(tr -d '\r\n' < "$output")
 	if [[ "$observed" != "$owner" ]]; then return 1; fi
