@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import tokens from '../../tokens.json' with { type: 'json' };
 import { parseTokens } from '../../src/parse.ts';
-import { buildVariables } from '../push-to-figma.ts';
+import { buildVariables, type FigmaVariable } from '../push-to-figma.ts';
 import {
   diffVariables,
   parseVariableArray,
-  type FigmaVariable,
 } from '../roundtrip-contract.ts';
 
 const variable = (

@@ -99,6 +99,19 @@ describe('generated token pre-commit guard', () => {
 		expectRejected(root);
 	});
 
+	it('rejects moving an unchanged sentinel region without a token source change', () => {
+		const root = repository();
+		const start = APP_CSS.indexOf('/* ===== TOKENS:START ===== */');
+		const endMarker = '/* ===== TOKENS:END ===== */';
+		const end = APP_CSS.indexOf(endMarker) + endMarker.length;
+		const region = APP_CSS.slice(start, end);
+		const handMaintained = `${APP_CSS.slice(0, start)}${APP_CSS.slice(end)}`;
+		write(join(root, 'apps/gallery/src/app.css'), `${handMaintained.trimEnd()}\n${region}\n`);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+
+		expectRejected(root);
+	});
+
 	it('rejects renaming app.css away without a staged token source change', () => {
 		const root = repository();
 		git(root, 'mv', 'apps/gallery/src/app.css', 'apps/gallery/src/renamed.css');

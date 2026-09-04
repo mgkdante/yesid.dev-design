@@ -11,8 +11,8 @@ import {
   diffVariables,
   formatFinding,
   parseVariableArray,
-  type FigmaVariable,
 } from './roundtrip-contract.ts';
+import type { FigmaVariable } from './push-to-figma.ts';
 
 declare const Bun: {
   spawn(cmd: string[], options: { stdout: 'pipe'; stderr: 'pipe' }): {

@@ -1,11 +1,6 @@
-export type VariableType = 'COLOR' | 'FLOAT' | 'STRING';
+import type { FigmaVariable } from './push-to-figma.ts';
 
-export interface FigmaVariable {
-  name: string;
-  type: VariableType;
-  values: Record<string, string | number>;
-  description?: string;
-}
+export type VariableType = FigmaVariable['type'];
 
 export type Finding =
   | { kind: 'MISSING'; name: string }

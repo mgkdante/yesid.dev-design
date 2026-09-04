@@ -30,22 +30,28 @@ function yamlFiles(directory: string): string[] {
 
 function usesReferences(contents: string): unknown[] {
 	const references: unknown[] = [];
-	const visited = new WeakSet<object>();
+	const document = parse(contents, { merge: true });
 
-	function traverse(value: unknown): void {
-		if (typeof value !== 'object' || value === null || visited.has(value)) return;
-		visited.add(value);
-		if (Array.isArray(value)) {
-			for (const item of value) traverse(item);
-			return;
-		}
-		for (const [key, nested] of Object.entries(value)) {
-			if (key === 'uses') references.push(nested);
-			else traverse(nested);
+	function isRecord(value: unknown): value is Record<string, unknown> {
+		return typeof value === 'object' && value !== null && !Array.isArray(value);
+	}
+
+	function collectStepReferences(value: unknown): void {
+		if (!Array.isArray(value)) return;
+		for (const step of value) {
+			if (isRecord(step) && Object.hasOwn(step, 'uses')) references.push(step.uses);
 		}
 	}
 
-	traverse(parse(contents));
+	if (!isRecord(document)) return references;
+	if (isRecord(document.jobs)) {
+		for (const job of Object.values(document.jobs)) {
+			if (!isRecord(job)) continue;
+			if (Object.hasOwn(job, 'uses')) references.push(job.uses);
+			collectStepReferences(job.steps);
+		}
+	}
+	if (isRecord(document.runs)) collectStepReferences(document.runs.steps);
 	return references;
 }
 
@@ -178,6 +184,10 @@ describe('distribution workflow trust root', () => {
 			'flow-style reusable workflow job',
 			'jobs: { reuse: { uses: owner/repository/.github/workflows/reuse.yml@main } }',
 		],
+		[
+			'flow-style composite action step',
+			'runs: { using: composite, steps: [{ "uses": actions/checkout@main }] }',
+		],
 	] as const)('rejects an unpinned external use in a %s', (_case, source) => {
 		expect(() => assertPinnedExternalUses(source, 'mutant.yml')).toThrow(
 			'mutant.yml external uses: must end in a 40-character commit SHA',
@@ -204,6 +214,28 @@ jobs:
 				'mutant.yml',
 			),
 		).toThrow('mutant.yml external uses: must be a string');
+	});
+
+	it('ignores uses keys outside GitHub action-reference positions', () => {
+		const source = `
+on:
+  workflow_call:
+    inputs:
+      uses:
+        type: string
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    with:
+      uses: caller-owned@value
+    steps:
+      - name: Not an action reference
+        env:
+          uses: caller-owned@value
+        run: echo "$uses"
+`;
+
+		expect(() => assertPinnedExternalUses(source, 'valid.yml')).not.toThrow();
 	});
 
 	it('pins every external workflow and composite-action dependency to a commit SHA', () => {

@@ -5,6 +5,7 @@ import {
 	mkdirSync,
 	readFileSync,
 	rmSync,
+	symlinkSync,
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -71,13 +72,14 @@ function authorityFixture(changes: {
 	);
 	writeFileSync(
 		join(root, '.github/workflows/ci.yml'),
-		`  browser-authority-work:\n    container:\n      image: ${changes.workflowImage ?? AUTHORITY_IMAGE}\n`,
+		`jobs:\n  browser-authority-work:\n    container:\n      image: ${changes.workflowImage ?? AUTHORITY_IMAGE}\n`,
 	);
 	execFileSync('git', ['init', '--quiet'], { cwd: root });
 	execFileSync('git', ['config', 'user.email', 'authority@example.invalid'], { cwd: root });
 	execFileSync('git', ['config', 'user.name', 'Authority Test'], { cwd: root });
 	execFileSync('git', ['add', '.'], { cwd: root });
 	execFileSync('git', ['commit', '--quiet', '--message', 'fixture'], { cwd: root });
+	symlinkSync(join(ROOT, 'node_modules'), join(root, 'node_modules'), 'junction');
 	return root;
 }
 
@@ -104,7 +106,7 @@ describe('browser accessibility authority', () => {
 				'linux/amd64',
 				'--rm',
 				'--init',
-				'--ipc=host',
+				'--shm-size=1g',
 				'--interactive',
 				'--env',
 				'CI=1',
@@ -114,11 +116,13 @@ describe('browser accessibility authority', () => {
 			expect(args[11]).toBe(AUTHORITY_IMAGE);
 			expect(args).not.toContain('--volume');
 			expect(args).not.toContain('-v');
+			expect(args).not.toContain('--ipc=host');
 			expect(args.join(' ')).not.toContain(ROOT);
 			expect(args.at(-1)).toContain(
 				'8611ba935af886f05a6f38740a15160326c15e5d5d07adef966130b4493607ed  /tmp/bun-linux-x64.zip',
 			);
 			expect(args.at(-1)).toContain('bun install --frozen-lockfile');
+			expect(args.at(-1)).toContain("Total: 16 tests in 4 files");
 			expect(args.at(-1)).toContain('bun run test:browser');
 		} finally {
 			fake.remove();
@@ -148,6 +152,85 @@ describe('browser accessibility authority', () => {
 			});
 			expect(Buffer.compare(receivedArchive, committedArchive)).toBe(0);
 			expect(result.stderr.toString()).toContain(`source=${commit}`);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('ignores local Git replacement refs when archiving the requested commit', () => {
+		const fixture = authorityFixture({});
+		const fake = fakeDocker();
+		try {
+			const original = execFileSync('git', ['rev-parse', 'HEAD^{commit}'], {
+				cwd: fixture,
+				encoding: 'utf8',
+			}).trim();
+			writeFileSync(join(fixture, 'replacement-only.txt'), 'replacement tree\n');
+			execFileSync('git', ['add', '--', 'replacement-only.txt'], { cwd: fixture });
+			execFileSync('git', ['commit', '--quiet', '--message', 'replacement'], { cwd: fixture });
+			const replacement = execFileSync('git', ['rev-parse', 'HEAD^{commit}'], {
+				cwd: fixture,
+				encoding: 'utf8',
+			}).trim();
+			execFileSync('git', ['replace', original, replacement], { cwd: fixture });
+
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh', original], {
+				cwd: fixture,
+				env: fake.env,
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			const receivedArchive = readFileSync(join(fake.capture, 'stdin'));
+			const originalArchive = execFileSync(
+				'git',
+				['--no-replace-objects', 'archive', '--format=tar', original],
+				{ cwd: fixture, maxBuffer: 32 * 1024 * 1024 },
+			);
+			expect(Buffer.compare(receivedArchive, originalArchive)).toBe(0);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('refuses repository-local archive attributes', () => {
+		const fixture = authorityFixture({});
+		const fake = fakeDocker();
+		try {
+			writeFileSync(
+				join(fixture, '.git/info/attributes'),
+				'apps/gallery/package.json export-ignore\n',
+			);
+
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: fixture,
+				env: fake.env,
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('local Git override info/attributes');
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('validates the exact browser-authority workflow image instead of a decoy line', () => {
+		const fixture = authorityFixture({});
+		const fake = fakeDocker();
+		try {
+			writeFileSync(
+				join(fixture, '.github/workflows/ci.yml'),
+				`jobs:\n  browser-authority-work:\n    container:\n      image: mcr.microsoft.com/playwright:v1.61.1-noble@sha256:${'a'.repeat(64)}\n  decoy:\n    container:\n      image: ${AUTHORITY_IMAGE}\n`,
+			);
+			execFileSync('git', ['add', '--', '.github/workflows/ci.yml'], { cwd: fixture });
+			execFileSync('git', ['commit', '--quiet', '--amend', '--no-edit'], { cwd: fixture });
+
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: fixture,
+				env: fake.env,
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('authority pin mismatch');
 		} finally {
 			fake.remove();
 			rmSync(fixture, { force: true, recursive: true });
@@ -202,6 +285,8 @@ describe('browser accessibility authority', () => {
 		)?.[0];
 
 		expect(browserJob).toBeDefined();
+		expect(browserJob).toContain('options: --init --shm-size=1g');
+		expect(browserJob).not.toContain('--ipc=host');
 		expect(browserJob).toContain('apt-get install --yes --no-install-recommends unzip');
 		expect(browserJob!.indexOf('apt-get install')).toBeLessThan(
 			browserJob!.indexOf('uses: ./.github/actions/setup'),
