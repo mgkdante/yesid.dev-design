@@ -335,15 +335,15 @@ describe('immutable release archive', () => {
 		},
 	);
 
-	it('refuses executable Git clean or process filter configuration', () => {
+	it('allows an unused local clean filter without executing it', () => {
 		const source = repository();
 		git(source.root, 'config', 'filter.evil.clean', 'false');
 		const output = join(tempDir(), releaseAssetName(TAG));
 
 		expect(() =>
 			buildReleaseArchive({ repositoryRoot: source.root, tag: TAG, output }),
-		).toThrow(/refuses executable Git clean\/process filters/iu);
-		expect(existsSync(output)).toBe(false);
+		).not.toThrow();
+		expect(existsSync(output)).toBe(true);
 	});
 
 	it('fails closed before writing for dirty, lightweight, or version-mismatched trust roots', () => {

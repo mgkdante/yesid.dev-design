@@ -40,6 +40,7 @@ const MAX_CHECKSUM_BYTES = 256;
 const GIT_READ_TIMEOUT_MS = 10_000;
 const GIT_ARCHIVE_TIMEOUT_MS = 30_000;
 const MAX_COMMAND_OUTPUT_BYTES = 64 * 1024;
+const EMPTY_GIT_CONFIG = process.platform === 'win32' ? 'NUL' : '/dev/null';
 const CONFIG_DIRECTORY_LAYOUT_CUTOVER = '0.2.2';
 const MAX_LEGACY_VIRTUAL_ARGUMENT_BYTES = 24 * 1024;
 const SAFE_PACKAGE_FILE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/u;
@@ -115,13 +116,18 @@ function taggedFileBytes(
 			'-c',
 			'core.hooksPath=',
 			'-c',
-			`core.attributesFile=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`,
+			`core.attributesFile=${EMPTY_GIT_CONFIG}`,
 			'show',
 			`${commit}:${path}`,
 		],
 		{
 			cwd: repositoryRoot,
-			env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
+			env: {
+				...process.env,
+				GIT_ATTR_NOSYSTEM: '1',
+				GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
+				GIT_CONFIG_NOSYSTEM: '1',
+			},
 			maxBuffer: maxBytes + 1,
 			timeout: GIT_READ_TIMEOUT_MS,
 		},
@@ -333,7 +339,7 @@ function generateConfigArchive(
 			'-c',
 			'core.hooksPath=',
 			'-c',
-			`core.attributesFile=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`,
+			`core.attributesFile=${EMPTY_GIT_CONFIG}`,
 			'-c',
 			'tar.umask=0002',
 			'-c',
@@ -352,7 +358,12 @@ function generateConfigArchive(
 		{
 			cwd: repositoryRoot,
 			encoding: 'utf8',
-			env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
+			env: {
+				...process.env,
+				GIT_ATTR_NOSYSTEM: '1',
+				GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
+				GIT_CONFIG_NOSYSTEM: '1',
+			},
 			maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
 			timeout: GIT_ARCHIVE_TIMEOUT_MS,
 		},

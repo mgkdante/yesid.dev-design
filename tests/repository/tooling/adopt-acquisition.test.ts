@@ -305,8 +305,57 @@ describe('worktree acquisition', () => {
 		git(root, 'config', 'filter.evil.clean', filter);
 		write(join(root, 'packages', 'tokens', 'value.txt'), 'dirty\n');
 
-		expect(() => acquireWorktree(root, TAG)).toThrow(/refuses executable Git clean\/process filters/iu);
+		expect(() => acquireWorktree(root, TAG)).toThrow(/clean worktree/iu);
 		expect(existsSync(marker)).toBe(false);
+	});
+
+	it.skipIf(process.platform === 'win32')('neutralizes a worktree-scoped clean filter during status', () => {
+		const root = tempDir();
+		makeTaggedWorktree(root);
+		git(root, 'tag', '-d', TAG);
+		write(join(root, '.gitattributes'), 'packages/tokens/value.txt filter=evil\n');
+		git(root, 'add', '.gitattributes');
+		git(root, 'commit', '--amend', '-qm', 'fixture with attributes');
+		git(root, 'tag', '-a', TAG, '-m', TAG);
+		const marker = join(root, '.git', 'worktree-clean-filter-executed');
+		const filter = join(root, '.git', 'hostile-worktree-filter.sh');
+		write(filter, `#!/bin/sh\ncat\nprintf executed > ${JSON.stringify(marker)}\n`);
+		chmodSync(filter, 0o755);
+		git(root, 'config', 'extensions.worktreeConfig', 'true');
+		git(root, 'config', '--worktree', 'filter.evil.clean', filter);
+		write(join(root, 'packages', 'tokens', 'value.txt'), 'dirty\n');
+
+		expect(() => acquireWorktree(root, TAG)).toThrow(/clean worktree/iu);
+		expect(existsSync(marker)).toBe(false);
+	});
+
+	it('allows unused global Git LFS filters without executing them', () => {
+		const root = tempDir();
+		makeTaggedWorktree(root);
+		const globalConfig = join(tempDir(), 'global.gitconfig');
+		write(
+			globalConfig,
+			'[filter "lfs"]\n\tclean = git-lfs clean -- %f\n\tprocess = git-lfs filter-process\n\trequired = true\n',
+		);
+		const dest = join(tempDir(), 'vendor', 'design');
+		const adopted = spawnSync(
+			'bun',
+			[
+				ADOPT_TOOL,
+				'--tag',
+				TAG,
+				'--packages',
+				'tokens',
+				'--dest',
+				dest,
+				'--source',
+				root,
+			],
+			{ encoding: 'utf8', env: { ...process.env, GIT_CONFIG_GLOBAL: globalConfig } },
+		);
+
+		expect(adopted.status, `${adopted.stdout}\n${adopted.stderr}`).toBe(0);
+		expect(existsSync(join(dest, 'manifest.json'))).toBe(true);
 	});
 
 	it.each(['info/attributes', 'info/grafts'])(

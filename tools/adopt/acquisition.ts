@@ -34,6 +34,7 @@ const RECEIPT_NAME = '.yesid-release.json';
 const DEFAULT_RELEASE_TIMEOUT_MS = 60_000;
 const GIT_TIMEOUT_MS = 30_000;
 const MAX_GIT_OUTPUT_BYTES = 1024 * 1024;
+const EMPTY_GIT_CONFIG = process.platform === 'win32' ? 'NUL' : '/dev/null';
 const SAFE_GIT_CONFIG = [
 	'--no-replace-objects',
 	'-c',
@@ -41,7 +42,7 @@ const SAFE_GIT_CONFIG = [
 	'-c',
 	'core.hooksPath=',
 	'-c',
-	`core.attributesFile=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`,
+	`core.attributesFile=${EMPTY_GIT_CONFIG}`,
 ] as const;
 
 export interface AcquiredSource {
@@ -71,7 +72,12 @@ function runGit(source: string, args: string[]): string {
 	const result = spawnSync('git', [...SAFE_GIT_CONFIG, ...args], {
 		cwd: source,
 		encoding: 'utf8',
-		env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
+		env: {
+			...process.env,
+			GIT_ATTR_NOSYSTEM: '1',
+			GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
+			GIT_CONFIG_NOSYSTEM: '1',
+		},
 		maxBuffer: MAX_GIT_OUTPUT_BYTES,
 		timeout: GIT_TIMEOUT_MS,
 	});
@@ -98,14 +104,25 @@ function assertNoLocalGitOverrides(source: string): void {
 	}
 }
 
-function assertNoExecutableGitFilters(source: string): void {
+function localFilterNeutralizers(source: string): string[] {
 	const result = spawnSync(
 		'git',
-		[...SAFE_GIT_CONFIG, 'config', '--get-regexp', '^filter\\..*\\.(clean|process)$'],
+		[
+			...SAFE_GIT_CONFIG,
+			'config',
+			'--name-only',
+			'--get-regexp',
+			'^filter\\..*\\.(clean|process)$',
+		],
 		{
 			cwd: source,
 			encoding: 'utf8',
-			env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
+			env: {
+				...process.env,
+				GIT_ATTR_NOSYSTEM: '1',
+				GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
+				GIT_CONFIG_NOSYSTEM: '1',
+			},
 			maxBuffer: MAX_GIT_OUTPUT_BYTES,
 			timeout: GIT_TIMEOUT_MS,
 		},
@@ -115,9 +132,12 @@ function assertNoExecutableGitFilters(source: string): void {
 			result.error?.message || result.stderr.trim() || 'could not inspect executable Git filters',
 		);
 	}
-	if (result.status === 0 && result.stdout.trim() !== '') {
-		throw new Error('worktree adoption refuses executable Git clean/process filters');
-	}
+	if (result.status === 1 || result.stdout.trim() === '') return [];
+	return result.stdout
+		.trim()
+		.split('\n')
+		.filter(Boolean)
+		.flatMap((key) => ['-c', `${key}=`]);
 }
 
 function annotatedTagIdentity(source: string, tag: string): TagIdentity {
@@ -155,14 +175,20 @@ export function acquireWorktree(sourceInput: string, tag: string): AcquiredSourc
 	const source = sourceGuard.path;
 	sourceGuard.assertStable();
 	assertNoLocalGitOverrides(source);
-	assertNoExecutableGitFilters(source);
 	const identity = annotatedTagIdentity(source, tag);
 	const head = runGit(source, ['rev-parse', 'HEAD']);
 	assertCommit(head);
 	if (head !== identity.peeledCommit) {
 		throw new Error(`worktree HEAD ${head} does not match ${tag} at ${identity.peeledCommit}`);
 	}
-	if (runGit(source, ['status', '--porcelain=v1', '--untracked-files=all']) !== '') {
+	if (
+		runGit(source, [
+			...localFilterNeutralizers(source),
+			'status',
+			'--porcelain=v1',
+			'--untracked-files=all',
+		]) !== ''
+	) {
 		throw new Error(`local adoption requires a clean worktree at ${source}`);
 	}
 	const tree = runGit(source, ['rev-parse', `${identity.peeledCommit}^{tree}`]);
@@ -173,7 +199,12 @@ export function acquireWorktree(sourceInput: string, tag: string): AcquiredSourc
 		[...SAFE_GIT_CONFIG, 'archive', '--format=tar', `--prefix=${rootName}/`, tree],
 		{
 			cwd: source,
-			env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
+			env: {
+				...process.env,
+				GIT_ATTR_NOSYSTEM: '1',
+				GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
+				GIT_CONFIG_NOSYSTEM: '1',
+			},
 			maxBuffer: MAX_ARCHIVE_BYTES,
 			timeout: GIT_TIMEOUT_MS,
 		},

@@ -38,6 +38,7 @@ export interface GitOptions {
 const DEFAULT_GIT_TIMEOUT_MS = 10_000;
 const DEFAULT_GIT_OUTPUT_BYTES = 64 * 1024;
 const MAX_RELEASE_MANIFEST_BYTES = 64 * 1024;
+const EMPTY_GIT_CONFIG = process.platform === 'win32' ? 'NUL' : '/dev/null';
 const SAFE_GIT_CONFIG = [
 	'--no-replace-objects',
 	'-c',
@@ -45,7 +46,7 @@ const SAFE_GIT_CONFIG = [
 	'-c',
 	'core.hooksPath=',
 	'-c',
-	`core.attributesFile=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`,
+	`core.attributesFile=${EMPTY_GIT_CONFIG}`,
 ] as const;
 
 export function git(
@@ -56,7 +57,12 @@ export function git(
 	const result = spawnSync(options.executable ?? 'git', [...SAFE_GIT_CONFIG, ...args], {
 		cwd: repositoryRoot,
 		encoding: 'utf8',
-		env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
+		env: {
+			...process.env,
+			GIT_ATTR_NOSYSTEM: '1',
+			GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
+			GIT_CONFIG_NOSYSTEM: '1',
+		},
 		timeout: options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS,
 		maxBuffer: options.maxOutputBytes ?? DEFAULT_GIT_OUTPUT_BYTES,
 	});
@@ -91,13 +97,13 @@ export function canonicalRepositoryRoot(input: string): string {
 	const topLevel = realpathSync(runGit(root, ['rev-parse', '--show-toplevel']));
 	if (topLevel !== root) throw new Error(`repository root must be the Git top level: ${topLevel}`);
 	assertNoLocalGitOverrides(root);
-	assertNoExecutableGitFilters(root);
 	return root;
 }
 
-function assertNoExecutableGitFilters(repositoryRoot: string): void {
+function localFilterNeutralizers(repositoryRoot: string): string[] {
 	const configured = git(repositoryRoot, [
 		'config',
+		'--name-only',
 		'--get-regexp',
 		'^filter\\..*\\.(clean|process)$',
 	]);
@@ -106,9 +112,11 @@ function assertNoExecutableGitFilters(repositoryRoot: string): void {
 			configured.error || configured.stderr || 'could not inspect executable Git filters',
 		);
 	}
-	if (configured.status === 0 && configured.stdout !== '') {
-		throw new Error('release tooling refuses executable Git clean/process filters');
-	}
+	if (configured.status === 1 || configured.stdout === '') return [];
+	return configured.stdout
+		.split('\n')
+		.filter(Boolean)
+		.flatMap((key) => ['-c', `${key}=`]);
 }
 
 function assertNoLocalGitOverrides(repositoryRoot: string): void {
@@ -131,6 +139,7 @@ function assertNoLocalGitOverrides(repositoryRoot: string): void {
 
 export function assertClean(repositoryRoot: string): void {
 	const status = runGit(repositoryRoot, [
+		...localFilterNeutralizers(repositoryRoot),
 		'status',
 		'--porcelain=v1',
 		'--untracked-files=all',

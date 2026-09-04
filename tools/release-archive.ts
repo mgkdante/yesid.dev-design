@@ -53,6 +53,7 @@ const RELEASE_PATHS = [
 const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 const GIT_ARCHIVE_TIMEOUT_MS = 30_000;
 const MAX_COMMAND_OUTPUT_BYTES = 64 * 1024;
+const EMPTY_GIT_CONFIG = process.platform === 'win32' ? 'NUL' : '/dev/null';
 
 export interface ReleaseArchiveOptions {
 	repositoryRoot: string;
@@ -242,7 +243,7 @@ function generateDeterministicArchive(
 			'-c',
 			'core.hooksPath=',
 			'-c',
-			`core.attributesFile=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`,
+			`core.attributesFile=${EMPTY_GIT_CONFIG}`,
 			'-c',
 			'tar.umask=0002',
 			'archive',
@@ -259,7 +260,12 @@ function generateDeterministicArchive(
 		{
 			cwd: repositoryRoot,
 			encoding: 'utf8',
-			env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
+			env: {
+				...process.env,
+				GIT_ATTR_NOSYSTEM: '1',
+				GIT_CONFIG_GLOBAL: EMPTY_GIT_CONFIG,
+				GIT_CONFIG_NOSYSTEM: '1',
+			},
 			maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
 			timeout: GIT_ARCHIVE_TIMEOUT_MS,
 		},
