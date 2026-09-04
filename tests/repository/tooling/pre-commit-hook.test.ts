@@ -304,15 +304,31 @@ describe('generated token pre-commit guard', () => {
 		const root = repository();
 		git(root, 'mv', 'apps/gallery/src/app.css', 'apps/gallery/src/renamed.css');
 
-		expectRejected(root);
+		expectLayoutRejected(root);
 	});
 
 	it('rejects deleting app.css without a staged token source change', () => {
 		const root = repository();
 		git(root, 'rm', '-q', '--', 'apps/gallery/src/app.css');
 
-		expectRejected(root);
+		expectLayoutRejected(root);
 	});
+
+	it.each(['delete', 'rename'] as const)(
+		'does not let a token source change authorize app.css %s',
+		(operation) => {
+			const root = repository();
+			if (operation === 'delete') {
+				git(root, 'rm', '-q', '--', 'apps/gallery/src/app.css');
+			} else {
+				git(root, 'mv', 'apps/gallery/src/app.css', 'apps/gallery/src/renamed.css');
+			}
+			write(join(root, 'packages/tokens/tokens.json'), '{"brand":"green"}\n');
+			git(root, 'add', '--', 'packages/tokens/tokens.json');
+
+			expectLayoutRejected(root);
+		},
+	);
 
 	it.each([
 		'packages/tokens/tokens.css',

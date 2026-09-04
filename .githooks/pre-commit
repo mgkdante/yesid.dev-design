@@ -117,8 +117,8 @@ app_sentinel_markers_changed() {
 staged_paths=$(git diff --cached --name-only --no-renames --)
 generated_change=false
 
-if grep -qxF "$APP_CSS" <<< "$staged_paths" && git cat-file -e ":$APP_CSS" 2>/dev/null; then
-	if ! git show ":$APP_CSS" | bun "$HOOK_ROOT/tools/app-css-token-layout.ts"; then
+if grep -qxF "$APP_CSS" <<< "$staged_paths"; then
+	if ! git show ":$APP_CSS" 2>/dev/null | bun "$HOOK_ROOT/tools/app-css-token-layout.ts"; then
 		exit 1
 	fi
 fi
