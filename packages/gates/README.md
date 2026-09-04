@@ -18,8 +18,8 @@ contrast, dataviz, Tailwind-variant, and SEO coverage engines. The exact public 
 - Comment stripping advances once through at most 1,048,576 UTF-16 code units and preserves every
   newline.
 - Filesystem walks reject symbolic links and non-regular entries, enforce canonical-root
-  containment, sort paths, and stop beyond 16 levels, 4,096 files, or 32 MiB in aggregate. Every
-  regular file counts toward the budgets, including excluded extensions.
+  containment, sort paths, and stop beyond 16 levels, 8,192 entries, 4,096 files, or 32 MiB in
+  aggregate. Every regular file counts toward the budgets, including excluded extensions.
 - Product names, paths, colors, thresholds, and policy never enter package defaults.
 - Filesystem traversal is ordered and reports useful relative path/line diagnostics.
 - Gate engines do not depend on Vitest or another runner.

@@ -1,10 +1,11 @@
-import { lstatSync, readdirSync, realpathSync, type Stats } from 'node:fs';
+import { lstatSync, opendirSync, realpathSync, type Stats } from 'node:fs';
 import * as nodePath from 'node:path';
 
-// Current consumer maxima are depth 6, 1,073 files, and 7,229,091 bytes.
+// Current consumer maxima are depth 6, 1,207 entries, 1,073 files, and 7,229,091 bytes.
 // These fixed ceilings keep hostile trees bounded with at least 2.7x headroom.
 const MAX_DEPTH = 16;
 const MAX_FILES = 4_096;
+const MAX_ENTRIES = 8_192;
 const MAX_AGGREGATE_BYTES = 32 * 1024 * 1024;
 
 interface InternalWalkOptions {
@@ -13,11 +14,33 @@ interface InternalWalkOptions {
 }
 
 interface WalkState {
+	entryCount: number;
 	fileCount: number;
 	aggregateBytes: number;
 	rootCanonical: string;
 	visitedDirectories: Set<string>;
 	files: string[];
+}
+
+function sortedEntryNames(directory: string, state: WalkState): string[] {
+	const handle = opendirSync(directory);
+	const names: string[] = [];
+	try {
+		for (;;) {
+			const entry = handle.readSync();
+			if (entry === null) break;
+			state.entryCount += 1;
+			if (state.entryCount > MAX_ENTRIES) {
+				throw new Error(
+					`walk: entry count exceeds limit ${MAX_ENTRIES.toLocaleString('en-US')} at ${directory}`,
+				);
+			}
+			names.push(entry.name);
+		}
+	} finally {
+		handle.closeSync();
+	}
+	return names.sort();
 }
 
 export interface PathSemantics {
@@ -90,7 +113,7 @@ function visitDirectory(
 	}
 	assertStable(directory, before);
 
-	for (const entry of readdirSync(directory).sort()) {
+	for (const entry of sortedEntryNames(directory, state)) {
 		const path = nodePath.join(directory, entry);
 		const stats = lstatSync(path);
 		refuseLink(path, stats);
@@ -142,6 +165,7 @@ function collect(dir: string, options: InternalWalkOptions): string[] {
 	const rootCanonical = canonical(root);
 	assertStable(root, rootStats);
 	const state: WalkState = {
+		entryCount: 0,
 		fileCount: 0,
 		aggregateBytes: 0,
 		rootCanonical,

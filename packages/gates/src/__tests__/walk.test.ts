@@ -95,6 +95,14 @@ describe('gate filesystem walk', () => {
 		expect(() => walk(fixtureRoot, ['.svelte'])).toThrow(/walk: file count.*4,?096/iu);
 	});
 
+	it('stops directory enumeration beyond the 8,192-entry traversal budget', () => {
+		for (let index = 0; index < 8_193; index += 1) {
+			mkdirSync(join(fixtureRoot, `d${String(index).padStart(4, '0')}`));
+		}
+
+		expect(() => walk(fixtureRoot, ['.svelte'])).toThrow(/walk: entry count.*8,?192/iu);
+	});
+
 	it('counts unmatched bytes and does not partially append output when the byte budget fails', () => {
 		const output = ['sentinel'];
 		writeFileSync(join(fixtureRoot, 'a.svelte'), 'safe');
