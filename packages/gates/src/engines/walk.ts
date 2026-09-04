@@ -1,8 +1,8 @@
 import { lstatSync, opendirSync, realpathSync, type Stats } from 'node:fs';
 import * as nodePath from 'node:path';
 
-// Current consumer maxima are depth 6, 1,207 entries, 1,073 files, and 7,229,091 bytes.
-// These fixed ceilings keep hostile trees bounded with at least 2.7x headroom.
+// The package README records the exact consumer snapshots, counting rules, and
+// reproduction command behind these fixed ceilings.
 const MAX_DEPTH = 16;
 const MAX_FILES = 4_096;
 const MAX_ENTRIES = 8_192;
@@ -173,7 +173,7 @@ function collect(dir: string, options: InternalWalkOptions): string[] {
 		files: [],
 	};
 	visitDirectory(root, rootCanonical, 0, options, state);
-	return state.files;
+	return state.files.sort();
 }
 
 /** Collect files under `dir` whose path ends with one of `extensions`. */

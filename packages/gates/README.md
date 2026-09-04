@@ -25,6 +25,40 @@ contrast, dataviz, Tailwind-variant, and SEO coverage engines. The exact public 
 - Gate engines do not depend on Vitest or another runner.
 - Neutral fixtures protect portable behavior; consumer-named permanent fixtures are rejected.
 
+### Budget derivation
+
+The fixed ceilings use exact public consumer snapshots and count every Git tree entry and regular
+file under `apps/web/src`, including extensions the gates do not read. Eligible-source size covers
+`.svelte`, `.ts`, and `.css` blobs.
+
+| Consumer revision | Depth | Entries | Files | Aggregate bytes | Largest eligible source |
+|---|---:|---:|---:|---:|---:|
+| Transit `a8db58d25e8ff041e0aee765172b8feeeafca35f` | 6 | 1,207 | 1,073 | 7,229,091 | 123,554 bytes |
+| yesid.dev `dab71703214ea6392064edadeca9467dcd3f0f24` | 4 | 675 | 587 | 4,352,658 | 164,489 bytes |
+
+The traversal limits retain at least 2.6x headroom on every dimension. A valid UTF-8 file's byte
+count is a conservative upper bound on its decoded UTF-16 code-unit length, so the comment ceiling
+retains more than 6x headroom over the largest eligible source. Reproduce the receipt with `gh` and
+`jq`:
+
+```sh
+for target in \
+  "mgkdante/transit:a8db58d25e8ff041e0aee765172b8feeeafca35f" \
+  "mgkdante/yesid.dev:dab71703214ea6392064edadeca9467dcd3f0f24"
+do
+  repository="${target%%:*}"
+  revision="${target#*:}"
+  gh api "repos/${repository}/git/trees/${revision}?recursive=1" --jq '
+    [.tree[] | select(.path | startswith("apps/web/src/"))] as $entries
+    | ($entries | map(select(.type == "blob"))) as $files
+    | ($files | map(select(.path | test("\\.(svelte|ts|css)$")))) as $eligible
+    | {revision: "'"$revision"'", entries: ($entries | length), files: ($files | length),
+       bytes: ($files | map(.size // 0) | add // 0),
+       depth: ($entries | map(.path | sub("^apps/web/src/"; "") | split("/") | length - 1) | max),
+       largestEligibleBytes: ($eligible | map(.size // 0) | max)}'
+done
+```
+
 ## Consumers and compatibility
 
 Gallery dogfoods the engines with Gallery-owned policy. Transit and yesid.dev keep their own gate
@@ -43,7 +77,9 @@ bun run --cwd packages/gates check
 
 A zero-file scan usually means the consumer supplied the wrong root or extensions. Invalid
 patterns/configuration must fail clearly; an engine finding is data until the consumer applies its
-policy. Do not hide a real violation by broadening package defaults.
+policy. Scans require a stable tree: traversal rejects links and observed identity changes, but
+returned paths are not descriptor-bound against a concurrent filesystem rewrite before a caller
+reads them. Do not hide a real violation by broadening package defaults.
 
 Engine behavior, diagnostics, exports, or README changes alter the coordinated release payload.
 Use [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.13.3/RELEASING.md) and regenerate the API report for public-interface

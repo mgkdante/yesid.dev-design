@@ -1,7 +1,8 @@
-// Comment blanking + line numbering — byte-equivalent to transit's
-// brand-doctrine.test.ts helpers (the two-track scan contract: violations are
-// detected on comment-STRIPPED source; allowlist markers are honored on the
-// ORIGINAL source at the same line index).
+// Comment blanking + line numbering originated in transit's
+// brand-doctrine.test.ts helpers. The two-track contract remains: violations
+// are detected on comment-stripped source while allowlist markers are read from
+// the original source at the same line index. The bounded state machine below
+// deliberately replaces the extracted regular expressions.
 
 /**
  * Blank out Svelte/JS/CSS comment CONTENT in place so doctrine prose (which
@@ -11,12 +12,11 @@
  * against the original at the same index).
  */
 export function blankComments(src: string): string {
-	// The largest current consumer source is 164,489 bytes. A 1,048,576-code-unit
-	// ceiling leaves ample growth room while bounding allocation and scan work.
+	// The exact consumer measurement and unit rationale live in the package README.
 	const maxSourceCodeUnits = 1_048_576;
 	if (src.length > maxSourceCodeUnits) {
 		throw new Error(
-			`blankComments: source length ${src.length} exceeds 1 MiB (${maxSourceCodeUnits} code units)`,
+			`blankComments: source length ${src.length} exceeds limit ${maxSourceCodeUnits.toLocaleString('en-US')} UTF-16 code units`,
 		);
 	}
 

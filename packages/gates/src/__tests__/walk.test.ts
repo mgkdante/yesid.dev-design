@@ -30,14 +30,17 @@ afterEach(() => {
 
 describe('gate filesystem walk', () => {
 	it('returns matching files in deterministic lexical path order', () => {
+		mkdirSync(join(fixtureRoot, 'a'));
 		mkdirSync(join(fixtureRoot, 'nested'));
 		writeFileSync(join(fixtureRoot, 'z.svelte'), 'z');
+		writeFileSync(join(fixtureRoot, 'a', 'x.svelte'), 'x');
 		writeFileSync(join(fixtureRoot, 'nested', 'b.svelte'), 'b');
 		writeFileSync(join(fixtureRoot, 'nested', 'a.svelte'), 'a');
 		writeFileSync(join(fixtureRoot, 'a.svelte'), 'a');
 
 		expect(walk(fixtureRoot, ['.svelte'])).toEqual([
 			join(fixtureRoot, 'a.svelte'),
+			join(fixtureRoot, 'a', 'x.svelte'),
 			join(fixtureRoot, 'nested', 'a.svelte'),
 			join(fixtureRoot, 'nested', 'b.svelte'),
 			join(fixtureRoot, 'z.svelte'),
@@ -76,40 +79,51 @@ describe('gate filesystem walk', () => {
 		);
 	});
 
-	it('rejects traversal deeper than sixteen descendant directories', () => {
+	it('accepts depth sixteen and rejects a seventeenth descendant directory', () => {
 		let current = fixtureRoot;
-		for (let depth = 1; depth <= 17; depth += 1) {
+		for (let depth = 1; depth <= 16; depth += 1) {
 			current = join(current, `d${String(depth).padStart(2, '0')}`);
 			mkdirSync(current);
 		}
-		writeFileSync(join(current, 'deep.svelte'), 'deep');
+		const accepted = join(current, 'accepted.svelte');
+		writeFileSync(accepted, 'accepted');
+		expect(walk(fixtureRoot, ['.svelte'])).toEqual([accepted]);
 
+		current = join(current, 'd17');
+		mkdirSync(current);
+		writeFileSync(join(current, 'too-deep.svelte'), 'too deep');
 		expect(() => walk(fixtureRoot, ['.svelte'])).toThrow(/walk: depth.*16/iu);
 	});
 
-	it('counts unmatched files against the 4,096-file traversal budget', () => {
-		for (let index = 0; index < 4_097; index += 1) {
+	it('accepts 4,096 files and counts the next unmatched file against the budget', () => {
+		for (let index = 0; index < 4_096; index += 1) {
 			writeFileSync(join(fixtureRoot, `${String(index).padStart(4, '0')}.txt`), '');
 		}
+		expect(walk(fixtureRoot, ['.svelte'])).toEqual([]);
 
+		writeFileSync(join(fixtureRoot, '4096.txt'), '');
 		expect(() => walk(fixtureRoot, ['.svelte'])).toThrow(/walk: file count.*4,?096/iu);
 	});
 
-	it('stops directory enumeration beyond the 8,192-entry traversal budget', () => {
-		for (let index = 0; index < 8_193; index += 1) {
+	it('accepts 8,192 entries and stops directory enumeration at the next entry', () => {
+		for (let index = 0; index < 8_192; index += 1) {
 			mkdirSync(join(fixtureRoot, `d${String(index).padStart(4, '0')}`));
 		}
+		expect(walk(fixtureRoot, ['.svelte'])).toEqual([]);
 
+		mkdirSync(join(fixtureRoot, 'd8192'));
 		expect(() => walk(fixtureRoot, ['.svelte'])).toThrow(/walk: entry count.*8,?192/iu);
 	});
 
-	it('counts unmatched bytes and does not partially append output when the byte budget fails', () => {
+	it('accepts exactly 32 MiB, then fails atomically on the next unmatched byte', () => {
 		const output = ['sentinel'];
 		writeFileSync(join(fixtureRoot, 'a.svelte'), 'safe');
 		const oversized = join(fixtureRoot, 'z.bin');
 		writeFileSync(oversized, '');
-		truncateSync(oversized, 32 * 1024 * 1024 + 1);
+		truncateSync(oversized, 32 * 1024 * 1024 - 4);
+		expect(walk(fixtureRoot, ['.svelte'])).toEqual([join(fixtureRoot, 'a.svelte')]);
 
+		truncateSync(oversized, 32 * 1024 * 1024 - 3);
 		expect(() => walk(fixtureRoot, ['.svelte'], output)).toThrow(
 			/walk: aggregate bytes.*32 MiB/iu,
 		);
