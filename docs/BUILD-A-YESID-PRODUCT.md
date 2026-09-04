@@ -43,7 +43,7 @@ bun vendor/design/tools/adopt.ts --check --dest vendor/design
 rm -rf .yesid-design-bootstrap
 ```
 
-Production mode does not trust the checkout as payload. It verifies the fixed public repository identity, an exact published immutable Release, its one canonical asset and SHA-256 digest, the annotated tag object and peeled commit, and the receipt embedded in the bounded POSIX ustar archive. It then stages the selected runtime closure beside the destination, self-vendors the complete adoption tool, rewrites valid internal workspace links, writes the deterministic schema-2 manifest, and atomically swaps only after verification. It needs no GitHub token for the public repository.
+Production mode does not trust the checkout as payload. It verifies the fixed public repository identity, an exact published immutable Release, its one canonical asset and SHA-256 digest, the annotated tag object and peeled commit, and the receipt embedded in the bounded POSIX ustar archive. Archive validation completes before materialization. It then stages the selected runtime closure beside the destination, self-vendors the complete adoption tool, carries the exact `LICENSE`, `NOTICE`, and `TRADEMARK.md` bytes, rewrites valid internal workspace links, writes the deterministic schema-2 manifest, and atomically swaps only after verification. It needs no GitHub token for the public repository.
 
 The bootstrap checkout supplies the acquisition tool, not the production
 payload. Default mode downloads the exact Release asset named for the requested
@@ -80,7 +80,7 @@ Add the vendored packages to the product's `package.json`:
 ```
 
 Run `bun install`. Commit `vendor/design`, including `manifest.json`, the
-self-vendored `tools/adopt.ts` bundle, and `LICENSE`. Do not add the vendor
+self-vendored `tools/adopt.ts` bundle, `LICENSE`, `NOTICE`, and `TRADEMARK.md`. Do not add the vendor
 directory to `.gitignore`.
 
 ## 3. Generate the product token outputs

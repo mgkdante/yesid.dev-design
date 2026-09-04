@@ -4,6 +4,7 @@ import { isAbsolute, join, relative, sep } from 'node:path';
 
 export const REPOSITORY_ID = 'github.com/mgkdante/yesid.dev-design' as const;
 export const MANIFEST_SCHEMA = 2 as const;
+export const REQUIRED_LEGAL_FILES = ['LICENSE', 'NOTICE', 'TRADEMARK.md'] as const;
 export const PACKAGE_NAMES = [
 	'tokens',
 	'motion',
@@ -57,6 +58,9 @@ function normalizedRelative(root: string, path: string): string {
 }
 
 export function walkFiles(root: string, out: string[] = []): string[] {
+	const rootStat = lstatSync(root);
+	if (rootStat.isSymbolicLink()) throw new Error(`refusing symbolic link ${root}`);
+	if (!rootStat.isDirectory()) throw new Error(`refusing non-directory filesystem root ${root}`);
 	for (const entry of readdirSync(root).sort()) {
 		const path = join(root, entry);
 		const stat = lstatSync(path);

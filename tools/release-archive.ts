@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { acquireArchive } from './adopt/acquisition.js';
 import {
 	REPOSITORY_ID,
+	REQUIRED_LEGAL_FILES,
 	assertTag,
 	pathInside,
 	type TagIdentity,
@@ -26,7 +27,6 @@ import {
 import {
 	DEFAULT_MAIN_REF,
 	canonicalRepositoryRoot,
-	git,
 	readManifestAt,
 	resolveReleaseIdentity,
 	runGit,
@@ -44,7 +44,7 @@ const RELEASED_PACKAGES = [
 	'i18n-core',
 ] as const;
 const RELEASE_PATHS = [
-	'LICENSE',
+	...REQUIRED_LEGAL_FILES,
 	'tools/adopt.ts',
 	'tools/adopt',
 	...RELEASED_PACKAGES.map((name) => `packages/${name}`),
@@ -97,6 +97,15 @@ function assertReleaseVersions(repositoryRoot: string, tag: string, commit: stri
 }
 
 const RELEASE_IDENTITY_CONTRACT = { assertTag, assertVersions: assertReleaseVersions } as const;
+
+function assertRequiredLegalFiles(repositoryRoot: string, commit: string): void {
+	for (const name of REQUIRED_LEGAL_FILES) {
+		const entry = runGit(repositoryRoot, ['ls-tree', commit, '--', name]);
+		if (!entry.startsWith('100644 blob ') || !entry.endsWith(`\t${name}`) || entry.includes('\n')) {
+			throw new Error(`required legal file ${name} must be one tracked regular file`);
+		}
+	}
+}
 
 export function releaseAssetName(tag: string): string {
 	assertTag(tag);
@@ -179,11 +188,8 @@ function generateDeterministicArchive(
 	if (existingReceipt !== '') {
 		throw new Error(`.yesid-release.json is reserved for the release archive builder`);
 	}
+	assertRequiredLegalFiles(repositoryRoot, identity.peeledCommit);
 	const rootName = `yesid.dev-design-${tag}`;
-	const releasePaths = [...RELEASE_PATHS];
-	if (git(repositoryRoot, ['cat-file', '-e', `${identity.peeledCommit}:NOTICE`]).status === 0) {
-		releasePaths.splice(1, 0, 'NOTICE');
-	}
 	const archive = spawnSync(
 		'git',
 		[
@@ -197,7 +203,7 @@ function generateDeterministicArchive(
 			`--output=${destination}`,
 			`${identity.peeledCommit}^{tree}`,
 			'--',
-			...releasePaths,
+			...RELEASE_PATHS,
 		],
 		{ cwd: repositoryRoot, encoding: 'utf8' },
 	);

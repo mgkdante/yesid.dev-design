@@ -2,22 +2,24 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
 	existsSync,
+	lstatSync,
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
 	rmSync,
-	statSync,
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import {
 	REPOSITORY_ID,
+	REQUIRED_LEGAL_FILES,
 	assertCommit,
 	assertTag,
 	type AdoptProvenance,
 	type TagIdentity,
 } from './contract.js';
+import { guardExistingDirectory, guardExistingFile } from './path-safety.js';
 
 export { REPOSITORY_ID } from './contract.js';
 
@@ -81,10 +83,9 @@ function annotatedTagIdentity(source: string, tag: string): TagIdentity {
 }
 
 export function acquireWorktree(sourceInput: string, tag: string): AcquiredSource {
-	const source = resolve(sourceInput);
-	if (!existsSync(source) || !statSync(source).isDirectory()) {
-		throw new Error(`worktree source does not exist: ${source}`);
-	}
+	const sourceGuard = guardExistingDirectory(sourceInput, 'worktree source');
+	const source = sourceGuard.path;
+	sourceGuard.assertStable();
 	const identity = annotatedTagIdentity(source, tag);
 	const head = runGit(source, ['rev-parse', 'HEAD']);
 	assertCommit(head);
@@ -111,6 +112,7 @@ export function acquireWorktree(sourceInput: string, tag: string): AcquiredSourc
 			: `exit ${archived.status}`;
 		throw new Error(`could not snapshot tagged worktree: ${detail}`);
 	}
+	sourceGuard.assertStable();
 	return materializeEntries(
 		parseTar(archived.stdout, tag),
 		rootName,
@@ -308,12 +310,16 @@ function materializeEntries(
 				writeFileSync(destination, entry.content, { flag: 'wx', mode: 0o644 });
 			}
 		}
-		for (const required of [
-			'LICENSE',
-			'tools/adopt.ts',
-			'tools/adopt',
-			'packages',
-		]) {
+		for (const required of REQUIRED_LEGAL_FILES) {
+			const path = join(source, required);
+			if (!existsSync(path)) {
+				throw new Error(`unsafe archive: missing required path ${required}`);
+			}
+			if (!lstatSync(path).isFile()) {
+				throw new Error(`unsafe archive: required path ${required} must be a regular file`);
+			}
+		}
+		for (const required of ['tools/adopt.ts', 'tools/adopt', 'packages']) {
 			if (!existsSync(join(source, required))) {
 				throw new Error(`unsafe archive: missing required path ${required}`);
 			}
@@ -355,13 +361,15 @@ function materializeArchive(
 
 export function acquireArchive(archiveInput: string, tag: string): AcquiredSource {
 	assertTag(tag);
-	const archivePath = resolve(archiveInput);
-	if (!existsSync(archivePath) || !statSync(archivePath).isFile()) {
-		throw new Error(`archive does not exist: ${archivePath}`);
-	}
-	const size = statSync(archivePath).size;
+	const archiveGuard = guardExistingFile(archiveInput, 'archive source');
+	const archivePath = archiveGuard.path;
+	archiveGuard.assertStable();
+	const size = lstatSync(archivePath).size;
 	if (size <= 0 || size > MAX_ARCHIVE_BYTES) throw new Error(`unsafe archive: invalid archive size`);
-	return materializeArchive(readFileSync(archivePath), tag, 'archive');
+	const archive = readFileSync(archivePath);
+	archiveGuard.assertStable();
+	if (archive.length !== size) throw new Error(`archive source changed while reading`);
+	return materializeArchive(archive, tag, 'archive');
 }
 
 function timeoutError(): Error {

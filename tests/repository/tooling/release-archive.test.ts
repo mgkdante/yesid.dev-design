@@ -22,6 +22,11 @@ import {
 const TAG = 'v1.2.3-rc.1';
 const VERSION = '1.2.3-rc.1';
 const ADOPT_TOOL = fileURLToPath(new URL('../../../tools/adopt.ts', import.meta.url));
+const LEGAL_FILES = [
+	['LICENSE', 'MIT\n'],
+	['NOTICE', 'third-party notice\n'],
+	['TRADEMARK.md', 'trademark notice\n'],
+] as const;
 const scratch: string[] = [];
 
 function tempDir(prefix = 'yesid-release-test-'): string {
@@ -45,7 +50,7 @@ function manifest(name: string, version = VERSION): string {
 	return `${JSON.stringify({ name, version }, null, '\t')}\n`;
 }
 
-function repository(options: { lightweight?: boolean; version?: string } = {}): {
+function repository(options: { lightweight?: boolean; version?: string; omitLegal?: string } = {}): {
 	root: string;
 	tagObject: string;
 	peeledCommit: string;
@@ -57,7 +62,9 @@ function repository(options: { lightweight?: boolean; version?: string } = {}): 
 	git(root, 'config', 'user.name', 'Release Test');
 	git(root, 'config', 'user.email', 'release-test@example.com');
 	write(join(root, 'package.json'), manifest('yesid-dev-design', options.version));
-	write(join(root, 'LICENSE'), 'MIT\n');
+	for (const [name, content] of LEGAL_FILES) {
+		if (name !== options.omitLegal) write(join(root, name), content);
+	}
 	write(join(root, 'README.md'), 'repository-only documentation\n');
 	write(join(root, 'tools', 'adopt.ts'), 'export {};\n');
 	write(join(root, 'tools', 'adopt', 'contract.ts'), 'export {};\n');
@@ -176,6 +183,11 @@ describe('immutable release archive', () => {
 		expect(entries.some((entry) => entry.includes('/packages/config/'))).toBe(false);
 		expect(entries.some((entry) => entry.endsWith('/README.md'))).toBe(false);
 		expect(entries.filter((entry) => entry.endsWith('/.yesid-release.json'))).toHaveLength(1);
+		for (const [name, content] of LEGAL_FILES) {
+			const entry = `yesid.dev-design-${TAG}/${name}`;
+			expect(entries.filter((candidate) => candidate === entry)).toHaveLength(1);
+			expect(tar(firstRoot, '-xOf', firstPath, entry)).toBe(content);
+		}
 		expect(tarMtimes(readFileSync(firstPath))).not.toHaveLength(0);
 		expect(tarMtimes(readFileSync(firstPath)).every((mtime) => mtime === source.commitTime)).toBe(
 			true,
@@ -225,6 +237,19 @@ describe('immutable release archive', () => {
 			encoding: 'utf8',
 		});
 		expect(checked.status, `${checked.stdout}\n${checked.stderr}`).toBe(0);
+		for (const [name, content] of LEGAL_FILES) {
+			expect(readFileSync(join(adoption, name), 'utf8')).toBe(content);
+		}
+	});
+
+	it.each(LEGAL_FILES)('refuses to build without required legal file %s', (name) => {
+		const source = repository({ omitLegal: name });
+		const output = join(tempDir(), releaseAssetName(TAG));
+
+		expect(() =>
+			buildReleaseArchive({ repositoryRoot: source.root, tag: TAG, output }),
+		).toThrow(new RegExp(`required legal file ${name.replace('.', '\\.')}`, 'u'));
+		expect(existsSync(output)).toBe(false);
 	});
 
 	it('fails closed before writing for dirty, lightweight, or version-mismatched trust roots', () => {

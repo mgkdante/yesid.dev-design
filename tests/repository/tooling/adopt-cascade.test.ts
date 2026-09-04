@@ -10,6 +10,7 @@ import {
 	checkAdoption,
 	type PackageName,
 } from '../../../tools/adopt.js';
+import { REQUIRED_LEGAL_FILES } from '../../../tools/adopt/contract.js';
 
 const scratch: string[] = [];
 const repository = resolve(fileURLToPath(new URL('../../../', import.meta.url)));
@@ -88,7 +89,16 @@ describe('real repository adoption cascade', () => {
 					).toBe(true);
 				}
 			}
-		for (const module of ['acquisition.ts', 'contract.ts', 'payload.ts', 'transaction.ts']) {
+		for (const name of REQUIRED_LEGAL_FILES) {
+			expect(readFileSync(join(dest, name))).toEqual(readFileSync(join(repository, name)));
+		}
+		for (const module of [
+			'acquisition.ts',
+			'contract.ts',
+			'path-safety.ts',
+			'payload.ts',
+			'transaction.ts',
+		]) {
 			expect(existsSync(join(dest, 'tools', 'adopt', module))).toBe(true);
 		}
 

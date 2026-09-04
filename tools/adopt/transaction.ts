@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
 	closeSync,
-	existsSync,
 	fsyncSync,
 	linkSync,
 	lstatSync,
@@ -11,14 +10,19 @@ import {
 	readdirSync,
 	renameSync,
 	rmSync,
-	statSync,
 	unlinkSync,
 	writeFileSync,
+	type Stats,
 } from 'node:fs';
 import { hostname } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { fullTreeHash, type AdoptManifest } from './contract.js';
+import {
+	PathIdentityChangedError,
+	guardDestinationPath,
+	type DestinationPathGuard,
+} from './path-safety.js';
 
 export const ADOPT_EXIT = {
 	OK: 0,
@@ -94,6 +98,62 @@ interface InstallOptions {
 	build(stage: string): AdoptManifest;
 	inspect(path: string): AdoptManifest;
 	recognize(path: string): boolean;
+	destinationGuard?: DestinationPathGuard;
+	assertSourceStable?(): void;
+}
+
+function entryStats(path: string): Stats | null {
+	try {
+		return lstatSync(path);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+		throw error;
+	}
+}
+
+function pathExists(path: string): boolean {
+	return entryStats(path) !== null;
+}
+
+function assertArtifactNotLink(path: string, label: string): Stats | null {
+	const stats = entryStats(path);
+	if (stats?.isSymbolicLink()) {
+		throw new AdoptError(
+			ADOPT_EXIT.RECOVERY_REQUIRED,
+			`${label}: refusing symbolic link at ${path}`,
+		);
+	}
+	return stats;
+}
+
+interface OwnedEntryIdentity {
+	dev: number;
+	ino: number;
+	mode: number;
+}
+
+function ownedDirectoryIdentity(path: string, label: string): OwnedEntryIdentity {
+	const stats = assertArtifactNotLink(path, label);
+	if (!stats?.isDirectory()) {
+		throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, `${label} is not an owned directory`);
+	}
+	return { dev: stats.dev, ino: stats.ino, mode: stats.mode };
+}
+
+function assertOwnedDirectory(
+	path: string,
+	label: string,
+	expected: OwnedEntryIdentity,
+): void {
+	const stats = assertArtifactNotLink(path, label);
+	if (
+		!stats?.isDirectory() ||
+		stats.dev !== expected.dev ||
+		stats.ino !== expected.ino ||
+		stats.mode !== expected.mode
+	) {
+		throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, `${label} identity changed at ${path}`);
+	}
 }
 
 function syncDirectory(path: string): void {
@@ -154,6 +214,10 @@ function transactionPaths(destInput: string, token: string): AdoptTransactionPat
 const TOKEN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function parseLock(path: string): LockOwner {
+	const stats = assertArtifactNotLink(path, 'adoption lock');
+	if (!stats?.isFile()) {
+		throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, `malformed adoption lock at ${path}`);
+	}
 	let value: unknown;
 	try {
 		value = JSON.parse(readFileSync(path, 'utf8'));
@@ -241,7 +305,7 @@ function acquireReclaimGuard(
 		}
 
 		const stale = `${paths.reclaim}.stale-${current.token}`;
-		if (existsSync(stale)) {
+		if (pathExists(stale)) {
 			throw new AdoptError(
 				ADOPT_EXIT.RECOVERY_REQUIRED,
 				`stale reclaim guard requires manual recovery at ${stale}`,
@@ -251,7 +315,7 @@ function acquireReclaimGuard(
 			renameSync(paths.reclaim, stale);
 			syncDirectory(dirname(paths.reclaim));
 		} catch (moveError) {
-			if (!existsSync(paths.reclaim)) continue;
+			if (!pathExists(paths.reclaim)) continue;
 			const latest = parseReclaimGuard(paths.reclaim);
 			assertLockDestination(latest, paths, paths.reclaim);
 			if (lockIsActive(latest)) {
@@ -266,7 +330,7 @@ function acquireReclaimGuard(
 }
 
 function releaseReclaimGuard(paths: AdoptTransactionPaths, token: string): void {
-	if (!existsSync(paths.reclaim)) return;
+	if (!pathExists(paths.reclaim)) return;
 	const owner = parseReclaimGuard(paths.reclaim);
 	if (owner.token !== token) {
 		throw new AdoptError(
@@ -282,6 +346,7 @@ function acquireLock(
 	paths: AdoptTransactionPaths,
 	token: string,
 	runtime: AdoptRuntime,
+	assertParentStable: () => void,
 ): LockAcquisition {
 	const candidate = `${paths.lock}.candidate-${token}`;
 	const owner: LockOwner = {
@@ -295,12 +360,14 @@ function acquireLock(
 	createLockCandidate(candidate, owner);
 	let guardAcquired = false;
 	let lockAcquired = false;
+	let parentUnsafe = false;
 	try {
 		acquireReclaimGuard(paths, owner, candidate);
 		guardAcquired = true;
 		runtime.checkpoint?.('lock.reclaim.guard.acquired', paths);
+		assertParentStable();
 		const reclaimedTokens: string[] = [];
-		if (existsSync(paths.lock)) {
+		if (pathExists(paths.lock)) {
 			const current = parseLock(paths.lock);
 			assertLockDestination(current, paths, paths.lock);
 			if (lockIsActive(current)) {
@@ -318,9 +385,12 @@ function acquireLock(
 		unlinkSync(candidate);
 		syncDirectory(dirname(paths.lock));
 		return { reclaimedTokens };
+	} catch (error) {
+		if (error instanceof PathIdentityChangedError && !error.cleanupSafe) parentUnsafe = true;
+		throw error;
 	} finally {
-		if (existsSync(candidate)) rmSync(candidate, { force: true });
-		if (guardAcquired) {
+		if (!parentUnsafe && pathExists(candidate)) rmSync(candidate, { force: true });
+		if (!parentUnsafe && guardAcquired) {
 			try {
 				releaseReclaimGuard(paths, token);
 			} catch (error) {
@@ -332,7 +402,7 @@ function acquireLock(
 }
 
 function releaseLock(path: string, token: string): void {
-	if (!existsSync(path)) return;
+	if (!pathExists(path)) return;
 	const owner = parseLock(path);
 	if (owner.token !== token) {
 		throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, `adoption lock ownership changed at ${path}`);
@@ -342,7 +412,8 @@ function releaseLock(path: string, token: string): void {
 }
 
 function isEmptyDirectory(path: string): boolean {
-	return statSync(path).isDirectory() && readdirSync(path).length === 0;
+	const stats = assertArtifactNotLink(path, 'adoption path');
+	return stats?.isDirectory() === true && readdirSync(path).length === 0;
 }
 
 function isRecognized(path: string, recognize: (path: string) => boolean): boolean {
@@ -353,7 +424,7 @@ function removeStaleStages(paths: AdoptTransactionPaths, reclaimedTokens: readon
 	let changed = false;
 	for (const token of new Set(reclaimedTokens)) {
 		const path = transactionPaths(paths.dest, token).stage;
-		if (!existsSync(path)) continue;
+		if (!pathExists(path)) continue;
 		if (!lstatSync(path).isDirectory()) {
 			throw new AdoptError(
 				ADOPT_EXIT.RECOVERY_REQUIRED,
@@ -371,16 +442,23 @@ function tombstones(paths: AdoptTransactionPaths): string[] {
 	const prefix = `.${basename(paths.dest)}.yesid-adopt.tombstone-`;
 	return readdirSync(parent)
 		.filter((entry) => entry.startsWith(prefix) && TOKEN.test(entry.slice(prefix.length)))
-		.map((entry) => join(parent, entry));
+		.map((entry) => {
+			const path = join(parent, entry);
+			assertArtifactNotLink(path, 'adoption tombstone');
+			return path;
+		});
 }
 
 function cleanupTombstone(
 	paths: AdoptTransactionPaths,
 	tombstone: string,
 	runtime: AdoptRuntime,
+	assertStable?: () => void,
 ): void {
 	try {
 		runtime.checkpoint?.('tombstone.cleanup', { ...paths, tombstone });
+		assertStable?.();
+		assertArtifactNotLink(tombstone, 'adoption tombstone');
 		rmSync(tombstone, { recursive: true, force: true });
 		syncDirectory(dirname(paths.dest));
 	} catch {
@@ -414,7 +492,8 @@ function recover(
 	reclaimedTokens: readonly string[],
 	runtime: AdoptRuntime,
 ): void {
-	if (existsSync(paths.backup)) {
+	const backup = assertArtifactNotLink(paths.backup, 'adoption backup');
+	if (backup) {
 		if (!isRecognized(paths.backup, recognize)) {
 			throw new AdoptError(
 				ADOPT_EXIT.RECOVERY_REQUIRED,
@@ -422,7 +501,7 @@ function recover(
 			);
 		}
 		const backupFingerprint = fullTreeHash(paths.backup);
-		if (!existsSync(paths.dest)) {
+		if (!pathExists(paths.dest)) {
 			renameSync(paths.backup, paths.dest);
 			syncDirectory(dirname(paths.dest));
 			if (fullTreeHash(paths.dest) !== backupFingerprint) {
@@ -437,7 +516,7 @@ function recover(
 				currentIsValid = false;
 			}
 			if (currentIsValid) {
-				if (existsSync(paths.tombstone)) {
+				if (pathExists(paths.tombstone)) {
 					throw new AdoptError(
 						ADOPT_EXIT.RECOVERY_REQUIRED,
 						`recovery tombstone collision at ${paths.tombstone}`,
@@ -484,34 +563,56 @@ function verifiedManifest(
 	return actual;
 }
 
+function assertTransactionArtifacts(paths: AdoptTransactionPaths): void {
+	for (const [path, label] of [
+		[paths.lock, 'adoption lock'],
+		[paths.reclaim, 'adoption reclaim guard'],
+		[paths.backup, 'adoption backup'],
+		[paths.tombstone, 'adoption tombstone'],
+		[paths.stage, 'adoption stage'],
+	] as const) {
+		assertArtifactNotLink(path, label);
+	}
+}
+
 function rollback(
 	paths: AdoptTransactionPaths,
 	oldExists: boolean,
 	oldFingerprint: string | null,
 	installed: boolean,
 	runtime: AdoptRuntime,
+	destinationGuard: DestinationPathGuard,
 ): void {
 	runtime.checkpoint?.('rollback.started', paths);
-	if (installed && existsSync(paths.dest)) rmSync(paths.dest, { recursive: true });
-	if (existsSync(paths.backup) && existsSync(paths.tombstone)) {
+	destinationGuard.assertParentStable();
+	destinationGuard.assertLeafStable();
+	if (installed && pathExists(paths.dest)) {
+		rmSync(paths.dest, { recursive: true });
+		destinationGuard.markLeafMissing();
+	}
+	assertArtifactNotLink(paths.backup, 'adoption backup');
+	assertArtifactNotLink(paths.tombstone, 'adoption tombstone');
+	if (pathExists(paths.backup) && pathExists(paths.tombstone)) {
 		throw new Error(`rollback found both a backup and tombstone`);
 	}
-	const restore = existsSync(paths.backup)
+	const restore = pathExists(paths.backup)
 		? paths.backup
-		: existsSync(paths.tombstone)
+		: pathExists(paths.tombstone)
 			? paths.tombstone
 			: null;
 	if (restore) {
-		if (existsSync(paths.dest)) rmSync(paths.dest, { recursive: true });
+		if (pathExists(paths.dest)) rmSync(paths.dest, { recursive: true });
 		renameSync(restore, paths.dest);
+		destinationGuard.markLeafCurrent();
 	}
-	if (existsSync(paths.stage)) rmSync(paths.stage, { recursive: true, force: true });
+	const stage = assertArtifactNotLink(paths.stage, 'adoption stage');
+	if (stage) rmSync(paths.stage, { recursive: true, force: true });
 	syncDirectory(dirname(paths.dest));
 	if (oldExists) {
-		if (!existsSync(paths.dest) || fullTreeHash(paths.dest) !== oldFingerprint) {
+		if (!pathExists(paths.dest) || fullTreeHash(paths.dest) !== oldFingerprint) {
 			throw new Error(`rollback did not restore the previous destination`);
 		}
-	} else if (existsSync(paths.dest)) {
+	} else if (pathExists(paths.dest)) {
 		throw new Error(`rollback did not restore the missing destination`);
 	}
 }
@@ -520,16 +621,54 @@ export function installAdoption(
 	options: InstallOptions,
 	runtime: AdoptRuntime = {},
 ): AdoptResult {
+	const destinationGuard = options.destinationGuard ?? guardDestinationPath(options.dest);
+	destinationGuard.prepareParent();
 	const token = randomUUID();
-	const paths = transactionPaths(options.dest, token);
-	mkdirSync(dirname(paths.dest), { recursive: true });
-	const acquisition = acquireLock(paths, token, runtime);
+	const paths = transactionPaths(destinationGuard.path, token);
+	destinationGuard.assertParentStable();
+	options.assertSourceStable?.();
+	assertTransactionArtifacts(paths);
+	let acquisition: LockAcquisition;
+	try {
+		acquisition = acquireLock(paths, token, runtime, () => destinationGuard.assertParentStable());
+	} catch (error) {
+		if (error instanceof PathIdentityChangedError) {
+			throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, error.message, { cause: error });
+		}
+		throw error;
+	}
 	let oldExists = false;
 	let oldFingerprint: string | null = null;
+	let destinationStateCaptured = false;
 	let installed = false;
+	let stageOwned = false;
+	let stageUnsafe = false;
+	let stageIdentity: OwnedEntryIdentity | null = null;
+	let parentUnsafe = false;
 	let manifest: AdoptManifest | undefined;
+	const assertStable = (): void => {
+		options.assertSourceStable?.();
+		assertDestinationStable();
+	};
+	const assertDestinationStable = (): void => {
+		destinationGuard.assertParentStable();
+		destinationGuard.assertLeafStable();
+		assertTransactionArtifacts(paths);
+		if (stageOwned && stageIdentity) {
+			try {
+				assertOwnedDirectory(paths.stage, 'adoption stage', stageIdentity);
+			} catch (error) {
+				stageUnsafe = true;
+				throw error;
+			}
+		}
+	};
+	const checkpoint = (point: AdoptCheckpoint): void => {
+		runtime.checkpoint?.(point, paths);
+		assertStable();
+	};
 	try {
-		runtime.checkpoint?.('lock.acquired', paths);
+		checkpoint('lock.acquired');
 		recover(
 			paths,
 			options.inspect,
@@ -537,48 +676,70 @@ export function installAdoption(
 			acquisition.reclaimedTokens,
 			runtime,
 		);
-		runtime.checkpoint?.('recovery.checked', paths);
-		if (existsSync(paths.dest) && !isRecognized(paths.dest, options.recognize)) {
+		destinationGuard.refreshLeaf();
+		checkpoint('recovery.checked');
+		if (pathExists(paths.dest) && !isRecognized(paths.dest, options.recognize)) {
 			throw new AdoptError(
 				ADOPT_EXIT.PRECONDITION,
 				`refusing to replace a non-adoption destination at ${paths.dest}`,
 			);
 		}
-		oldExists = existsSync(paths.dest);
+		oldExists = pathExists(paths.dest);
 		oldFingerprint = oldExists ? fullTreeHash(paths.dest) : null;
+		destinationStateCaptured = true;
+		assertStable();
+		if (pathExists(paths.stage)) {
+			throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, `adoption stage already exists`);
+		}
 		mkdirSync(paths.stage);
+		stageOwned = true;
+		stageIdentity = ownedDirectoryIdentity(paths.stage, 'adoption stage');
 		manifest = options.build(paths.stage);
+		options.assertSourceStable?.();
 		verifiedManifest(paths.stage, manifest, options.inspect);
 		syncTree(paths.stage);
-		runtime.checkpoint?.('stage.durable', paths);
-		runtime.checkpoint?.('stage.ready', paths);
-		if (existsSync(paths.dest)) {
+		checkpoint('stage.durable');
+		checkpoint('stage.ready');
+		if (pathExists(paths.dest)) {
 			try {
 				const current = options.inspect(paths.dest);
 				if (isDeepStrictEqual(current, manifest)) {
 					rmSync(paths.stage, { recursive: true });
-					runtime.checkpoint?.('noop', paths);
+					stageOwned = false;
+					stageIdentity = null;
+					checkpoint('noop');
 					return { outcome: 'noop', manifest: current };
 				}
 			} catch {
 				// A recognized but corrupted adoption is repairable by replacement.
 			}
 		}
-		if (existsSync(paths.backup)) {
+		if (assertArtifactNotLink(paths.backup, 'adoption backup')) {
 			throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, `durable backup was not recovered`);
 		}
 		if (oldExists) {
+			assertStable();
 			renameSync(paths.dest, paths.backup);
+			destinationGuard.markLeafMissing();
 			syncDirectory(dirname(paths.dest));
-			runtime.checkpoint?.('backup.durable', paths);
+			checkpoint('backup.durable');
 		}
+		assertStable();
+		assertArtifactNotLink(paths.stage, 'adoption stage');
 		renameSync(paths.stage, paths.dest);
+		stageOwned = false;
+		stageIdentity = null;
 		installed = true;
+		destinationGuard.markLeafCurrent();
 		syncDirectory(dirname(paths.dest));
-		runtime.checkpoint?.('destination.installed', paths);
+		checkpoint('destination.installed');
 		const accepted = verifiedManifest(paths.dest, manifest, options.inspect);
-		runtime.checkpoint?.('postverify.passed', paths);
-		if (existsSync(paths.backup)) {
+		checkpoint('postverify.passed');
+		if (pathExists(paths.backup)) {
+			assertArtifactNotLink(paths.backup, 'adoption backup');
+			if (pathExists(paths.tombstone)) {
+				throw new AdoptError(ADOPT_EXIT.RECOVERY_REQUIRED, `adoption tombstone already exists`);
+			}
 			renameSync(paths.backup, paths.tombstone);
 			syncDirectory(dirname(paths.dest));
 		}
@@ -587,13 +748,40 @@ export function installAdoption(
 		} catch {
 			// Commit is already durable; a checkpoint failure cannot roll it back.
 		}
-		if (existsSync(paths.tombstone)) cleanupTombstone(paths, paths.tombstone, runtime);
+		assertDestinationStable();
+		if (pathExists(paths.tombstone)) {
+			cleanupTombstone(paths, paths.tombstone, runtime, assertDestinationStable);
+			assertDestinationStable();
+		}
 		return { outcome: 'installed', manifest: accepted };
 	} catch (error) {
+		if (error instanceof PathIdentityChangedError) {
+			parentUnsafe = !error.cleanupSafe;
+			if (error.subject === 'source' && destinationStateCaptured) {
+				try {
+					rollback(paths, oldExists, oldFingerprint, installed, runtime, destinationGuard);
+				} catch (rollbackError) {
+					if (rollbackError instanceof PathIdentityChangedError && !rollbackError.cleanupSafe) {
+						parentUnsafe = true;
+					}
+					throw new AdoptError(
+						ADOPT_EXIT.RECOVERY_REQUIRED,
+						`adoption recovery requires manual intervention for ${paths.dest}`,
+						{ cause: rollbackError },
+					);
+				}
+			}
+			const code =
+				error.subject === 'source' ? ADOPT_EXIT.PRECONDITION : ADOPT_EXIT.RECOVERY_REQUIRED;
+			throw new AdoptError(code, error.message, { cause: error });
+		}
 		if (error instanceof AdoptError) throw error;
 		try {
-			rollback(paths, oldExists, oldFingerprint, installed, runtime);
+			rollback(paths, oldExists, oldFingerprint, installed, runtime, destinationGuard);
 		} catch (rollbackError) {
+			if (rollbackError instanceof PathIdentityChangedError && !rollbackError.cleanupSafe) {
+				parentUnsafe = true;
+			}
 			throw new AdoptError(
 				ADOPT_EXIT.RECOVERY_REQUIRED,
 				`adoption recovery requires manual intervention for ${paths.dest}`,
@@ -606,7 +794,14 @@ export function installAdoption(
 			{ cause: error },
 		);
 	} finally {
-		if (existsSync(paths.stage)) rmSync(paths.stage, { recursive: true, force: true });
-		releaseLock(paths.lock, token);
+		if (!parentUnsafe) {
+			destinationGuard.assertParentStable();
+			if (stageOwned && !stageUnsafe && pathExists(paths.stage)) {
+				if (stageIdentity) assertOwnedDirectory(paths.stage, 'adoption stage', stageIdentity);
+				assertArtifactNotLink(paths.stage, 'adoption stage');
+				rmSync(paths.stage, { recursive: true, force: true });
+			}
+			releaseLock(paths.lock, token);
+		}
 	}
 }

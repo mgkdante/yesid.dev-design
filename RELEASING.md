@@ -123,7 +123,10 @@ bun run config:release:check -- --version X.Y.Z --tag config-vX.Y.Z
 The `config-release.yml` tag workflow publishes only
 `yesid-config-vX.Y.Z.tgz` and its `.sha256` file. The npm-compatible archive is
 rooted at `package/`, follows the package's explicit file allowlist, and embeds
-the exact tag receipt. Repository tag rules must protect both `v*` and
+the exact tag receipt. Verification rejects a compressed archive over 8 MiB before reading it,
+bounds checksum and tagged-file reads, compares the artifact with deterministic tagged bytes before
+parsing, and then applies in-process expanded, member, payload, and entry limits. Repository tag
+rules must protect both `v*` and
 `config-v*` from update, deletion, and non-fast-forward changes before the
 first config tag is pushed.
 
@@ -172,7 +175,8 @@ bun run release:check -- --version "$VERSION" --tag "$TAG"
 The archive is POSIX ustar rooted at `yesid.dev-design-${tag}/`. Every mtime is
 the peeled commit epoch. Its newline-terminated `.yesid-release.json` records
 schema `1`, the fixed repository identity, tag name, tag object, and peeled
-commit. The build refuses symlinks, dirty input, unsafe paths, a non-canonical
+commit. The archive carries the exact tagged `LICENSE`, `NOTICE`, and `TRADEMARK.md` bytes alongside
+the package closure. The build refuses symlinks, dirty input, unsafe paths, a non-canonical
 output name, output inside the repository, and overwrite of an existing file.
 
 For a new tag, the workflow creates a draft, uploads exactly the canonical

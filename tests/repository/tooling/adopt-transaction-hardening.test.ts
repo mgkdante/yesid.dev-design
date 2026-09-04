@@ -6,7 +6,9 @@ import {
 	mkdtempSync,
 	readFileSync,
 	readdirSync,
+	renameSync,
 	rmSync,
+	symlinkSync,
 	writeFileSync,
 } from 'node:fs';
 import { hostname, tmpdir } from 'node:os';
@@ -167,6 +169,34 @@ afterEach(() => {
 });
 
 describe('transaction lock hardening', () => {
+	it.skipIf(process.platform === 'win32')('does not follow a parent replaced during reclaim locking', () => {
+		const root = tempDir();
+		const dest = join(root, 'product', 'vendor', 'design');
+		const parent = dirname(dest);
+		const displaced = join(root, 'reclaim-displaced');
+		const attacker = join(root, 'reclaim-attacker');
+		let thrown: unknown;
+
+		try {
+			install(
+				dest,
+				'v1.0.0',
+				runtime((point) => {
+					if (point !== 'lock.reclaim.guard.acquired') return;
+					renameSync(parent, displaced);
+					write(join(attacker, 'sentinel.txt'), 'attacker\n');
+					symlinkSync(attacker, parent, 'dir');
+				}),
+			);
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(readFileSync(join(attacker, 'sentinel.txt'), 'utf8')).toBe('attacker\n');
+		expect(readdirSync(displaced).some((entry) => entry.includes('.yesid-adopt.'))).toBe(true);
+	});
+
 	it('re-reads the lock under a fixed reclaim guard and preserves a newly live owner', () => {
 		const root = tempDir();
 		const dest = join(root, 'vendor', 'design');
@@ -243,6 +273,82 @@ describe('transaction lock hardening', () => {
 });
 
 describe('transaction durability hardening', () => {
+	it.skipIf(process.platform === 'win32')('refuses a symlinked durable backup without touching its target', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		const foreign = join(root, 'foreign-adoption');
+		const backup = `${prefix(dest)}.backup`;
+		const expected = manifest('v1.0.0');
+		write(join(foreign, 'manifest.json'), `${JSON.stringify(expected)}\n`);
+		write(join(foreign, 'sentinel.txt'), 'foreign\n');
+		mkdirSync(dirname(dest), { recursive: true });
+		symlinkSync(foreign, backup, 'dir');
+
+		let thrown: unknown;
+		try {
+			install(dest, 'v1.0.0');
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect((thrown as Error).message).toMatch(/backup.*refusing symbolic link/iu);
+		expect(readFileSync(join(foreign, 'sentinel.txt'), 'utf8')).toBe('foreign\n');
+		expect(existsSync(dest)).toBe(false);
+	});
+
+	it('rechecks the owned stage identity immediately before installation', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		const displaced = join(root, 'displaced-stage');
+		let replacement = '';
+		let thrown: unknown;
+
+		try {
+			install(
+				dest,
+				'v1.0.0',
+				runtime((point, paths) => {
+					if (point !== 'stage.ready') return;
+					replacement = paths.stage;
+					renameSync(paths.stage, displaced);
+					write(join(paths.stage, 'manifest.json'), `${JSON.stringify(manifest('v1.0.0'))}\n`);
+					write(join(paths.stage, 'foreign.txt'), 'foreign\n');
+				}),
+			);
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect((thrown as Error).message).toMatch(/stage.*identity changed/iu);
+		expect(readFileSync(join(replacement, 'foreign.txt'), 'utf8')).toBe('foreign\n');
+		expect(existsSync(displaced)).toBe(true);
+		expect(existsSync(dest)).toBe(false);
+	});
+
+	it.skipIf(process.platform === 'win32')('refuses a symlinked committed tombstone without cleanup', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		const foreign = join(root, 'foreign-tombstone');
+		install(dest, 'v1.0.0');
+		write(join(foreign, 'sentinel.txt'), 'foreign\n');
+		const tombstone = `${prefix(dest)}.tombstone-${randomUUID()}`;
+		symlinkSync(foreign, tombstone, 'dir');
+
+		let thrown: unknown;
+		try {
+			install(dest, 'v1.0.0');
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect((thrown as Error).message).toMatch(/tombstone.*refusing symbolic link/iu);
+		expect(readFileSync(join(foreign, 'sentinel.txt'), 'utf8')).toBe('foreign\n');
+		expect(existsSync(tombstone)).toBe(true);
+	});
+
 	it('syncs the complete stage before declaring it ready', () => {
 		const root = tempDir();
 		const dest = join(root, 'vendor', 'design');

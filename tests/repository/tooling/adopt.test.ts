@@ -6,8 +6,10 @@ import {
 	mkdtempSync,
 	readFileSync,
 	readdirSync,
+	renameSync,
 	rmSync,
 	statSync,
+	symlinkSync,
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -30,6 +32,11 @@ const scratch: string[] = [];
 const crashFixture = fileURLToPath(new URL('./fixtures/adopt-crash.ts', import.meta.url));
 const OLD_COMMIT = 'fedcba9876543210fedcba9876543210fedcba98';
 const NEW_COMMIT = '0123456789abcdef0123456789abcdef01234567';
+const LEGAL_FILES = [
+	['LICENSE', 'test license\n'],
+	['NOTICE', 'test notice\n'],
+	['TRADEMARK.md', 'test trademark\n'],
+] as const;
 
 function worktreeProvenance(tag: string, commit: string): AdoptProvenance {
 	return {
@@ -51,7 +58,7 @@ function write(path: string, content: string): void {
 }
 
 function makeSource(root: string): void {
-	write(join(root, 'LICENSE'), 'test license\n');
+	for (const [name, content] of LEGAL_FILES) write(join(root, name), content);
 	write(join(root, 'tools', 'adopt.ts'), "export * from './adopt/runtime.js';\n");
 	write(join(root, 'tools', 'adopt', 'runtime.ts'), "export const schema = 2;\n");
 	for (const name of ['tokens', 'motion', 'gates', 'seo-kit', 'ui', 'analytics', 'i18n-core']) {
@@ -199,7 +206,11 @@ describe('adoptFromSource', () => {
 			'analytics',
 			'i18n-core',
 		]);
-		expect(readFileSync(join(dest, 'LICENSE'), 'utf-8')).toBe('test license\n');
+		for (const [name, content] of LEGAL_FILES) {
+			const installed = join(dest, name);
+			expect(existsSync(installed), name).toBe(true);
+			if (existsSync(installed)) expect(readFileSync(installed, 'utf-8')).toBe(content);
+		}
 		expect(readFileSync(join(dest, 'tools', 'adopt.ts'), 'utf-8')).toContain("./adopt/runtime.js");
 		expect(existsSync(join(dest, 'tools', 'adopt', 'runtime.ts'))).toBe(true);
 		expect(existsSync(join(dest, 'ui', 'src', 'runtime.ts'))).toBe(true);
@@ -235,6 +246,40 @@ describe('adoptFromSource', () => {
 		]);
 		expect(adoptedUiManifest.dependencies).toEqual({ '@yesid/motion': 'file:../motion' });
 		expect(checkAdoption(dest)).toEqual(manifest);
+	});
+
+	it.each(LEGAL_FILES)('requires the tagged source legal file %s', (name) => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		rmSync(join(source, name));
+
+		expect(() =>
+			adoptFromSource({
+				source,
+				dest,
+				packages: ['tokens'],
+				provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+			}),
+		).toThrow(new RegExp(`required legal file ${name.replace('.', '\\.')}`, 'u'));
+		expect(existsSync(dest)).toBe(false);
+	});
+
+	it.each(LEGAL_FILES)('binds installed legal file %s into the tree hash', (name) => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		adoptFromSource({
+			source,
+			dest,
+			packages: ['tokens'],
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+		});
+
+		write(join(dest, name), 'tampered\n');
+		expect(() => checkAdoption(dest)).toThrow(/tree hash mismatch/iu);
 	});
 
 	it('detects changed, added, and removed vendor files through --check semantics', () => {
@@ -620,6 +665,247 @@ describe('adoptFromSource', () => {
 		const recovered = adoptWithRuntime(base);
 		expect(recovered.outcome).toBe('noop');
 		expect(existsSync(backup)).toBe(false);
+	});
+});
+
+describe('adoption path safety', () => {
+	it.skipIf(process.platform === 'win32')('rejects a symbolic-link component in the source path', () => {
+		const root = tempDir();
+		const sourceParent = join(root, 'source-parent');
+		const source = join(sourceParent, 'source');
+		const alias = join(root, 'source-alias');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		symlinkSync(sourceParent, alias, 'dir');
+
+		expect(() =>
+			adoptFromSource({
+				source: join(alias, 'source'),
+				dest,
+				packages: ['tokens'],
+				provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+			}),
+		).toThrow(/source.*refusing symbolic link/iu);
+		expect(existsSync(dest)).toBe(false);
+	});
+
+	it.skipIf(process.platform === 'win32')('rejects a symbolic-link component in the destination path', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const outside = join(root, 'outside-product');
+		const alias = join(root, 'product-alias');
+		const dest = join(alias, 'vendor', 'design');
+		makeSource(source);
+		write(join(outside, 'sentinel.txt'), 'outside\n');
+		symlinkSync(outside, alias, 'dir');
+
+		expect(() =>
+			adoptFromSource({
+				source,
+				dest,
+				packages: ['tokens'],
+				provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+			}),
+		).toThrow(/destination.*refusing symbolic link/iu);
+		expect(readFileSync(join(outside, 'sentinel.txt'), 'utf8')).toBe('outside\n');
+		expect(existsSync(join(outside, 'vendor'))).toBe(false);
+	});
+
+	it('rejects both canonical source and destination containment directions', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		makeSource(source);
+		const provenance = worktreeProvenance('v1.0.0', OLD_COMMIT);
+
+		expect(() =>
+			adoptFromSource({ source, dest: join(source, 'vendor', 'design'), packages: ['tokens'], provenance }),
+		).toThrow(/destination and source must not contain one another/iu);
+		expect(() =>
+			adoptFromSource({ source, dest: dirname(source), packages: ['tokens'], provenance }),
+		).toThrow(/destination and source must not contain one another/iu);
+	});
+
+	it.skipIf(process.platform === 'win32')('rejects existing and broken final destination links', () => {
+		for (const broken of [false, true]) {
+			const root = tempDir();
+			const source = join(root, 'source');
+			const target = join(root, broken ? 'missing-target' : 'target');
+			const dest = join(root, 'vendor', 'design');
+			makeSource(source);
+			if (!broken) write(join(target, 'sentinel.txt'), 'target\n');
+			mkdirSync(dirname(dest), { recursive: true });
+			symlinkSync(target, dest, 'dir');
+
+			expect(() =>
+				adoptFromSource({
+					source,
+					dest,
+					packages: ['tokens'],
+					provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+				}),
+			).toThrow(/destination.*refusing symbolic link/iu);
+			if (!broken) expect(readFileSync(join(target, 'sentinel.txt'), 'utf8')).toBe('target\n');
+		}
+	});
+
+	it('installs into a missing final destination with multiple missing parent components', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'new', 'product', 'vendor', 'design');
+		makeSource(source);
+
+		const result = adoptFromSource({
+			source,
+			dest,
+			packages: ['tokens'],
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+		});
+
+		expect(result.outcome).toBe('installed');
+		expect(checkAdoption(dest)).toEqual(result.manifest);
+	});
+
+	it.skipIf(process.platform === 'win32')('rechecks a newly created final destination link before installation', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const target = join(root, 'foreign-target');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		write(join(target, 'sentinel.txt'), 'foreign\n');
+		let thrown: unknown;
+
+		try {
+			adoptWithRuntime(
+				{
+					source,
+					dest,
+					packages: ['tokens'],
+					provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+				},
+				(point) => {
+					if (point === 'stage.ready') symlinkSync(target, dest, 'dir');
+				},
+			);
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect((thrown as Error).message).toMatch(/destination.*refusing symbolic link/iu);
+		expect(readFileSync(join(target, 'sentinel.txt'), 'utf8')).toBe('foreign\n');
+	});
+
+	it.skipIf(process.platform === 'win32')('detects a source directory replacement after locking', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const displaced = join(root, 'source-displaced');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+
+		expect(() =>
+			adoptWithRuntime(
+				{
+					source,
+					dest,
+					packages: ['tokens'],
+					provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+				},
+				(point) => {
+					if (point !== 'lock.acquired') return;
+					renameSync(source, displaced);
+					makeSource(source);
+					write(join(source, 'packages', 'tokens', 'src', 'runtime.ts'), 'attacker bytes\n');
+				},
+			),
+		).toThrow(/source.*path identity changed/iu);
+		expect(existsSync(dest)).toBe(false);
+		expect(existsSync(displaced)).toBe(true);
+	});
+
+	it.skipIf(process.platform === 'win32')('restores the previous destination when the source changes after backup', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const displaced = join(root, 'source-displaced');
+		const dest = join(root, 'vendor', 'design');
+		makeSource(source);
+		const initial: Parameters<typeof adoptFromSource>[0] = {
+			source,
+			dest,
+			packages: ['tokens'],
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+		};
+		adoptWithRuntime(initial);
+		const before = adoptionSnapshot(dest);
+		let thrown: unknown;
+
+		try {
+			adoptWithRuntime(
+				{ ...initial, provenance: worktreeProvenance('v1.0.1', NEW_COMMIT) },
+				(point) => {
+					if (point !== 'backup.durable') return;
+					renameSync(source, displaced);
+					makeSource(source);
+				},
+			);
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.PRECONDITION });
+		expect(existsSync(dest)).toBe(true);
+		if (existsSync(dest)) expect(adoptionSnapshot(dest)).toEqual(before);
+		expect(existsSync(join(dirname(dest), `.${basename(dest)}.yesid-adopt.backup`))).toBe(false);
+	});
+
+	it.skipIf(process.platform === 'win32')('returns recovery-required without following a replaced destination parent', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'product', 'vendor', 'design');
+		const parent = dirname(dest);
+		const displaced = join(root, 'vendor-displaced');
+		const attacker = join(root, 'attacker-parent');
+		makeSource(source);
+		let thrown: unknown;
+
+		try {
+			adoptWithRuntime(
+				{
+					source,
+					dest,
+					packages: ['tokens'],
+					provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+				},
+				(point) => {
+					if (point !== 'stage.ready') return;
+					renameSync(parent, displaced);
+					write(join(attacker, 'sentinel.txt'), 'attacker\n');
+					symlinkSync(attacker, parent, 'dir');
+				},
+			);
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(readFileSync(join(attacker, 'sentinel.txt'), 'utf8')).toBe('attacker\n');
+		expect(readdirSync(displaced).some((entry) => entry.includes('.yesid-adopt.'))).toBe(true);
+	});
+
+	it.skipIf(process.platform === 'win32')('rejects a symbolic-link alias in check mode', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const dest = join(root, 'vendor', 'design');
+		const alias = join(root, 'design-alias');
+		makeSource(source);
+		adoptFromSource({
+			source,
+			dest,
+			packages: ['tokens'],
+			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
+		});
+		symlinkSync(dest, alias, 'dir');
+
+		expect(() => checkAdoption(alias)).toThrow(/destination.*refusing symbolic link/iu);
 	});
 });
 

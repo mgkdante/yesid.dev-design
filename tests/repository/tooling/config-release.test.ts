@@ -12,6 +12,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const CONFIG_TAG = 'config-v0.2.1';
@@ -280,8 +281,19 @@ describe('@yesid/config distribution boundary', () => {
 		const entries = tar(firstRoot, '-tzf', firstPath).trim().split('\n');
 		expect(entries).toEqual([
 			'package/',
+			'package/CHANGELOG.md',
+			'package/LICENSE',
+			'package/README.md',
 			'package/package.json',
-			...CONFIG_FILES.map((path) => `package/${path}`),
+			'package/svelte/',
+			'package/svelte/project-runes.d.ts',
+			'package/svelte/project-runes.js',
+			'package/tsconfig/',
+			'package/tsconfig/base.json',
+			'package/tsconfig/library.json',
+			'package/tsconfig/svelte-kit.json',
+			'package/turbo/',
+			'package/turbo/base.json',
 			'package/.yesid-config-release.json',
 		]);
 		expect(entries.join('\n')).not.toMatch(/(?:\.env|secret|symlink)/i);
@@ -417,5 +429,43 @@ describe('@yesid/config distribution boundary', () => {
 		const tamperedChecksum = runTool('verify', source.root, checksumAsset);
 		expect(tamperedChecksum.status).toBe(1);
 		expect(tamperedChecksum.stderr).toMatch(/checksum/i);
+	});
+
+	it('rejects an oversized compressed archive before looking for its checksum', () => {
+		const source = repository();
+		const archive = join(tempDir(), `yesid-${CONFIG_TAG}.tgz`);
+		writeFileSync(archive, Buffer.alloc(8 * 1024 * 1024 + 1));
+
+		const verified = runTool('verify', source.root, archive);
+		expect(verified.status).toBe(1);
+		expect(verified.stderr).toMatch(/compressed size limit.*8 MiB/iu);
+		expect(verified.stderr).not.toMatch(/checksum does not exist/iu);
+	});
+
+	it('bounds the checksum file before reading or parsing it', () => {
+		const source = repository();
+		const archive = join(tempDir(), `yesid-${CONFIG_TAG}.tgz`);
+		expect(runTool('build', source.root, archive).status).toBe(0);
+		writeFileSync(`${archive}.sha256`, 'x'.repeat(257));
+
+		const verified = runTool('verify', source.root, archive);
+		expect(verified.status).toBe(1);
+		expect(verified.stderr).toMatch(/checksum.*size limit/iu);
+	});
+
+	it('rejects byte-mismatched high-expansion input before archive parsing', () => {
+		const source = repository();
+		const archive = join(tempDir(), `yesid-${CONFIG_TAG}.tgz`);
+		const compressed = gzipSync(Buffer.alloc(2 * 1024 * 1024 + 512));
+		writeFileSync(archive, compressed);
+		writeFileSync(
+			`${archive}.sha256`,
+			`${createHash('sha256').update(compressed).digest('hex')}  yesid-${CONFIG_TAG}.tgz\n`,
+		);
+
+		const verified = runTool('verify', source.root, archive);
+		expect(verified.status).toBe(1);
+		expect(verified.stderr).toMatch(/does not match the deterministic tagged package/iu);
+		expect(verified.stderr).not.toMatch(/tar|gzip|expanded/iu);
 	});
 });

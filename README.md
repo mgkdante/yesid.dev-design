@@ -105,8 +105,11 @@ bun run setup:hooks             # enable .githooks (generated-files guard)
 Consumers vendor exact immutable GitHub Release assets. Run the complete
 [`tools/adopt.ts`](tools/adopt.ts) bundle (`tools/adopt.ts` plus `tools/adopt/`)
 with `--tag vX.Y.Z`, then commit the package snapshot, self-vendored adoption
-tool, and schema-2 `manifest.json`. `--check` verifies the tool, exclusion policy,
-and full payload offline. Git dependencies cannot select workspace subpackages,
+tool, `LICENSE`, `NOTICE`, `TRADEMARK.md`, and schema-2 `manifest.json`. `--check`
+verifies the tool, exclusion policy, legal files, and full payload offline. Source and destination
+paths are canonicalized from their nearest existing parents; symbolic-link components are refused,
+missing destination components are created individually, and path identities are rechecked before
+installation. Git dependencies cannot select workspace subpackages,
 and npm publication remains an optional later layer. The full decision is in
 [`DECISIONS.md`](DECISIONS.md).
 
