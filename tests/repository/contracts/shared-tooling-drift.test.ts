@@ -437,7 +437,7 @@ describe('published action contract', () => {
 		]) {
 			expect(documentation).toContain(`mgkdante/yesid.dev-design/${action}@<FULL_40_CHARACTER_COMMIT_SHA>`);
 		}
-		expect(documentation).toContain('a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25');
+		expect(documentation).toContain('4b92ac4317d592af3339da8b9008b6cc42e1ac3d');
 		expect(documentation).toContain('bun install --frozen-lockfile');
 		expect(documentation).toContain('tests/repository/contracts/shared-tooling-drift.test.ts');
 		expect(documentation).not.toMatch(/@(main|master|v\d+(?:\.\d+)*)\b/u);

@@ -63,7 +63,7 @@ const CLASSIFIER_MODULE_URL = pathToFileURL(
 	join(ROOT, '.github', 'actions', 'classify-paths', 'main.mjs'),
 );
 const REPOSITORY = 'mgkdante/yesid.dev-design';
-const SHA = 'a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25';
+const SHA = '4b92ac4317d592af3339da8b9008b6cc42e1ac3d';
 const WORKFLOW = '.github/workflows/ci.yml';
 const ACTIONS = [
 	'.github/actions/classify-paths',

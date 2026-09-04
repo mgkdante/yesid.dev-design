@@ -11,7 +11,7 @@ subdirectories. Every caller pins all three to the same reviewed 40-character co
 
 A branch, floating tag, abbreviated SHA, expression, or mixed set of SHAs is outside the
 contract. The current reviewed producer receipt is
-[`a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25`](https://github.com/mgkdante/yesid.dev-design/commit/a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25).
+[`4b92ac4317d592af3339da8b9008b6cc42e1ac3d`](https://github.com/mgkdante/yesid.dev-design/commit/4b92ac4317d592af3339da8b9008b6cc42e1ac3d).
 The examples intentionally retain `<FULL_40_CHARACTER_COMMIT_SHA>` so every consumer must insert
 and review its own exact pin. Consumer changes remain deliberate bump pull requests; this
 repository never edits their workflow paths, environment bindings, deploy credentials, or

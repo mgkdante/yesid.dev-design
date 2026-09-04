@@ -20,7 +20,7 @@ import { blockingAxeViolations } from './browser/authority.js';
 const ROOT = resolve(import.meta.dirname, '../../..');
 const DEPENDENCY_POLICY = join(ROOT, 'tools/browser-authority-dependency-policy.ts');
 const AUTHORITY_ACTION = join(ROOT, '.github/actions/browser-authority/action.yml');
-const TRUSTED_AUTHORITY_COMMIT = '61fe23e0b55292f71b3d22159ba5ada362f6e5ae';
+const TRUSTED_AUTHORITY_COMMIT = '4b92ac4317d592af3339da8b9008b6cc42e1ac3d';
 const AUTHORITY_IMAGE =
 	'mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48';
 const PROXY_VARIABLES = [
