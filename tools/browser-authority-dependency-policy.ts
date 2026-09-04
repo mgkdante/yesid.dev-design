@@ -183,7 +183,12 @@ function readBlob(root: string, commit: string, path: string, maximum: number): 
 }
 
 function parseJsonObject(source: string, path: string): JsonRecord {
-	const parsed = JSON.parse(source) as unknown;
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(source) as unknown;
+	} catch {
+		throw new Error(`${path} is not valid JSON`);
+	}
 	if (!isRecord(parsed)) throw new Error(`${path} must contain a JSON object`);
 	return parsed;
 }
@@ -350,11 +355,28 @@ function assertTrustedDependencyInputs(
 	rootManifest: JsonRecord,
 	galleryManifest: JsonRecord,
 	lockfile: JsonRecord,
+	expectedBunVersion: string,
+	expectedPlaywrightVersion: string,
 ): void {
 	const trustedManifest = parseJsonObject(
 		readFileSync(resolve(trustedRoot, 'package.json'), 'utf8'),
 		'immutable package.json',
 	);
+	const expectedPackageManager = `bun@${expectedBunVersion}`;
+	const candidateBunVersion = readBlob(root, commit, '.bun-version', 128);
+	const trustedBunVersion = readFileSync(resolve(trustedRoot, '.bun-version'), 'utf8');
+	if (
+		rootManifest.packageManager !== expectedPackageManager ||
+		trustedManifest.packageManager !== expectedPackageManager
+	) {
+		throw new Error(`authority pin mismatch: packageManager must be ${expectedPackageManager}`);
+	}
+	if (
+		candidateBunVersion !== `${expectedBunVersion}\n` ||
+		trustedBunVersion !== `${expectedBunVersion}\n`
+	) {
+		throw new Error(`authority pin mismatch: .bun-version must be ${expectedBunVersion}`);
+	}
 	for (const field of RESOLUTION_FIELDS) {
 		if (JSON.stringify(rootManifest[field]) !== JSON.stringify(trustedManifest[field])) {
 			throw new Error(`package.json:${field} must match the immutable browser authority`);
@@ -389,6 +411,14 @@ function assertTrustedDependencyInputs(
 		trustedGallery.devDependencies,
 		'immutable apps/gallery/package.json:devDependencies',
 	);
+	if (
+		candidateTools['@playwright/test'] !== expectedPlaywrightVersion ||
+		trustedTools['@playwright/test'] !== expectedPlaywrightVersion
+	) {
+		throw new Error(
+			`authority pin mismatch: @playwright/test must be ${expectedPlaywrightVersion}`,
+		);
+	}
 	for (const name of AUTHORITY_TOOL_PACKAGES) {
 		if (candidateTools[name] !== trustedTools[name]) {
 			throw new Error(
@@ -408,6 +438,8 @@ function assertTrustedDependencyInputs(
 export function assertBrowserAuthorityDependencyPolicy(
 	root: string,
 	commit: string,
+	expectedBunVersion: string,
+	expectedPlaywrightVersion: string,
 	trustedRoot = resolve(import.meta.dirname, '..'),
 ): void {
 	if (!/^[0-9a-f]{40}$/u.test(commit)) throw new Error('commit must be a lowercase 40-hex SHA');
@@ -479,7 +511,12 @@ export function assertBrowserAuthorityDependencyPolicy(
 	if (!galleryManifest) throw new Error('apps/gallery/package.json is required');
 
 	const lockfileSource = readBlob(root, commit, 'bun.lock', MAX_LOCK_BYTES);
-	const lockfile = Bun.JSONC.parse(lockfileSource) as unknown;
+	let lockfile: unknown;
+	try {
+		lockfile = Bun.JSONC.parse(lockfileSource) as unknown;
+	} catch {
+		throw new Error('bun.lock is not valid JSONC');
+	}
 	if (!isRecord(lockfile)) throw new Error('bun.lock must contain an object');
 	assertLockfile(lockfile);
 	assertWorkspaceLockMetadata(lockfile, workspaceManifests);
@@ -490,6 +527,8 @@ export function assertBrowserAuthorityDependencyPolicy(
 		rootManifest,
 		galleryManifest,
 		lockfile,
+		expectedBunVersion,
+		expectedPlaywrightVersion,
 	);
 }
 
@@ -510,10 +549,17 @@ function assertWorkflowImage(root: string, commit: string, expectedImage: string
 
 if (import.meta.main) {
 	try {
-		if (process.argv.length !== 5) {
-			throw new Error('expected repository root, commit SHA, and browser image');
+		if (process.argv.length !== 7) {
+			throw new Error(
+				'expected repository root, commit SHA, browser image, Bun version, and Playwright version',
+			);
 		}
-		assertBrowserAuthorityDependencyPolicy(resolve(process.argv[2]!), process.argv[3]!);
+		assertBrowserAuthorityDependencyPolicy(
+			resolve(process.argv[2]!),
+			process.argv[3]!,
+			process.argv[5]!,
+			process.argv[6]!,
+		);
 		assertWorkflowImage(resolve(process.argv[2]!), process.argv[3]!, process.argv[4]!);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);

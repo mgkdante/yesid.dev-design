@@ -26,6 +26,7 @@ const AUTHORITY_IMAGE =
 const TERMINAL_CONTROLS =
 	/(?:[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029]|\p{Bidi_Control})/u;
 const PIN_DIAGNOSTIC_POISON = '\n::error title=forged::pin-control\u001b[2J\u009b31m\u061c\u200e\u200f\u202e';
+const MALFORMED_MANIFEST = `{"broken":${PIN_DIAGNOSTIC_POISON}\n`;
 const OTHER_WORKSPACE_MANIFESTS = [
 	'packages/analytics/package.json',
 	'packages/config/package.json',
@@ -231,10 +232,12 @@ function authorityFixture(changes: {
 	npmrc?: string;
 	npmrcSymlink?: boolean;
 	rootOverrides?: Record<string, string>;
+	rootManifestSource?: string;
 	rootScripts?: Record<string, string>;
 	svelteKitVersion?: string;
 	viteVersion?: string;
 	workflowImage?: string;
+	galleryManifestSource?: string;
 	workspaceName?: string;
 	workspaceVersion?: string;
 }) {
@@ -278,7 +281,7 @@ function authorityFixture(changes: {
 	}
 	writeFileSync(
 		join(root, 'package.json'),
-		JSON.stringify({
+		changes.rootManifestSource ?? JSON.stringify({
 			...trustedRootManifest,
 			packageManager: changes.packageManager ?? trustedRootManifest.packageManager,
 			scripts: changes.rootScripts ?? trustedRootManifest.scripts,
@@ -288,7 +291,7 @@ function authorityFixture(changes: {
 	);
 	writeFileSync(
 		join(root, 'apps/gallery/package.json'),
-		JSON.stringify({
+		changes.galleryManifestSource ?? JSON.stringify({
 			...trustedGalleryManifest,
 			name: changes.workspaceName ?? trustedGalleryManifest.name,
 			version: changes.workspaceVersion ?? trustedGalleryManifest.version,
@@ -803,6 +806,30 @@ describe('browser accessibility authority', () => {
 	});
 
 	it.each([
+		['root manifest', { rootManifestSource: MALFORMED_MANIFEST }],
+		['Gallery manifest', { galleryManifestSource: MALFORMED_MANIFEST }],
+	] as const)('terminal-encodes malformed candidate %s errors', (_label, changes) => {
+		const fixture = authorityFixture(changes);
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
+				cwd: fixture,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
+			});
+			const stderr = result.stderr.toString();
+			expect(result.status).toBe(2);
+			expect(stderr).toContain('browser authority dependency policy');
+			expect(stderr).not.toMatch(TERMINAL_CONTROLS);
+			expect(stderr).not.toContain('::error');
+			expect(stderr).not.toContain('pin-control');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it.each([
 		[
 			'packageManager',
 			{ packageManager: `bun@1.3.12${PIN_DIAGNOSTIC_POISON}` },
@@ -816,13 +843,13 @@ describe('browser accessibility authority', () => {
 		const fixture = authorityFixture(changes);
 		const fake = fakeDocker();
 		try {
-			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
 				cwd: fixture,
-				env: fake.env,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
 			});
 			const stderr = result.stderr.toString();
 			expect(result.status).toBe(2);
-			expect(stderr).toContain('authority pin mismatch');
+			expect(stderr).toContain('browser authority dependency policy');
 			expect(stderr).not.toMatch(TERMINAL_CONTROLS);
 			expect(stderr).not.toContain('::error');
 			expect(stderr).not.toContain('pin-control');

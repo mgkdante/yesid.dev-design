@@ -59,40 +59,11 @@ refuse_local_git_override info/attributes
 refuse_local_git_override info/grafts
 commit=$(trusted_git rev-parse --verify --end-of-options "${ref}^{commit}")
 
-committed_json_value() {
-	local path="$1"
-	shift
-	trusted_git show "$commit:$path" | node -e '
-		const chunks = [];
-		process.stdin.on("data", (chunk) => chunks.push(chunk));
-		process.stdin.on("end", () => {
-			const value = process.argv.slice(1).reduce(
-				(current, key) => current?.[key],
-				JSON.parse(Buffer.concat(chunks).toString("utf8")),
-			);
-			if (typeof value !== "string") process.exit(2);
-			process.stdout.write(value);
-		});
-	' "$@"
-}
-
-require_pin() {
-	if [[ "$2" != "$3" ]]; then
-		printf 'browser authority pin mismatch: %s must be %s\n' "$1" "$3" >&2
-		exit 2
-	fi
-}
-
-require_pin 'packageManager' "$(committed_json_value package.json packageManager)" "bun@$BUN_VERSION"
-require_pin '.bun-version' "$(trusted_git show "$commit:.bun-version")" "$BUN_VERSION"
-require_pin '@playwright/test' \
-	"$(committed_json_value apps/gallery/package.json devDependencies '@playwright/test')" \
-	"$PLAYWRIGHT_VERSION"
 (
 	cd "$HARNESS_ROOT"
 	bun --cwd="$HARNESS_ROOT" --config=/dev/null --no-env-file \
 		"$HARNESS_ROOT/tools/browser-authority-dependency-policy.ts" \
-		"$TARGET_ROOT" "$commit" "$IMAGE"
+		"$TARGET_ROOT" "$commit" "$IMAGE" "$BUN_VERSION" "$PLAYWRIGHT_VERSION"
 )
 
 printf 'browser authority: source=%s platform=linux/amd64 image=%s\n' "$commit" "$IMAGE" >&2
