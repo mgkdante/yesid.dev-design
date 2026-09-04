@@ -126,26 +126,31 @@ describe('browser accessibility authority', () => {
 	});
 
 	it('resolves one requested ref and archives that immutable commit', () => {
+		const fixture = authorityFixture({});
 		const fake = fakeDocker();
 		try {
+			writeFileSync(join(fixture, 'later.txt'), 'second commit\n');
+			execFileSync('git', ['add', '--', 'later.txt'], { cwd: fixture });
+			execFileSync('git', ['commit', '--quiet', '--message', 'later'], { cwd: fixture });
 			const commit = execFileSync('git', ['rev-parse', 'HEAD~1^{commit}'], {
-				cwd: ROOT,
+				cwd: fixture,
 				encoding: 'utf8',
 			}).trim();
 			const result = spawnSync('bash', ['tools/browser-authority-noble.sh', 'HEAD~1'], {
-				cwd: ROOT,
+				cwd: fixture,
 				env: fake.env,
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
 			const receivedArchive = readFileSync(join(fake.capture, 'stdin'));
 			const committedArchive = execFileSync('git', ['archive', '--format=tar', commit], {
-				cwd: ROOT,
+				cwd: fixture,
 				maxBuffer: 32 * 1024 * 1024,
 			});
 			expect(Buffer.compare(receivedArchive, committedArchive)).toBe(0);
 			expect(result.stderr.toString()).toContain(`source=${commit}`);
 		} finally {
 			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
 		}
 	});
 
