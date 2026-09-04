@@ -54,6 +54,11 @@ export interface PublicSymbol {
 	releaseTag: string | undefined;
 }
 
+export interface SemanticCompilerAdapter {
+	createProgram(rootNames: readonly string[], options: ts.CompilerOptions): ts.Program;
+	getTypeChecker(program: ts.Program): ts.TypeChecker;
+}
+
 export type ConditionalExport = Readonly<Record<string, string>>;
 export type PackageExport = string | ConditionalExport;
 
@@ -99,6 +104,15 @@ export const API_REPORT_PATHS: Readonly<Record<ReleasedPackageName, string>> = {
 };
 
 const DIRECT_ASSET = /\.(?:css|json)$/u;
+
+const TYPESCRIPT_SEMANTIC_COMPILER: SemanticCompilerAdapter = {
+	createProgram(rootNames, options) {
+		return ts.createProgram([...rootNames], options);
+	},
+	getTypeChecker(program) {
+		return program.getTypeChecker();
+	},
+};
 
 function readJson<T>(path: string): T {
 	return JSON.parse(readFileSync(path, 'utf8')) as T;
@@ -240,16 +254,12 @@ function exportedSymbols(
 	packageName: ReleasedPackageName,
 	subpath: string,
 	entrypoint: string,
-	tsconfigPath: string,
+	program: ts.Program,
+	checker: ts.TypeChecker,
 ): PublicSymbol[] {
-	const config = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
-	if (config.error) throw new Error(formatDiagnostics([config.error]));
-	const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, dirname(tsconfigPath));
-	const program = ts.createProgram([entrypoint], parsed.options);
 	const source = program.getSourceFile(entrypoint);
-	const moduleSymbol = source && program.getTypeChecker().getSymbolAtLocation(source);
+	const moduleSymbol = source && checker.getSymbolAtLocation(source);
 	if (!source || !moduleSymbol) throw new Error(`Cannot inspect declarations for ${packageName} ${subpath}`);
-	const checker = program.getTypeChecker();
 	return checker.getExportsOfModule(moduleSymbol).map((symbol) => {
 		const aliased = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
 		const tags = [...symbol.getJsDocTags(checker), ...aliased.getJsDocTags(checker)];
@@ -342,6 +352,7 @@ async function createPackageReport(
 	repositoryRoot: string,
 	workspaceRoot: string,
 	config: ReleasedPackage,
+	semanticCompiler: SemanticCompilerAdapter,
 ): Promise<string> {
 	const sourcePackage = join(repositoryRoot, 'packages', config.directory);
 	const manifest = readJson<PackageManifest>(join(sourcePackage, 'package.json'));
@@ -377,15 +388,38 @@ async function createPackageReport(
 
 	const declarationSections: string[] = ['## Declaration namespaces', ''];
 	const syntheticExports: string[] = [];
-	for (const { name: namespace, target } of planDeclarationNamespaces(targets)) {
+	const declarations = planDeclarationNamespaces(targets).map(({ name: namespace, target }) => {
 		const entrypoint = declarationPath(packageOutput, target);
 		if (!existsSync(entrypoint)) {
 			throw new Error(`${config.name} export target ${target} did not emit ${entrypoint}`);
 		}
+		return { entrypoint, namespace, target };
+	});
+	const semanticTsconfigPath = join(packageOutput, 'tsconfig.json');
+	const semanticConfig = ts.readConfigFile(semanticTsconfigPath, ts.sys.readFile);
+	if (semanticConfig.error) throw new Error(formatDiagnostics([semanticConfig.error]));
+	const semanticOptions = ts.parseJsonConfigFileContent(
+		semanticConfig.config,
+		ts.sys,
+		dirname(semanticTsconfigPath),
+	).options;
+	const semanticProgram = semanticCompiler.createProgram(
+		declarations.map(({ entrypoint }) => entrypoint),
+		semanticOptions,
+	);
+	const semanticChecker = semanticCompiler.getTypeChecker(semanticProgram);
+
+	for (const { entrypoint, namespace, target } of declarations) {
 		const subpaths = publicSubpathsForTarget(exports, target);
 		for (const subpath of subpaths) {
 			validatePublicSymbols(
-				exportedSymbols(config.name, subpath, entrypoint, join(packageOutput, 'tsconfig.json')),
+				exportedSymbols(
+					config.name,
+					subpath,
+					entrypoint,
+					semanticProgram,
+					semanticChecker,
+				),
 			);
 		}
 		const declarationRelative = `./${target
@@ -437,13 +471,14 @@ function createApiWorkspace(repositoryRoot: string): string {
 export async function createApiReport(
 	repositoryRootInput: string,
 	packageName: ReleasedPackageName,
+	semanticCompiler: SemanticCompilerAdapter = TYPESCRIPT_SEMANTIC_COMPILER,
 ): Promise<string> {
 	const repositoryRoot = resolve(repositoryRootInput);
 	const config = RELEASED_PACKAGE_CONFIG.find((candidate) => candidate.name === packageName);
 	if (!config) throw new Error(`Unknown released package ${packageName}`);
 	const workspaceRoot = createApiWorkspace(repositoryRoot);
 	try {
-		return await createPackageReport(repositoryRoot, workspaceRoot, config);
+		return await createPackageReport(repositoryRoot, workspaceRoot, config, semanticCompiler);
 	} finally {
 		rmSync(workspaceRoot, { recursive: true, force: true });
 	}
@@ -451,13 +486,19 @@ export async function createApiReport(
 
 export async function createApiReports(
 	repositoryRootInput: string,
+	semanticCompiler: SemanticCompilerAdapter = TYPESCRIPT_SEMANTIC_COMPILER,
 ): Promise<Record<ReleasedPackageName, string>> {
 	const repositoryRoot = resolve(repositoryRootInput);
 	const workspaceRoot = createApiWorkspace(repositoryRoot);
 	try {
 		const reports = {} as Record<ReleasedPackageName, string>;
 		for (const config of RELEASED_PACKAGE_CONFIG) {
-			reports[config.name] = await createPackageReport(repositoryRoot, workspaceRoot, config);
+			reports[config.name] = await createPackageReport(
+				repositoryRoot,
+				workspaceRoot,
+				config,
+				semanticCompiler,
+			);
 		}
 		return reports;
 	} finally {

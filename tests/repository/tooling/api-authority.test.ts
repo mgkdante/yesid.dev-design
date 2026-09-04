@@ -11,17 +11,18 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
+import ts from 'typescript';
 import {
 	authorizeApiChanges,
 	checkApiReports,
 	collectDirectAssetTargets,
 	createApiReport,
-	createApiReports,
 	parseChangeFragment,
 	planDeclarationNamespaces,
 	validatePublicSymbols,
 	writeApiReports,
 	type PublicSymbol,
+	type SemanticCompilerAdapter,
 } from '../../../tools/api-authority.js';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
@@ -63,6 +64,27 @@ function replaceInFile(path: string, before: string, after: string): void {
 	const source = readFileSync(path, 'utf8');
 	if (!source.includes(before)) throw new Error(`${path} does not contain mutation target`);
 	writeFileSync(path, source.replace(before, after));
+}
+
+function countingSemanticCompiler(): {
+	adapter: SemanticCompilerAdapter;
+	counts: () => { programs: number; checkers: number };
+} {
+	let programs = 0;
+	let checkers = 0;
+	return {
+		adapter: {
+			createProgram(rootNames, options) {
+				programs += 1;
+				return ts.createProgram([...rootNames], options);
+			},
+			getTypeChecker(program) {
+				checkers += 1;
+				return program.getTypeChecker();
+			},
+		},
+		counts: () => ({ programs, checkers }),
+	};
 }
 
 describe('API report approval', () => {
@@ -227,6 +249,19 @@ describe('public symbol safety', () => {
 });
 
 describe('deterministic package API reports', () => {
+	it('rejects an unsafe symbol from any target in the shared semantic program', async () => {
+		const root = createPackageScratch('tokens');
+		const serializePath = join(root, 'packages/tokens/src/serialize.ts');
+		writeFileSync(
+			serializePath,
+			`${readFileSync(serializePath, 'utf8')}\nexport function testOnlyProbe(): void {}\n`,
+		);
+
+		await expect(createApiReport(root, '@yesid/tokens')).rejects.toThrow(
+			'@yesid/tokens/serialize export testOnlyProbe uses a test/internal public name',
+		);
+	});
+
 	it('fails closed when distinct targets collapse to one declaration namespace', () => {
 		expect(() => planDeclarationNamespaces(['./src/a-b.ts', './src/a/b.ts'])).toThrow(
 			'Declaration namespace collision AB: ./src/a-b.ts, ./src/a/b.ts',
@@ -258,51 +293,73 @@ describe('deterministic package API reports', () => {
 		]);
 	});
 
-	it('renders every conditioned surface, declaration, and direct public asset', async () => {
-		const first = await createApiReports(REPOSITORY_ROOT);
-
-		expect(Object.keys(first)).toEqual([
+	it.each([
+		[
 			'@yesid/tokens',
-			'@yesid/motion',
-			'@yesid/gates',
+			[
+				'`./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `',
+				'function parseTokens',
+			],
+			[],
+		],
+		['@yesid/motion', ['function subscribe'], ['_resetForTests']],
+		['@yesid/gates', ['function runContrastPairs'], []],
+		[
 			'@yesid/seo-kit',
+			[
+				'function buildWebSiteJsonLd',
+				'function emitSitemapDocument',
+				'function renderSatoriPng',
+			],
+			[],
+		],
+		[
 			'@yesid/ui',
+			[
+				'type ButtonProps',
+				'function configureUi',
+				'import { Component } from \'svelte\';',
+				'const Button: Component<ButtonProps, {}, "ref">;',
+			],
+			['SvelteComponentTyped', '__propDef'],
+		],
+		[
 			'@yesid/analytics',
-			'@yesid/i18n-core',
-		]);
-		for (const report of Object.values(first)) {
+			[
+				'function createAnalyticsClient',
+				'function defineAnalyticsPreset',
+				'function createAnalyticsConsentStore',
+			],
+			[],
+		],
+		['@yesid/i18n-core', ['function createLocaleRouting'], []],
+	] as const)(
+		'renders the conditioned %s surface, declarations, and direct assets',
+		async (packageName, included, excluded) => {
+			const semanticCompiler = countingSemanticCompiler();
+			const report = await createApiReport(
+				REPOSITORY_ROOT,
+				packageName,
+				semanticCompiler.adapter,
+			);
+
 			expect(report).toMatch(/^<!-- GENERATED: bun run api:report/u);
 			expect(report).not.toContain(REPOSITORY_ROOT);
 			expect(report).not.toContain('\r\n');
-		}
-
-		expect(first['@yesid/tokens']).toContain(
-			'`./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `',
-		);
-		expect(first['@yesid/analytics']).toContain('function createAnalyticsClient');
-		expect(first['@yesid/analytics']).toContain('function defineAnalyticsPreset');
-		expect(first['@yesid/analytics']).toContain('function createAnalyticsConsentStore');
-		expect(first['@yesid/i18n-core']).toContain('function createLocaleRouting');
-		expect(first['@yesid/tokens']).toContain('function parseTokens');
-		expect(first['@yesid/motion']).toContain('function subscribe');
-		expect(first['@yesid/motion']).not.toContain('_resetForTests');
-		expect(first['@yesid/gates']).toContain('function runContrastPairs');
-		expect(first['@yesid/seo-kit']).toContain('function buildWebSiteJsonLd');
-		expect(first['@yesid/seo-kit']).toContain('function emitSitemapDocument');
-		expect(first['@yesid/seo-kit']).toContain('function renderSatoriPng');
-		expect(first['@yesid/ui']).toContain('type ButtonProps');
-		expect(first['@yesid/ui']).toContain('function configureUi');
-		expect(first['@yesid/ui']).toContain('import { Component } from \'svelte\';');
-		expect(first['@yesid/ui']).toContain('const Button: Component<ButtonProps, {}, "ref">;');
-		expect(first['@yesid/ui']).not.toContain('SvelteComponentTyped');
-		expect(first['@yesid/ui']).not.toContain('__propDef');
-		expect(readFileSync(join(REPOSITORY_ROOT, 'api-reports/ui.api.md'), 'utf8')).toBe(
-			first['@yesid/ui'],
-		);
-	}, 60_000);
+			for (const expected of included) expect(report).toContain(expected);
+			for (const forbidden of excluded) expect(report).not.toContain(forbidden);
+			expect(report).toBe(
+				readFileSync(
+					join(REPOSITORY_ROOT, 'api-reports', `${packageName.slice('@yesid/'.length)}.api.md`),
+					'utf8',
+				),
+			);
+			expect(semanticCompiler.counts()).toEqual({ programs: 1, checkers: 1 });
+		},
+	);
 
 	it('detects TypeScript signatures, export shape, and direct asset byte mutations', async () => {
-		const baseline = await createApiReport(REPOSITORY_ROOT, '@yesid/tokens');
+		const baseline = readFileSync(join(REPOSITORY_ROOT, 'api-reports/tokens.api.md'), 'utf8');
 
 		const signatureRoot = createPackageScratch('tokens');
 		replaceInFile(
@@ -349,10 +406,10 @@ describe('deterministic package API reports', () => {
 		expect(assetReport.match(/- `\.\/tokens\.css`[^\n]+/u)?.[0]).not.toBe(
 			baseline.match(/- `\.\/tokens\.css`[^\n]+/u)?.[0],
 		);
-	}, 60_000);
+	});
 
 	it('detects Svelte prop and binding metadata mutations', async () => {
-		const baseline = await createApiReport(REPOSITORY_ROOT, '@yesid/ui');
+		const baseline = readFileSync(join(REPOSITORY_ROOT, 'api-reports/ui.api.md'), 'utf8');
 		const root = createPackageScratch('ui');
 		const buttonPath = join(root, 'packages/ui/src/primitives/button/button.svelte');
 		replaceInFile(
@@ -367,7 +424,7 @@ describe('deterministic package API reports', () => {
 		expect(mutated).toContain('authorityProbe?: boolean');
 		expect(baseline).toContain('const Button: Component<ButtonProps, {}, "ref">;');
 		expect(mutated).not.toContain('const Button: Component<ButtonProps, {}, "ref">;');
-	}, 60_000);
+	});
 
 	it('reports Combobox component bindings and detects open binding loss', async () => {
 		const baseline = readFileSync(join(REPOSITORY_ROOT, 'api-reports/ui.api.md'), 'utf8');
@@ -385,7 +442,7 @@ describe('deterministic package API reports', () => {
 		expect(mutated).not.toContain(
 			'const Combobox: Component<ComboboxProps, {}, "open" | "value">;',
 		);
-	}, 60_000);
+	});
 
 	it('writes exact report paths and fails closed on stale committed bytes', () => {
 		const root = mkdtempSync(join(tmpdir(), 'yesid-api-report-test-'));
