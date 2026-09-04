@@ -98,6 +98,28 @@ function assertNoLocalGitOverrides(source: string): void {
 	}
 }
 
+function assertNoExecutableGitFilters(source: string): void {
+	const result = spawnSync(
+		'git',
+		[...SAFE_GIT_CONFIG, 'config', '--get-regexp', '^filter\\..*\\.(clean|process)$'],
+		{
+			cwd: source,
+			encoding: 'utf8',
+			env: { ...process.env, GIT_ATTR_NOSYSTEM: '1' },
+			maxBuffer: MAX_GIT_OUTPUT_BYTES,
+			timeout: GIT_TIMEOUT_MS,
+		},
+	);
+	if (result.error || result.signal || ![0, 1].includes(result.status ?? 1)) {
+		throw new Error(
+			result.error?.message || result.stderr.trim() || 'could not inspect executable Git filters',
+		);
+	}
+	if (result.status === 0 && result.stdout.trim() !== '') {
+		throw new Error('worktree adoption refuses executable Git clean/process filters');
+	}
+}
+
 function annotatedTagIdentity(source: string, tag: string): TagIdentity {
 	assertTag(tag);
 	let object: string;
@@ -133,6 +155,7 @@ export function acquireWorktree(sourceInput: string, tag: string): AcquiredSourc
 	const source = sourceGuard.path;
 	sourceGuard.assertStable();
 	assertNoLocalGitOverrides(source);
+	assertNoExecutableGitFilters(source);
 	const identity = annotatedTagIdentity(source, tag);
 	const head = runGit(source, ['rev-parse', 'HEAD']);
 	assertCommit(head);

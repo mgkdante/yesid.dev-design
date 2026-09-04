@@ -423,7 +423,8 @@ vendor/generated diff, and run the consumer's gates, tests, typecheck, build,
 and relevant browser checks. Commit the downgrade in its own pull request. If
 adoption exits non-zero, stop: the transaction either restored the last accepted
 tree or preserved explicit recovery evidence. Do not delete its lock, backup,
-stage, or tombstone paths until the tool output has been investigated.
+stage, tombstone, `.recovery-<token>.json`, or `.cleanup-<token>.json` paths until the tool output
+has been investigated.
 
 ### Re-upgrade
 

@@ -476,14 +476,19 @@ function acquireLock(
 		assertEntryIdentity(candidate, 'adoption lock candidate', candidateIdentity);
 		const reclaimedOwners: LockOwner[] = [];
 		if (pathExists(paths.lock)) {
+			const currentIdentity = entryIdentity(paths.lock, 'adoption lock', 'file');
 			const current = parseLock(paths.lock);
+			assertEntryIdentity(paths.lock, 'adoption lock', currentIdentity);
 			assertLockDestination(current, paths, paths.lock);
-			if (lockIsActive(current)) {
+			const active = lockIsActive(current);
+			assertEntryIdentity(paths.lock, 'adoption lock', currentIdentity);
+			if (active) {
 				throw new AdoptError(
 					ADOPT_EXIT.LOCKED,
 					`adoption is already running for ${paths.dest} (pid ${current.pid} on ${current.hostname})`,
 				);
 			}
+			assertEntryIdentity(paths.lock, 'adoption lock', currentIdentity);
 			unlinkSync(paths.lock);
 			syncDirectory(dirname(paths.lock));
 			reclaimedOwners.push(current);

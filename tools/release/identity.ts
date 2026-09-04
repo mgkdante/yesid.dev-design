@@ -91,7 +91,24 @@ export function canonicalRepositoryRoot(input: string): string {
 	const topLevel = realpathSync(runGit(root, ['rev-parse', '--show-toplevel']));
 	if (topLevel !== root) throw new Error(`repository root must be the Git top level: ${topLevel}`);
 	assertNoLocalGitOverrides(root);
+	assertNoExecutableGitFilters(root);
 	return root;
+}
+
+function assertNoExecutableGitFilters(repositoryRoot: string): void {
+	const configured = git(repositoryRoot, [
+		'config',
+		'--get-regexp',
+		'^filter\\..*\\.(clean|process)$',
+	]);
+	if (configured.error || configured.signal || ![0, 1].includes(configured.status)) {
+		throw new Error(
+			configured.error || configured.stderr || 'could not inspect executable Git filters',
+		);
+	}
+	if (configured.status === 0 && configured.stdout !== '') {
+		throw new Error('release tooling refuses executable Git clean/process filters');
+	}
 }
 
 function assertNoLocalGitOverrides(repositoryRoot: string): void {

@@ -13,7 +13,7 @@ import {
 } from 'node:fs';
 import { hostname, tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	ADOPT_EXIT,
@@ -171,10 +171,43 @@ function crashInstall(
 }
 
 afterEach(() => {
+	vi.restoreAllMocks();
 	for (const path of scratch.splice(0)) rmSync(path, { recursive: true, force: true });
 });
 
 describe('transaction lock hardening', () => {
+	it('preserves a lock replaced while stale-owner liveness is checked', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		const staleToken = randomUUID();
+		const liveToken = randomUUID();
+		const lock = writeLock(dest, staleToken, DEAD_PID);
+		const displaced = join(root, 'displaced-stale-lock');
+		let swapped = false;
+		vi.spyOn(process, 'kill').mockImplementation(((pid: number) => {
+			if (pid === DEAD_PID && !swapped) {
+				swapped = true;
+				renameSync(lock, displaced);
+				writeLock(dest, liveToken, process.pid);
+				throw Object.assign(new Error('stale'), { code: 'ESRCH' });
+			}
+			return true;
+		}) as typeof process.kill);
+		let thrown: unknown;
+
+		try {
+			install(dest, 'v1.0.0');
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(swapped).toBe(true);
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(JSON.parse(readFileSync(lock, 'utf8'))).toMatchObject({ token: liveToken });
+		expect(existsSync(displaced)).toBe(true);
+		expect(existsSync(dest)).toBe(false);
+	});
+
 	it('does not follow a parent replaced during reclaim locking', () => {
 		const root = tempDir();
 		const dest = join(root, 'product', 'vendor', 'design');

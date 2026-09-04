@@ -290,6 +290,25 @@ describe('worktree acquisition', () => {
 		expect(existsSync(marker)).toBe(false);
 	});
 
+	it.skipIf(process.platform === 'win32')('does not execute a configured clean filter during status', () => {
+		const root = tempDir();
+		makeTaggedWorktree(root);
+		git(root, 'tag', '-d', TAG);
+		write(join(root, '.gitattributes'), 'packages/tokens/value.txt filter=evil\n');
+		git(root, 'add', '.gitattributes');
+		git(root, 'commit', '--amend', '-qm', 'fixture with attributes');
+		git(root, 'tag', '-a', TAG, '-m', TAG);
+		const marker = join(root, '.git', 'clean-filter-executed');
+		const filter = join(root, '.git', 'hostile-clean-filter.sh');
+		write(filter, `#!/bin/sh\ncat\nprintf executed > ${JSON.stringify(marker)}\n`);
+		chmodSync(filter, 0o755);
+		git(root, 'config', 'filter.evil.clean', filter);
+		write(join(root, 'packages', 'tokens', 'value.txt'), 'dirty\n');
+
+		expect(() => acquireWorktree(root, TAG)).toThrow(/refuses executable Git clean\/process filters/iu);
+		expect(existsSync(marker)).toBe(false);
+	});
+
 	it.each(['info/attributes', 'info/grafts'])(
 		'refuses nonempty worktree-local Git override %s',
 		(relative) => {
