@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const GITHUB_DIRECTORY = join(REPOSITORY_ROOT, '.github');
@@ -25,6 +26,41 @@ function yamlFiles(directory: string): string[] {
 		}
 	}
 	return files;
+}
+
+function usesReferences(contents: string): unknown[] {
+	const references: unknown[] = [];
+	const visited = new WeakSet<object>();
+
+	function traverse(value: unknown): void {
+		if (typeof value !== 'object' || value === null || visited.has(value)) return;
+		visited.add(value);
+		if (Array.isArray(value)) {
+			for (const item of value) traverse(item);
+			return;
+		}
+		for (const [key, nested] of Object.entries(value)) {
+			if (key === 'uses') references.push(nested);
+			else traverse(nested);
+		}
+	}
+
+	traverse(parse(contents));
+	return references;
+}
+
+function assertPinnedExternalUses(contents: string, githubPath: string): void {
+	for (const reference of usesReferences(contents)) {
+		if (typeof reference !== 'string') {
+			throw new Error(`${githubPath} external uses: must be a string`);
+		}
+		if (reference.startsWith('./')) continue;
+		if (!/@[0-9a-f]{40}$/u.test(reference)) {
+			throw new Error(
+				`${githubPath} external uses: must end in a 40-character commit SHA (${reference})`,
+			);
+		}
+	}
 }
 
 function topLevelBlock(yaml: string, key: string): string {
@@ -125,6 +161,51 @@ describe('distribution workflow trust root', () => {
 		expect(topLevelBlock(readText(path), 'permissions')).toMatch(/^\s+contents:\s*read\s*$/mu);
 	});
 
+	it.each([
+		[
+			'flow-style step mapping',
+			'jobs: { verify: { steps: [{ uses: actions/checkout@main }] } }',
+		],
+		[
+			'double-quoted mapping key',
+			'jobs:\n  verify:\n    steps:\n      - "uses": actions/checkout@main',
+		],
+		[
+			'single-quoted mapping key',
+			"jobs:\n  verify:\n    steps:\n      - 'uses': actions/checkout@main",
+		],
+		[
+			'flow-style reusable workflow job',
+			'jobs: { reuse: { uses: owner/repository/.github/workflows/reuse.yml@main } }',
+		],
+	] as const)('rejects an unpinned external use in a %s', (_case, source) => {
+		expect(() => assertPinnedExternalUses(source, 'mutant.yml')).toThrow(
+			'mutant.yml external uses: must end in a 40-character commit SHA',
+		);
+	});
+
+	it('resolves aliases and accepts only local or exact-SHA action references', () => {
+		const source = `
+x-action: &pinned actions/checkout@0123456789abcdef0123456789abcdef01234567
+jobs:
+  verify:
+    steps:
+      - { uses: ./.github/actions/setup }
+      - { "uses": *pinned }
+`;
+
+		expect(() => assertPinnedExternalUses(source, 'valid.yml')).not.toThrow();
+	});
+
+	it('rejects a non-string semantic uses value', () => {
+		expect(() =>
+			assertPinnedExternalUses(
+				'jobs: { verify: { steps: [{ uses: { action: actions/checkout@main } }] } }',
+				'mutant.yml',
+			),
+		).toThrow('mutant.yml external uses: must be a string');
+	});
+
 	it('pins every external workflow and composite-action dependency to a commit SHA', () => {
 		const yaml = yamlFiles(GITHUB_DIRECTORY)
 			.map((path) => [path, readText(path)] as const)
@@ -139,16 +220,7 @@ describe('distribution workflow trust root', () => {
 
 		for (const [path, contents] of yaml) {
 			const githubPath = relative(REPOSITORY_ROOT, path).split(sep).join('/');
-			for (const [index, line] of contents.split(/\r?\n/u).entries()) {
-				const match = line.match(/^\s*(?:-\s*)?uses:\s*(.+?)\s*(?:#.*)?$/u);
-				if (!match?.[1]) continue;
-				const reference = match[1].replace(/^(['"])(.*)\1$/u, '$2');
-				if (reference.startsWith('./')) continue;
-				expect(
-					reference,
-					`${githubPath}:${index + 1} external uses: must end in a 40-character commit SHA`,
-				).toMatch(/@[0-9a-f]{40}$/u);
-			}
+			assertPinnedExternalUses(contents, githubPath);
 		}
 	});
 
