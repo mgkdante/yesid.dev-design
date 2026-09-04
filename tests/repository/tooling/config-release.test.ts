@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
+	chmodSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
@@ -15,8 +16,11 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const CONFIG_TAG = 'config-v0.2.1';
-const CONFIG_VERSION = '0.2.1';
+import { runGit } from '../../../tools/release/identity.js';
+
+const CONFIG_TAG = 'config-v0.2.2';
+const CONFIG_VERSION = '0.2.2';
+const CURRENT_CONFIG_VERSION = '0.2.1';
 const CONFIG_FILES = [
 	'README.md',
 	'LICENSE',
@@ -132,6 +136,7 @@ function runTool(
 	repositoryRoot: string,
 	archive: string,
 	tag = CONFIG_TAG,
+	env?: NodeJS.ProcessEnv,
 ): { status: number | null; stdout: string; stderr: string } {
 	const result = spawnSync(
 		'bun',
@@ -145,9 +150,46 @@ function runTool(
 			'--repository-root',
 			repositoryRoot,
 		],
-		{ encoding: 'utf8' },
+		{ encoding: 'utf8', env: env ? { ...process.env, ...env } : undefined },
 	);
 	return { status: result.status, stdout: result.stdout, stderr: result.stderr };
+}
+
+function retagConfigFiles(
+	repositoryRoot: string,
+	tag: string,
+	version: string,
+	files: readonly string[],
+	contents: ReadonlyMap<string, Buffer>,
+): void {
+	git(repositoryRoot, 'tag', '-d', tag);
+	write(
+		join(repositoryRoot, 'packages/config/package.json'),
+		manifest('@yesid/config', version, files),
+	);
+	for (const path of files) {
+		const content = contents.get(path) ?? Buffer.from('fixture\n');
+		const target = join(repositoryRoot, 'packages/config', path);
+		mkdirSync(dirname(target), { recursive: true });
+		writeFileSync(target, content);
+	}
+	git(repositoryRoot, 'add', 'packages/config');
+	git(repositoryRoot, 'commit', '-qm', 'replace config release files');
+	git(repositoryRoot, 'tag', '-a', tag, '-m', tag);
+	git(repositoryRoot, 'update-ref', 'refs/remotes/origin/main', 'HEAD');
+}
+
+function archiveRejectingGitShim(): { bin: string; realGit: string } {
+	const located = spawnSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' });
+	if (located.status !== 0 || !located.stdout.trim()) throw new Error('git executable not found');
+	const bin = join(tempDir(), 'bin');
+	const shim = join(bin, 'git');
+	write(
+		shim,
+		'#!/bin/sh\nfor arg in "$@"; do\n  if [ "$arg" = archive ]; then echo ARCHIVE_INVOKED >&2; exit 86; fi\ndone\nexec "$REAL_GIT" "$@"\n',
+	);
+	chmodSync(shim, 0o755);
+	return { bin, realGit: located.stdout.trim() };
 }
 
 function tar(root: string, ...args: string[]): string {
@@ -161,6 +203,37 @@ afterEach(() => {
 });
 
 describe('@yesid/config distribution boundary', () => {
+	it.skipIf(process.platform === 'win32')('bounds Git subprocess execution time', () => {
+		const root = tempDir();
+		const bin = join(tempDir(), 'bin');
+		const shim = join(bin, 'git');
+		write(shim, '#!/bin/sh\nwhile :; do :; done\n');
+		chmodSync(shim, 0o755);
+		const started = Date.now();
+		expect(() =>
+			runGit(root, ['status'], {
+				timeoutMs: 25,
+				maxOutputBytes: 64,
+				executable: shim,
+			}),
+		).toThrow(/timed out|ETIMEDOUT/iu);
+		expect(Date.now() - started).toBeLessThan(500);
+	});
+
+	it.skipIf(process.platform === 'win32')('ignores an executable archive command from repository config', () => {
+		const source = repository();
+		const marker = join(source.root, '.git', 'archive-command-executed');
+		const command = join(source.root, '.git', 'hostile-archive-command.sh');
+		write(command, `#!/bin/sh\nprintf executed > ${JSON.stringify(marker)}\nexit 99\n`);
+		chmodSync(command, 0o755);
+		git(source.root, 'config', 'tar.tar.gz.command', command);
+		const asset = join(tempDir(), `yesid-${CONFIG_TAG}.tgz`);
+
+		const built = runTool('build', source.root, asset);
+		expect(built.status, `${built.stdout}\n${built.stderr}`).toBe(0);
+		expect(existsSync(marker)).toBe(false);
+	});
+
 	it('owns an independently versioned neutral configuration release line', () => {
 		expect(existsSync(CONFIG_MANIFEST_URL)).toBe(true);
 		const manifestValue = JSON.parse(readFileSync(CONFIG_MANIFEST_URL, 'utf8')) as {
@@ -171,7 +244,7 @@ describe('@yesid/config distribution boundary', () => {
 		};
 		expect(manifestValue).toMatchObject({
 			name: '@yesid/config',
-			version: CONFIG_VERSION,
+			version: CURRENT_CONFIG_VERSION,
 			files: CONFIG_FILES,
 			exports: { './package.json': './package.json' },
 		});
@@ -316,6 +389,25 @@ describe('@yesid/config distribution boundary', () => {
 		expect(JSON.parse(verified.stdout)).toEqual(JSON.parse(first.stdout));
 	});
 
+	it('preserves the file-only config-v0.2.1 archive layout for immutable verification', () => {
+		const tag = 'config-v0.2.1';
+		const source = repository('0.2.1', tag);
+		const root = tempDir();
+		const asset = join(root, `yesid-${tag}.tgz`);
+
+		const built = runTool('build', source.root, asset, tag);
+		expect(built.status, `${built.stdout}\n${built.stderr}`).toBe(0);
+		expect(tar(root, '-tzf', asset).trim().split('\n')).toEqual([
+			'package/',
+			'package/package.json',
+			...CONFIG_FILES.map((path) => `package/${path}`),
+			'package/.yesid-config-release.json',
+		]);
+		const verified = runTool('verify', source.root, asset, tag);
+		expect(verified.status, `${verified.stdout}\n${verified.stderr}`).toBe(0);
+		expect(JSON.parse(verified.stdout)).toEqual(JSON.parse(built.stdout));
+	});
+
 	it('installs and resolves the exact file asset in a clean consumer', () => {
 		const source = repository();
 		const asset = join(tempDir(), `yesid-${CONFIG_TAG}.tgz`);
@@ -430,6 +522,55 @@ describe('@yesid/config distribution boundary', () => {
 		expect(tamperedChecksum.status).toBe(1);
 		expect(tamperedChecksum.stderr).toMatch(/checksum/i);
 	});
+
+	it.skipIf(process.platform === 'win32')(
+		'counts generated directory entries before invoking the archive subprocess',
+		() => {
+			const source = repository();
+			const files = Array.from({ length: 32 }, (_, index) => `nested-${index}/file.txt`);
+			retagConfigFiles(source.root, CONFIG_TAG, CONFIG_VERSION, files, new Map());
+			const archive = join(tempDir(), `yesid-${CONFIG_TAG}.tgz`);
+			const shim = archiveRejectingGitShim();
+
+			const built = runTool('build', source.root, archive, CONFIG_TAG, {
+				PATH: `${shim.bin}:${process.env.PATH ?? ''}`,
+				REAL_GIT: shim.realGit,
+			});
+			expect(built.status).toBe(1);
+			expect(built.stderr).toMatch(/entry limit.*64/iu);
+			expect(built.stderr).not.toContain('ARCHIVE_INVOKED');
+			expect(existsSync(archive)).toBe(false);
+		},
+	);
+
+	it.skipIf(process.platform === 'win32')(
+		'includes the receipt in payload preflight before invoking the archive subprocess',
+		() => {
+			const source = repository();
+			const files = ['payload-1.bin', 'payload-2.bin', 'payload-3.bin', 'payload-4.bin'];
+			const nextManifest = manifest('@yesid/config', CONFIG_VERSION, files);
+			const remaining = 1024 * 1024 - Buffer.byteLength(nextManifest) - 1;
+			const base = Math.floor(remaining / files.length);
+			const contents = new Map(
+				files.map((file, index) => [
+					file,
+					Buffer.alloc(base + (index < remaining % files.length ? 1 : 0)),
+				]),
+			);
+			retagConfigFiles(source.root, CONFIG_TAG, CONFIG_VERSION, files, contents);
+			const archive = join(tempDir(), `yesid-${CONFIG_TAG}.tgz`);
+			const shim = archiveRejectingGitShim();
+
+			const built = runTool('build', source.root, archive, CONFIG_TAG, {
+				PATH: `${shim.bin}:${process.env.PATH ?? ''}`,
+				REAL_GIT: shim.realGit,
+			});
+			expect(built.status).toBe(1);
+			expect(built.stderr).toMatch(/1 MiB payload size limit/iu);
+			expect(built.stderr).not.toContain('ARCHIVE_INVOKED');
+			expect(existsSync(archive)).toBe(false);
+		},
+	);
 
 	it('rejects an oversized compressed archive before looking for its checksum', () => {
 		const source = repository();

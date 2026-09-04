@@ -90,7 +90,10 @@ export function parseConfigArchive(compressed: Buffer): ConfigArchiveEntry[] {
 			maxOutputLength: CONFIG_ARCHIVE_LIMITS.expandedBytes,
 		});
 	} catch (cause) {
-		throw new Error('config release archive expanded size limit is 2 MiB', { cause });
+		if ((cause as NodeJS.ErrnoException).code === 'ERR_BUFFER_TOO_LARGE') {
+			throw new Error('config release archive expanded size limit is 2 MiB', { cause });
+		}
+		throw new Error('config release archive has malformed gzip bytes', { cause });
 	}
 	if (
 		archive.length === 0 ||

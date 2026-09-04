@@ -13,9 +13,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
 	REPOSITORY_ID,
-	REQUIRED_LEGAL_FILES,
 	assertCommit,
 	assertTag,
+	requiredLegalFilesForTag,
 	type AdoptProvenance,
 	type TagIdentity,
 } from './contract.js';
@@ -32,6 +32,9 @@ const MAX_JSON_BYTES = 1024 * 1024;
 const MAX_ENTRIES = 10_000;
 const RECEIPT_NAME = '.yesid-release.json';
 const DEFAULT_RELEASE_TIMEOUT_MS = 60_000;
+const GIT_TIMEOUT_MS = 30_000;
+const MAX_GIT_OUTPUT_BYTES = 1024 * 1024;
+const SAFE_GIT_CONFIG = ['-c', 'core.fsmonitor=false', '-c', 'core.hooksPath='] as const;
 
 export interface AcquiredSource {
 	source: string;
@@ -57,9 +60,15 @@ interface SourceReceipt {
 }
 
 function runGit(source: string, args: string[]): string {
-	const result = spawnSync('git', args, { cwd: source, encoding: 'utf8' });
-	if (result.status !== 0) {
-		const detail = result.stderr.trim() || result.stdout.trim() || `exit ${result.status}`;
+	const result = spawnSync('git', [...SAFE_GIT_CONFIG, ...args], {
+		cwd: source,
+		encoding: 'utf8',
+		maxBuffer: MAX_GIT_OUTPUT_BYTES,
+		timeout: GIT_TIMEOUT_MS,
+	});
+	if (result.error || result.status !== 0 || result.signal) {
+		const detail = result.error?.message || result.stderr.trim() || result.stdout.trim() ||
+			`exit ${result.status ?? 1}${result.signal ? ` via ${result.signal}` : ''}`;
 		throw new Error(detail);
 	}
 	return result.stdout.trim();
@@ -100,16 +109,19 @@ export function acquireWorktree(sourceInput: string, tag: string): AcquiredSourc
 	const rootName = `yesid.dev-design-${tag}`;
 	const archived = spawnSync(
 		'git',
-		['archive', '--format=tar', `--prefix=${rootName}/`, tree],
+		[...SAFE_GIT_CONFIG, 'archive', '--format=tar', `--prefix=${rootName}/`, tree],
 		{
 			cwd: source,
 			maxBuffer: MAX_ARCHIVE_BYTES,
+			timeout: GIT_TIMEOUT_MS,
 		},
 	);
-	if (archived.status !== 0 || !Buffer.isBuffer(archived.stdout)) {
-		const detail = Buffer.isBuffer(archived.stderr)
+	if (archived.error || archived.status !== 0 || archived.signal || !Buffer.isBuffer(archived.stdout)) {
+		const stderr = Buffer.isBuffer(archived.stderr)
 			? archived.stderr.toString('utf8').trim()
-			: `exit ${archived.status}`;
+			: '';
+		const detail = archived.error?.message || stderr ||
+			`exit ${archived.status ?? 1}${archived.signal ? ` via ${archived.signal}` : ''}`;
 		throw new Error(`could not snapshot tagged worktree: ${detail}`);
 	}
 	sourceGuard.assertStable();
@@ -310,7 +322,7 @@ function materializeEntries(
 				writeFileSync(destination, entry.content, { flag: 'wx', mode: 0o644 });
 			}
 		}
-		for (const required of REQUIRED_LEGAL_FILES) {
+		for (const required of requiredLegalFilesForTag(provenance.tag.name)) {
 			const path = join(source, required);
 			if (!existsSync(path)) {
 				throw new Error(`unsafe archive: missing required path ${required}`);

@@ -57,6 +57,10 @@ function write(path: string, content: string): void {
 	writeFileSync(path, content, 'utf-8');
 }
 
+function linkDirectory(target: string, path: string): void {
+	symlinkSync(target, path, process.platform === 'win32' ? 'junction' : 'dir');
+}
+
 function makeSource(root: string): void {
 	for (const [name, content] of LEGAL_FILES) write(join(root, name), content);
 	write(join(root, 'tools', 'adopt.ts'), "export * from './adopt/runtime.js';\n");
@@ -658,25 +662,23 @@ describe('adoptFromSource', () => {
 			thrown = error;
 		}
 		const backup = join(dirname(dest), `.${basename(dest)}.yesid-adopt.backup`);
+		const lock = join(dirname(dest), `.${basename(dest)}.yesid-adopt.lock`);
 		expect(thrown).toMatchObject({ code: 7 });
 		expect(existsSync(backup)).toBe(true);
 		expect(existsSync(dest)).toBe(false);
-
-		const recovered = adoptWithRuntime(base);
-		expect(recovered.outcome).toBe('noop');
-		expect(existsSync(backup)).toBe(false);
+		expect(existsSync(lock)).toBe(true);
 	});
 });
 
 describe('adoption path safety', () => {
-	it.skipIf(process.platform === 'win32')('rejects a symbolic-link component in the source path', () => {
+	it('rejects a symbolic-link component in the source path', () => {
 		const root = tempDir();
 		const sourceParent = join(root, 'source-parent');
 		const source = join(sourceParent, 'source');
 		const alias = join(root, 'source-alias');
 		const dest = join(root, 'vendor', 'design');
 		makeSource(source);
-		symlinkSync(sourceParent, alias, 'dir');
+		linkDirectory(sourceParent, alias);
 
 		expect(() =>
 			adoptFromSource({
@@ -689,7 +691,7 @@ describe('adoption path safety', () => {
 		expect(existsSync(dest)).toBe(false);
 	});
 
-	it.skipIf(process.platform === 'win32')('rejects a symbolic-link component in the destination path', () => {
+	it('rejects a symbolic-link component in the destination path', () => {
 		const root = tempDir();
 		const source = join(root, 'source');
 		const outside = join(root, 'outside-product');
@@ -697,7 +699,7 @@ describe('adoption path safety', () => {
 		const dest = join(alias, 'vendor', 'design');
 		makeSource(source);
 		write(join(outside, 'sentinel.txt'), 'outside\n');
-		symlinkSync(outside, alias, 'dir');
+		linkDirectory(outside, alias);
 
 		expect(() =>
 			adoptFromSource({
@@ -765,7 +767,7 @@ describe('adoption path safety', () => {
 		expect(checkAdoption(dest)).toEqual(result.manifest);
 	});
 
-	it.skipIf(process.platform === 'win32')('rechecks a newly created final destination link before installation', () => {
+	it('rechecks a newly created final destination link before installation', () => {
 		const root = tempDir();
 		const source = join(root, 'source');
 		const target = join(root, 'foreign-target');
@@ -783,7 +785,7 @@ describe('adoption path safety', () => {
 					provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 				},
 				(point) => {
-					if (point === 'stage.ready') symlinkSync(target, dest, 'dir');
+					if (point === 'stage.ready') linkDirectory(target, dest);
 				},
 			);
 		} catch (error) {
@@ -795,7 +797,7 @@ describe('adoption path safety', () => {
 		expect(readFileSync(join(target, 'sentinel.txt'), 'utf8')).toBe('foreign\n');
 	});
 
-	it.skipIf(process.platform === 'win32')('detects a source directory replacement after locking', () => {
+	it('detects a source directory replacement after locking', () => {
 		const root = tempDir();
 		const source = join(root, 'source');
 		const displaced = join(root, 'source-displaced');
@@ -822,7 +824,7 @@ describe('adoption path safety', () => {
 		expect(existsSync(displaced)).toBe(true);
 	});
 
-	it.skipIf(process.platform === 'win32')('restores the previous destination when the source changes after backup', () => {
+	it('restores the previous destination when the source changes after backup', () => {
 		const root = tempDir();
 		const source = join(root, 'source');
 		const displaced = join(root, 'source-displaced');
@@ -857,7 +859,7 @@ describe('adoption path safety', () => {
 		expect(existsSync(join(dirname(dest), `.${basename(dest)}.yesid-adopt.backup`))).toBe(false);
 	});
 
-	it.skipIf(process.platform === 'win32')('returns recovery-required without following a replaced destination parent', () => {
+	it('returns recovery-required without following a replaced destination parent', () => {
 		const root = tempDir();
 		const source = join(root, 'source');
 		const dest = join(root, 'product', 'vendor', 'design');
@@ -879,7 +881,7 @@ describe('adoption path safety', () => {
 					if (point !== 'stage.ready') return;
 					renameSync(parent, displaced);
 					write(join(attacker, 'sentinel.txt'), 'attacker\n');
-					symlinkSync(attacker, parent, 'dir');
+					linkDirectory(attacker, parent);
 				},
 			);
 		} catch (error) {
@@ -891,7 +893,7 @@ describe('adoption path safety', () => {
 		expect(readdirSync(displaced).some((entry) => entry.includes('.yesid-adopt.'))).toBe(true);
 	});
 
-	it.skipIf(process.platform === 'win32')('rejects a symbolic-link alias in check mode', () => {
+	it('rejects a symbolic-link alias in check mode', () => {
 		const root = tempDir();
 		const source = join(root, 'source');
 		const dest = join(root, 'vendor', 'design');
@@ -903,7 +905,7 @@ describe('adoption path safety', () => {
 			packages: ['tokens'],
 			provenance: worktreeProvenance('v1.0.0', OLD_COMMIT),
 		});
-		symlinkSync(dest, alias, 'dir');
+		linkDirectory(dest, alias);
 
 		expect(() => checkAdoption(alias)).toThrow(/destination.*refusing symbolic link/iu);
 	});

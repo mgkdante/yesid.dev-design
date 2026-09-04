@@ -22,11 +22,13 @@ import {
 	REQUIRED_LEGAL_FILES,
 	assertTag,
 	pathInside,
+	requiresCompleteLegalBundle,
 	type TagIdentity,
 } from './adopt/contract.js';
 import {
 	DEFAULT_MAIN_REF,
 	canonicalRepositoryRoot,
+	git,
 	readManifestAt,
 	resolveReleaseIdentity,
 	runGit,
@@ -44,12 +46,13 @@ const RELEASED_PACKAGES = [
 	'i18n-core',
 ] as const;
 const RELEASE_PATHS = [
-	...REQUIRED_LEGAL_FILES,
 	'tools/adopt.ts',
 	'tools/adopt',
 	...RELEASED_PACKAGES.map((name) => `packages/${name}`),
 ] as const;
 const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
+const GIT_ARCHIVE_TIMEOUT_MS = 30_000;
+const MAX_COMMAND_OUTPUT_BYTES = 64 * 1024;
 
 export interface ReleaseArchiveOptions {
 	repositoryRoot: string;
@@ -98,13 +101,21 @@ function assertReleaseVersions(repositoryRoot: string, tag: string, commit: stri
 
 const RELEASE_IDENTITY_CONTRACT = { assertTag, assertVersions: assertReleaseVersions } as const;
 
-function assertRequiredLegalFiles(repositoryRoot: string, commit: string): void {
+function releaseLegalFiles(repositoryRoot: string, tag: string, commit: string): string[] {
+	if (!requiresCompleteLegalBundle(tag)) {
+		const legacy = ['LICENSE'];
+		if (git(repositoryRoot, ['cat-file', '-e', `${commit}:NOTICE`]).status === 0) {
+			legacy.push('NOTICE');
+		}
+		return legacy;
+	}
 	for (const name of REQUIRED_LEGAL_FILES) {
 		const entry = runGit(repositoryRoot, ['ls-tree', commit, '--', name]);
 		if (!entry.startsWith('100644 blob ') || !entry.endsWith(`\t${name}`) || entry.includes('\n')) {
 			throw new Error(`required legal file ${name} must be one tracked regular file`);
 		}
 	}
+	return [...REQUIRED_LEGAL_FILES];
 }
 
 export function releaseAssetName(tag: string): string {
@@ -188,11 +199,15 @@ function generateDeterministicArchive(
 	if (existingReceipt !== '') {
 		throw new Error(`.yesid-release.json is reserved for the release archive builder`);
 	}
-	assertRequiredLegalFiles(repositoryRoot, identity.peeledCommit);
+	const legalFiles = releaseLegalFiles(repositoryRoot, tag, identity.peeledCommit);
 	const rootName = `yesid.dev-design-${tag}`;
 	const archive = spawnSync(
 		'git',
 		[
+			'-c',
+			'core.fsmonitor=false',
+			'-c',
+			'core.hooksPath=',
 			'-c',
 			'tar.umask=0002',
 			'archive',
@@ -203,12 +218,21 @@ function generateDeterministicArchive(
 			`--output=${destination}`,
 			`${identity.peeledCommit}^{tree}`,
 			'--',
+			...legalFiles,
 			...RELEASE_PATHS,
 		],
-		{ cwd: repositoryRoot, encoding: 'utf8' },
+		{
+			cwd: repositoryRoot,
+			encoding: 'utf8',
+			maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
+			timeout: GIT_ARCHIVE_TIMEOUT_MS,
+		},
 	);
-	if (archive.status !== 0) {
-		throw new Error(archive.stderr.trim() || `git archive exited ${archive.status ?? 1}`);
+	if (archive.error || archive.status !== 0 || archive.signal) {
+		throw new Error(
+			archive.error?.message || archive.stderr.trim() ||
+				`git archive exited ${archive.status ?? 1}${archive.signal ? ` via ${archive.signal}` : ''}`,
+		);
 	}
 }
 

@@ -50,18 +50,25 @@ function manifest(name: string, version = VERSION): string {
 	return `${JSON.stringify({ name, version }, null, '\t')}\n`;
 }
 
-function repository(options: { lightweight?: boolean; version?: string; omitLegal?: string } = {}): {
+function repository(options: {
+	lightweight?: boolean;
+	version?: string;
+	omitLegal?: string;
+	tag?: string;
+} = {}): {
 	root: string;
 	tagObject: string;
 	peeledCommit: string;
 	commitTime: number;
 } {
+	const tag = options.tag ?? TAG;
+	const version = options.version ?? (tag === TAG ? VERSION : tag.slice(1));
 	const root = join(tempDir(), 'repository');
 	mkdirSync(root);
 	git(root, 'init', '-q', '-b', 'main');
 	git(root, 'config', 'user.name', 'Release Test');
 	git(root, 'config', 'user.email', 'release-test@example.com');
-	write(join(root, 'package.json'), manifest('yesid-dev-design', options.version));
+	write(join(root, 'package.json'), manifest('yesid-dev-design', version));
 	for (const [name, content] of LEGAL_FILES) {
 		if (name !== options.omitLegal) write(join(root, name), content);
 	}
@@ -69,21 +76,21 @@ function repository(options: { lightweight?: boolean; version?: string; omitLega
 	write(join(root, 'tools', 'adopt.ts'), 'export {};\n');
 	write(join(root, 'tools', 'adopt', 'contract.ts'), 'export {};\n');
 	for (const name of ['tokens', 'motion', 'gates', 'seo-kit', 'ui', 'analytics', 'i18n-core']) {
-		write(join(root, 'packages', name, 'package.json'), manifest(`@yesid/${name}`, options.version));
+		write(join(root, 'packages', name, 'package.json'), manifest(`@yesid/${name}`, version));
 		write(join(root, 'packages', name, 'src', 'index.ts'), `export const name = '${name}';\n`);
 	}
 	write(join(root, 'packages', 'config', 'package.json'), manifest('@yesid/config', '0.1.0'));
 	write(join(root, 'packages', 'config', '.env'), 'DO_NOT_SHIP=secret\n');
 	git(root, 'add', '.');
 	git(root, 'commit', '-qm', 'release fixture');
-	if (options.lightweight) git(root, 'tag', TAG);
-	else git(root, 'tag', '-a', TAG, '-m', TAG);
+	if (options.lightweight) git(root, 'tag', tag);
+	else git(root, 'tag', '-a', tag, '-m', tag);
 	git(root, 'update-ref', 'refs/remotes/origin/main', 'HEAD');
 	return {
 		root,
-		tagObject: git(root, 'rev-parse', `refs/tags/${TAG}`),
-		peeledCommit: git(root, 'rev-parse', `refs/tags/${TAG}^{commit}`),
-		commitTime: Number(git(root, 'show', '-s', '--format=%ct', `refs/tags/${TAG}^{commit}`)),
+		tagObject: git(root, 'rev-parse', `refs/tags/${tag}`),
+		peeledCommit: git(root, 'rev-parse', `refs/tags/${tag}^{commit}`),
+		commitTime: Number(git(root, 'show', '-s', '--format=%ct', `refs/tags/${tag}^{commit}`)),
 	};
 }
 
@@ -250,6 +257,43 @@ describe('immutable release archive', () => {
 			buildReleaseArchive({ repositoryRoot: source.root, tag: TAG, output }),
 		).toThrow(new RegExp(`required legal file ${name.replace('.', '\\.')}`, 'u'));
 		expect(existsSync(output)).toBe(false);
+	});
+
+	it('preserves the pre-v0.13.4 legal bundle while verifying immutable historical assets', () => {
+		const tag = 'v0.13.3';
+		const source = repository({ tag });
+		const root = tempDir();
+		const output = join(root, releaseAssetName(tag));
+
+		const built = buildReleaseArchive({ repositoryRoot: source.root, tag, output });
+		const entries = tar(root, '-tf', output).trim().split('\n');
+		expect(entries).toContain(`yesid.dev-design-${tag}/LICENSE`);
+		expect(entries).toContain(`yesid.dev-design-${tag}/NOTICE`);
+		expect(entries).not.toContain(`yesid.dev-design-${tag}/TRADEMARK.md`);
+		expect(verifyReleaseArchive({ repositoryRoot: source.root, tag, archive: output })).toEqual(
+			built,
+		);
+
+		const adoption = join(tempDir(), 'vendor', 'design');
+		const adopted = spawnSync(
+			'bun',
+			[
+				ADOPT_TOOL,
+				'--tag',
+				tag,
+				'--packages',
+				'tokens',
+				'--dest',
+				adoption,
+				'--archive',
+				output,
+			],
+			{ encoding: 'utf8' },
+		);
+		expect(adopted.status, `${adopted.stdout}\n${adopted.stderr}`).toBe(0);
+		expect(readFileSync(join(adoption, 'LICENSE'), 'utf8')).toBe('MIT\n');
+		expect(existsSync(join(adoption, 'NOTICE'))).toBe(false);
+		expect(existsSync(join(adoption, 'TRADEMARK.md'))).toBe(false);
 	});
 
 	it('fails closed before writing for dirty, lightweight, or version-mismatched trust roots', () => {

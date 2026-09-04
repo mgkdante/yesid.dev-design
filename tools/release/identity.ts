@@ -25,21 +25,54 @@ export interface GitResult {
 	status: number;
 	stdout: string;
 	stderr: string;
+	error?: string;
+	signal?: NodeJS.Signals;
 }
 
-export function git(repositoryRoot: string, args: readonly string[]): GitResult {
-	const result = spawnSync('git', [...args], { cwd: repositoryRoot, encoding: 'utf8' });
+export interface GitOptions {
+	timeoutMs?: number;
+	maxOutputBytes?: number;
+	executable?: string;
+}
+
+const DEFAULT_GIT_TIMEOUT_MS = 10_000;
+const DEFAULT_GIT_OUTPUT_BYTES = 64 * 1024;
+const MAX_RELEASE_MANIFEST_BYTES = 64 * 1024;
+const SAFE_GIT_CONFIG = ['-c', 'core.fsmonitor=false', '-c', 'core.hooksPath='] as const;
+
+export function git(
+	repositoryRoot: string,
+	args: readonly string[],
+	options: GitOptions = {},
+): GitResult {
+	const result = spawnSync(options.executable ?? 'git', [...SAFE_GIT_CONFIG, ...args], {
+		cwd: repositoryRoot,
+		encoding: 'utf8',
+		timeout: options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS,
+		maxBuffer: options.maxOutputBytes ?? DEFAULT_GIT_OUTPUT_BYTES,
+	});
 	return {
 		status: result.status ?? 1,
-		stdout: result.stdout.trim(),
-		stderr: result.stderr.trim(),
+		stdout: (result.stdout ?? '').trim(),
+		stderr: (result.stderr ?? '').trim(),
+		...(result.error ? { error: result.error.message } : {}),
+		...(result.signal ? { signal: result.signal } : {}),
 	};
 }
 
-export function runGit(repositoryRoot: string, args: readonly string[]): string {
-	const result = git(repositoryRoot, args);
-	if (result.status !== 0) {
-		throw new Error(result.stderr || result.stdout || `git ${args[0] ?? ''} exited ${result.status}`);
+export function runGit(
+	repositoryRoot: string,
+	args: readonly string[],
+	options: GitOptions = {},
+): string {
+	const result = git(repositoryRoot, args, options);
+	if (result.error || result.signal || result.status !== 0) {
+		throw new Error(
+			result.error ||
+				result.stderr ||
+				result.stdout ||
+				`git ${args[0] ?? ''} exited ${result.status}${result.signal ? ` via ${result.signal}` : ''}`,
+		);
 	}
 	return result.stdout;
 }
@@ -65,7 +98,19 @@ export function readManifestAt(
 	commit: string,
 	path: string,
 ): Record<string, unknown> {
-	const raw = runGit(repositoryRoot, ['show', `${commit}:${path}`]);
+	const sizeRaw = runGit(repositoryRoot, ['cat-file', '-s', `${commit}:${path}`], {
+		maxOutputBytes: 128,
+	});
+	if (!/^\d+$/u.test(sizeRaw)) {
+		throw new Error(`release manifest has an invalid size at ${path}`);
+	}
+	const size = Number(sizeRaw);
+	if (!Number.isSafeInteger(size) || size < 0 || size > MAX_RELEASE_MANIFEST_BYTES) {
+		throw new Error(`release manifest exceeds the 64 KiB size limit at ${path}`);
+	}
+	const raw = runGit(repositoryRoot, ['show', `${commit}:${path}`], {
+		maxOutputBytes: MAX_RELEASE_MANIFEST_BYTES,
+	});
 	try {
 		const value = JSON.parse(raw) as unknown;
 		if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('not an object');

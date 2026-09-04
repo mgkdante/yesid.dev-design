@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
+	chmodSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
@@ -44,6 +45,10 @@ function tempDir(): string {
 function write(path: string, content: string): void {
 	mkdirSync(dirname(path), { recursive: true });
 	writeFileSync(path, content, 'utf8');
+}
+
+function linkDirectory(target: string, path: string): void {
+	symlinkSync(target, path, process.platform === 'win32' ? 'junction' : 'dir');
 }
 
 function git(root: string, ...args: string[]): string {
@@ -248,6 +253,20 @@ describe('worktree acquisition', () => {
 		}
 	});
 
+	it.skipIf(process.platform === 'win32')('does not execute a repository-configured fsmonitor', () => {
+		const root = tempDir();
+		makeTaggedWorktree(root);
+		const marker = join(root, '.git', 'fsmonitor-executed');
+		const monitor = join(root, '.git', 'hostile-fsmonitor.sh');
+		write(monitor, `#!/bin/sh\nprintf executed > ${JSON.stringify(marker)}\nprintf '\\n'\n`);
+		chmodSync(monitor, 0o755);
+		git(root, 'config', 'core.fsmonitor', monitor);
+
+		const acquired = acquireWorktree(root, TAG);
+		close(acquired);
+		expect(existsSync(marker)).toBe(false);
+	});
+
 	it('rejects a dirty or lightweight-tagged worktree', () => {
 		const dirty = tempDir();
 		makeTaggedWorktree(dirty);
@@ -261,13 +280,13 @@ describe('worktree acquisition', () => {
 		expect(() => acquireWorktree(lightweight, TAG)).toThrow(/annotated tag/i);
 	});
 
-	it.skipIf(process.platform === 'win32')('rejects a symbolic-link worktree source alias', () => {
+	it('rejects a symbolic-link worktree source alias', () => {
 		const root = tempDir();
 		const source = join(root, 'source');
 		const alias = join(root, 'source-alias');
 		mkdirSync(source);
 		makeTaggedWorktree(source);
-		symlinkSync(source, alias, 'dir');
+		linkDirectory(source, alias);
 
 		expect(() => acquireWorktree(alias, TAG)).toThrow(/worktree source.*refusing symbolic link/iu);
 	});
@@ -339,6 +358,19 @@ describe('archive acquisition', () => {
 
 			expect(() => acquireArchive(alias, TAG)).toThrow(/archive source.*refusing symbolic link/iu);
 		}
+	});
+
+	it('rejects a linked archive source parent on every supported platform', () => {
+		const root = tempDir();
+		const actual = join(root, 'actual');
+		const alias = join(root, 'alias');
+		mkdirSync(actual);
+		writeFileSync(join(actual, 'release.tar'), archiveFixture());
+		linkDirectory(actual, alias);
+
+		expect(() => acquireArchive(join(alias, 'release.tar'), TAG)).toThrow(
+			/archive source.*refusing symbolic link/iu,
+		);
 	});
 
 	it('accepts canonical POSIX ustar root and directory entries with trailing slashes', () => {

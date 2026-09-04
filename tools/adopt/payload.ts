@@ -16,12 +16,12 @@ import {
 	PACKAGE_EXCLUDE,
 	PACKAGE_NAMES,
 	REPOSITORY_ID,
-	REQUIRED_LEGAL_FILES,
 	WORKTREE_EXCLUDE,
 	exclusionPolicyDigest,
 	parseManifest,
 	parseProvenance,
 	pathInside,
+	requiredLegalFilesForTag,
 	toolDigest,
 	treeHash,
 	type AdoptManifest,
@@ -232,7 +232,7 @@ export function adoptFromSource(options: AdoptFromSourceOptions): AdoptResult {
 	sourceGuard.assertStable();
 	assertReplaceableDestination(dest);
 	validatePackageClosure(source, options.packages);
-	const legalFiles = REQUIRED_LEGAL_FILES.map((name) => {
+	const legalFiles = requiredLegalFilesForTag(provenance.tag.name).map((name) => {
 		const path = join(source, name);
 		if (!existsSync(path)) throw new Error(`required legal file ${name} not found at ${path}`);
 		return { name, path, guard: guardExistingFile(path, `source legal file ${name}`) };

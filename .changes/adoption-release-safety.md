@@ -8,4 +8,4 @@
 "@yesid/i18n-core": patch
 ---
 
-Harden adoption path validation and transaction rechecks, and carry the existing LICENSE, NOTICE, and TRADEMARK.md bytes through coordinated archives and installed vendor trees.
+Harden adoption path validation with identity-bound, token-scoped recovery evidence, and carry the existing LICENSE, NOTICE, and TRADEMARK.md bytes through coordinated archives and installed vendor trees starting at v0.13.4 while preserving older immutable archive layouts.

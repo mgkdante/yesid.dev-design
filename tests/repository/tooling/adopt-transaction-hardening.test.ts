@@ -52,6 +52,10 @@ function write(path: string, content: string): void {
 	writeFileSync(path, content, 'utf8');
 }
 
+function linkDirectory(target: string, path: string): void {
+	symlinkSync(target, path, process.platform === 'win32' ? 'junction' : 'dir');
+}
+
 function manifest(tag: string): AdoptManifest {
 	return {
 		schema: 2,
@@ -82,6 +86,7 @@ function install(
 	dest: string,
 	tag: string,
 	adoptRuntime: AdoptRuntime = {},
+	recognizeOverride?: (path: string) => boolean,
 ): ReturnType<typeof installAdoption> {
 	const expected = manifest(tag);
 	return installAdoption(
@@ -93,6 +98,7 @@ function install(
 			},
 			inspect,
 			recognize(path) {
+				if (recognizeOverride) return recognizeOverride(path);
 				try {
 					inspect(path);
 					return true;
@@ -169,7 +175,7 @@ afterEach(() => {
 });
 
 describe('transaction lock hardening', () => {
-	it.skipIf(process.platform === 'win32')('does not follow a parent replaced during reclaim locking', () => {
+	it('does not follow a parent replaced during reclaim locking', () => {
 		const root = tempDir();
 		const dest = join(root, 'product', 'vendor', 'design');
 		const parent = dirname(dest);
@@ -185,7 +191,7 @@ describe('transaction lock hardening', () => {
 					if (point !== 'lock.reclaim.guard.acquired') return;
 					renameSync(parent, displaced);
 					write(join(attacker, 'sentinel.txt'), 'attacker\n');
-					symlinkSync(attacker, parent, 'dir');
+					linkDirectory(attacker, parent);
 				}),
 			);
 		} catch (error) {
@@ -273,7 +279,120 @@ describe('transaction lock hardening', () => {
 });
 
 describe('transaction durability hardening', () => {
-	it.skipIf(process.platform === 'win32')('refuses a symlinked durable backup without touching its target', () => {
+	it('preserves a replacement stage when build throws before the next checkpoint', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		const displaced = join(root, 'displaced-build-stage');
+		let replacement = '';
+		let thrown: unknown;
+
+		try {
+			installAdoption({
+				dest,
+				build(stage) {
+					replacement = stage;
+					renameSync(stage, displaced);
+					write(join(stage, 'foreign.txt'), 'foreign\n');
+					throw new Error('build failed');
+				},
+				inspect,
+				recognize() {
+					return false;
+				},
+			});
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(readFileSync(join(replacement, 'foreign.txt'), 'utf8')).toBe('foreign\n');
+		expect(existsSync(displaced)).toBe(true);
+		expect(existsSync(dest)).toBe(false);
+	});
+
+	it('does not unlink a regular file that replaced the owned lock', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		const displaced = join(root, 'displaced-lock');
+		let replacement = '';
+		let thrown: unknown;
+
+		try {
+			install(
+				dest,
+				'v1.0.0',
+				runtime((point, paths) => {
+					if (point !== 'stage.ready') return;
+					replacement = paths.lock;
+					const content = readFileSync(paths.lock);
+					renameSync(paths.lock, displaced);
+					writeFileSync(paths.lock, content);
+				}),
+			);
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(existsSync(replacement)).toBe(true);
+		expect(existsSync(displaced)).toBe(true);
+		expect(existsSync(dest)).toBe(false);
+	});
+
+	it('preserves a regular backup replacement detected after the backup checkpoint', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		const displaced = join(root, 'displaced-backup');
+		install(dest, 'v1.0.0');
+		let replacement = '';
+		let thrown: unknown;
+
+		try {
+			install(
+				dest,
+				'v1.0.1',
+				runtime((point, paths) => {
+					if (point !== 'backup.durable') return;
+					replacement = paths.backup;
+					renameSync(paths.backup, displaced);
+					write(join(paths.backup, 'manifest.json'), `${JSON.stringify(manifest('v9.9.9'))}\n`);
+					write(join(paths.backup, 'foreign.txt'), 'foreign\n');
+				}),
+			);
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(readFileSync(join(replacement, 'foreign.txt'), 'utf8')).toBe('foreign\n');
+		expect(existsSync(displaced)).toBe(true);
+	});
+
+	it('rejects a backup whose recorded identity changed while the process was stopped', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		const displaced = join(root, 'displaced-stopped-backup');
+		install(dest, 'v1.0.0');
+		const crashed = crashInstall(root, dest, 'v1.0.1', 'backup.durable');
+		expect(crashed.status, String(crashed.stderr)).toBe(97);
+		const backup = `${prefix(dest)}.backup`;
+		renameSync(backup, displaced);
+		write(join(backup, 'manifest.json'), `${JSON.stringify(manifest('v7.7.7'))}\n`);
+		write(join(backup, 'foreign.txt'), 'foreign\n');
+		let thrown: unknown;
+
+		try {
+			install(dest, 'v1.0.1');
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(readFileSync(join(backup, 'foreign.txt'), 'utf8')).toBe('foreign\n');
+		expect(existsSync(displaced)).toBe(true);
+	});
+
+	it('refuses a linked durable backup without touching its target', () => {
 		const root = tempDir();
 		const dest = join(root, 'vendor', 'design');
 		const foreign = join(root, 'foreign-adoption');
@@ -282,7 +401,7 @@ describe('transaction durability hardening', () => {
 		write(join(foreign, 'manifest.json'), `${JSON.stringify(expected)}\n`);
 		write(join(foreign, 'sentinel.txt'), 'foreign\n');
 		mkdirSync(dirname(dest), { recursive: true });
-		symlinkSync(foreign, backup, 'dir');
+		linkDirectory(foreign, backup);
 
 		let thrown: unknown;
 		try {
@@ -327,14 +446,14 @@ describe('transaction durability hardening', () => {
 		expect(existsSync(dest)).toBe(false);
 	});
 
-	it.skipIf(process.platform === 'win32')('refuses a symlinked committed tombstone without cleanup', () => {
+	it('refuses a linked committed tombstone without cleanup', () => {
 		const root = tempDir();
 		const dest = join(root, 'vendor', 'design');
 		const foreign = join(root, 'foreign-tombstone');
 		install(dest, 'v1.0.0');
 		write(join(foreign, 'sentinel.txt'), 'foreign\n');
 		const tombstone = `${prefix(dest)}.tombstone-${randomUUID()}`;
-		symlinkSync(foreign, tombstone, 'dir');
+		linkDirectory(foreign, tombstone);
 
 		let thrown: unknown;
 		try {
@@ -347,6 +466,24 @@ describe('transaction durability hardening', () => {
 		expect((thrown as Error).message).toMatch(/tombstone.*refusing symbolic link/iu);
 		expect(readFileSync(join(foreign, 'sentinel.txt'), 'utf8')).toBe('foreign\n');
 		expect(existsSync(tombstone)).toBe(true);
+	});
+
+	it('preserves a token-shaped tombstone without matching recovery evidence', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		install(dest, 'v1.0.0');
+		const tombstone = `${prefix(dest)}.tombstone-${randomUUID()}`;
+		write(join(tombstone, 'foreign.txt'), 'foreign\n');
+		let thrown: unknown;
+
+		try {
+			install(dest, 'v1.0.0');
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(readFileSync(join(tombstone, 'foreign.txt'), 'utf8')).toBe('foreign\n');
 	});
 
 	it('syncs the complete stage before declaring it ready', () => {
@@ -392,6 +529,80 @@ describe('transaction durability hardening', () => {
 		expect(install(dest, 'v1.0.1').outcome).toBe('noop');
 		expect(existsSync(tombstone)).toBe(false);
 	});
+
+	it('preserves a regular tombstone replacement detected during cleanup', () => {
+		const root = tempDir();
+		const dest = join(root, 'vendor', 'design');
+		const displaced = join(root, 'displaced-tombstone');
+		install(dest, 'v1.0.0');
+		let replacement = '';
+		let thrown: unknown;
+
+		try {
+			install(
+				dest,
+				'v1.0.1',
+				runtime((point, paths) => {
+					if (point !== 'tombstone.cleanup') return;
+					replacement = paths.tombstone;
+					renameSync(paths.tombstone, displaced);
+					write(join(paths.tombstone, 'foreign.txt'), 'foreign\n');
+				}),
+			);
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+		expect(inspect(dest).provenance.tag.name).toBe('v1.0.1');
+		expect(readFileSync(join(replacement, 'foreign.txt'), 'utf8')).toBe('foreign\n');
+		expect(existsSync(displaced)).toBe(true);
+	});
+
+	it(
+		'preserves foreign recovery paths when recognize replaces the destination parent',
+		() => {
+			const root = tempDir();
+			const dest = join(root, 'product', 'vendor', 'design');
+			const parent = dirname(dest);
+			const displacedParent = join(root, 'displaced-recovery-parent');
+			const attackerParent = join(root, 'attacker-recovery-parent');
+			install(dest, 'v1.0.0');
+			const crashed = crashInstall(root, dest, 'v1.0.1', 'backup.durable');
+			expect(crashed.status, String(crashed.stderr)).toBe(97);
+			const recoveryEvidence = readdirSync(parent).find((entry) => entry.includes('.recovery-'));
+			expect(recoveryEvidence).toBeDefined();
+			if (recoveryEvidence) rmSync(join(parent, recoveryEvidence));
+			let swapped = false;
+			let foreignBackup = '';
+			let thrown: unknown;
+
+			try {
+				install(dest, 'v1.0.1', {}, (path) => {
+					const recognized = inspect(path).schema === 2;
+					if (!swapped) {
+						swapped = true;
+						renameSync(parent, displacedParent);
+						foreignBackup = join(
+							attackerParent,
+							`.${basename(dest)}.yesid-adopt.backup`,
+						);
+						write(join(foreignBackup, 'manifest.json'), `${JSON.stringify(manifest('v8.8.8'))}\n`);
+						write(join(foreignBackup, 'foreign.txt'), 'foreign\n');
+						linkDirectory(attackerParent, parent);
+					}
+					return recognized;
+				});
+			} catch (error) {
+				thrown = error;
+			}
+
+			expect(swapped).toBe(true);
+			expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
+			expect(readFileSync(join(foreignBackup, 'foreign.txt'), 'utf8')).toBe('foreign\n');
+			expect(existsSync(displacedParent)).toBe(true);
+		},
+	);
 
 	it('atomically retires a recovery backup before best-effort cleanup', () => {
 		const root = tempDir();
@@ -441,7 +652,7 @@ describe('transaction durability hardening', () => {
 		expect(readdirSync(dirname(dest)).some((entry) => entry.includes('.tombstone-'))).toBe(false);
 	});
 
-	it('cleans a partial committed tombstone as opaque garbage', () => {
+	it('preserves a changed committed tombstone for manual recovery', () => {
 		const root = tempDir();
 		const dest = join(root, 'vendor', 'design');
 		install(dest, 'v1.0.0');
@@ -450,9 +661,14 @@ describe('transaction durability hardening', () => {
 		expect(inspect(dest).provenance.tag.name).toBe('v1.0.1');
 		expect(readdirSync(dirname(dest)).some((entry) => entry.includes('.tombstone-'))).toBe(true);
 
-		const recovered = install(dest, 'v1.0.1');
-		expect(recovered.outcome).toBe('noop');
+		let thrown: unknown;
+		try {
+			install(dest, 'v1.0.1');
+		} catch (error) {
+			thrown = error;
+		}
+		expect(thrown).toMatchObject({ code: ADOPT_EXIT.RECOVERY_REQUIRED });
 		expect(inspect(dest).provenance.tag.name).toBe('v1.0.1');
-		expect(readdirSync(dirname(dest)).some((entry) => entry.includes('.tombstone-'))).toBe(false);
+		expect(readdirSync(dirname(dest)).some((entry) => entry.includes('.tombstone-'))).toBe(true);
 	});
 });

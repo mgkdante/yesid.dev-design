@@ -64,6 +64,14 @@ describe('config archive safety boundary', () => {
 		expect(() => parseConfigArchive(archive)).toThrow(/expanded size limit.*2 MiB/iu);
 	});
 
+	it.each([
+		['invalid', Buffer.from('not a gzip stream')],
+		['truncated', gzipSync(Buffer.from('complete')).subarray(0, 5)],
+	])('reports %s gzip bytes as malformed rather than oversized', (_label, archive) => {
+		expect(() => parseConfigArchive(archive)).toThrow(/malformed gzip/iu);
+		expect(() => parseConfigArchive(archive)).not.toThrow(/expanded size limit/iu);
+	});
+
 	it('rejects a member beyond 256 KiB', () => {
 		const archive = gzipSync(
 			tar([{ path: 'package/large.txt', content: Buffer.alloc(256 * 1024 + 1) }]),

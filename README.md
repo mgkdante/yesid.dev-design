@@ -105,11 +105,15 @@ bun run setup:hooks             # enable .githooks (generated-files guard)
 Consumers vendor exact immutable GitHub Release assets. Run the complete
 [`tools/adopt.ts`](tools/adopt.ts) bundle (`tools/adopt.ts` plus `tools/adopt/`)
 with `--tag vX.Y.Z`, then commit the package snapshot, self-vendored adoption
-tool, `LICENSE`, `NOTICE`, `TRADEMARK.md`, and schema-2 `manifest.json`. `--check`
-verifies the tool, exclusion policy, legal files, and full payload offline. Source and destination
+tool, legal files, and schema-2 `manifest.json`. From `v0.13.4` onward, the legal bundle is
+`LICENSE`, `NOTICE`, and `TRADEMARK.md`; earlier immutable tags retain their historical layout.
+`--check` verifies the tool, exclusion policy, legal files, and full payload offline. Source and destination
 paths are canonicalized from their nearest existing parents; symbolic-link components are refused,
 missing destination components are created individually, and path identities are rechecked before
-installation. Git dependencies cannot select workspace subpackages,
+installation. Token-scoped recovery evidence binds transaction entry identities and the previous
+tree hash across process death. Portable Node cannot make rename and removal handle-relative, so
+the destination parent must not be concurrently writable during the final check-to-operation step.
+Git dependencies cannot select workspace subpackages,
 and npm publication remains an optional later layer. The full decision is in
 [`DECISIONS.md`](DECISIONS.md).
 

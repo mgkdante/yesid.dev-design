@@ -54,7 +54,7 @@ describe('real repository adoption cascade', () => {
 			] as PackageName[],
 			provenance: {
 				mode: 'worktree' as const,
-				tag: { name: 'v0.7.0-test.1', object: COMMIT, peeledCommit: COMMIT },
+				tag: { name: 'v0.13.4-test.1', object: COMMIT, peeledCommit: COMMIT },
 				asset: null,
 			},
 		};

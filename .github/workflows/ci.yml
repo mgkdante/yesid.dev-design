@@ -48,8 +48,8 @@ jobs:
                   "prefixes": ["apps/gallery/src/", "apps/gallery/tests/browser/", "packages/motion/src/", "packages/tokens/src/", "packages/ui/src/"]
                 },
                 "token-outputs-windows-work": {
-                  "paths": ["DESIGN.md", "apps/gallery/src/app.css", "tools/api-authority.ts", "tools/build-tokens.ts", "tools/release-core.ts"],
-                  "prefixes": ["api-reports/", "packages/analytics/", "packages/gates/", "packages/i18n-core/", "packages/motion/", "packages/tokens/", "packages/ui/"]
+                  "paths": ["DESIGN.md", "apps/gallery/src/app.css", "tests/repository/tooling/adopt-acquisition.test.ts", "tests/repository/tooling/adopt-transaction-hardening.test.ts", "tests/repository/tooling/adopt.test.ts", "tools/adopt.ts", "tools/api-authority.ts", "tools/build-tokens.ts", "tools/release-core.ts", "vitest.repository.config.ts"],
+                  "prefixes": ["api-reports/", "packages/analytics/", "packages/gates/", "packages/i18n-core/", "packages/motion/", "packages/tokens/", "packages/ui/", "tools/adopt/"]
                 },
                 "token-byte-parity-work": {
                   "paths": ["DESIGN.md", "apps/gallery/src/app.css", "packages/motion/src/tokens.ts", "packages/tokens/package.json", "packages/tokens/tokens.css", "packages/tokens/tokens.json", "packages/tokens/tsconfig.json", "tools/build-tokens.ts"],
@@ -145,6 +145,12 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Check API reports
         run: bun run api:check
+      - name: Check adoption path and recovery safety
+        run: >-
+          bunx vitest run --config vitest.repository.config.ts
+          tests/repository/tooling/adopt.test.ts
+          tests/repository/tooling/adopt-acquisition.test.ts
+          tests/repository/tooling/adopt-transaction-hardening.test.ts
       - name: Generate token outputs
         run: bun run tokens:build
       - name: Upload Windows token outputs
