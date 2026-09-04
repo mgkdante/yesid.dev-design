@@ -78,7 +78,7 @@ committed_json_value() {
 
 require_pin() {
 	if [[ "$2" != "$3" ]]; then
-		printf 'browser authority pin mismatch: %s must be %s (found %s)\n' "$1" "$3" "$2" >&2
+		printf 'browser authority pin mismatch: %s must be %s\n' "$1" "$3" >&2
 		exit 2
 	fi
 }

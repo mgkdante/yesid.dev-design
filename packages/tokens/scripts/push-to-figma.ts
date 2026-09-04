@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 // Prepare tokens.json for ingestion into Figma Variables.
 // Output: a flat FigmaVariable[] array on stdout. Status messages on stderr.
-// A separate orchestration step consumes the JSON and calls the Figma MCP.
+// After owner approval, an owner-selected compatible workflow writes this JSON.
+// Export the resulting variables and verify their values with `figma:verify`.
 //
 // Naming convention (read before consuming this output):
 //   Variable names are FULL PATHS with collection prefix retained

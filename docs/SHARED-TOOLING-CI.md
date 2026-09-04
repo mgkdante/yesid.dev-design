@@ -78,11 +78,12 @@ package bytes and version. Transit and yesid.dev must consume the immutable Rele
 must not copy the producer-only source path.
 
 Every configured shared caller must appear exactly once as a literal `uses` value, at the
-manifest SHA. Undeclared references to the source repository fail. The gate also binds its
-runtime `github.action_repository` and `github.action_ref` values to the manifest, so a mutable
-or stale pin cannot produce a passing receipt. Inputs and targets must be regular files under
-the checkout; traversal, symlinks, duplicate JSON keys, unknown manifest keys, and files over
-1 MiB fail closed.
+manifest SHA. Undeclared references to a configured shared-action path fail. Same-repository
+actions outside the manifest's caller set are separately versioned and own their pin contracts;
+this drift gate does not adopt them implicitly. The gate also binds its runtime
+`github.action_repository` and `github.action_ref` values to the manifest, so a mutable or stale
+pin cannot produce a passing receipt. Inputs and targets must be regular files under the checkout;
+traversal, symlinks, duplicate JSON keys, unknown manifest keys, and files over 1 MiB fail closed.
 
 ## Required-context shape
 

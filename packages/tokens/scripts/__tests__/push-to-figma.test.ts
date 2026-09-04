@@ -11,7 +11,7 @@ function runScript(): FigmaVariable[] {
 
 describe('push-to-figma', () => {
   it('produces no name collisions across collections', () => {
-    // Removing collection prefixes during a use_figma push would have
+    // Removing collection prefixes during a compatible write would have
     // collapsed `shadow/card` and `color/card` to the same name. The output of
     // push-to-figma.ts itself must never contain duplicate names — even if a
     // downstream consumer wants to display them differently in Figma.

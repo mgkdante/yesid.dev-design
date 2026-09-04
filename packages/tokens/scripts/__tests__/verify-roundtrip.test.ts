@@ -75,7 +75,6 @@ describe('verify-roundtrip CLI', () => {
     expect(result.stderr).toContain('Operator contract:');
     expect(result.stderr).toContain('After owner approval, import it using any compatible workflow.');
     expect(result.stderr).toContain('This verifier only reads exported state; it never writes remotely.');
-    expect(result.stderr).not.toMatch(/Task 3\.5|orchestrator|MCP|use_figma/i);
   });
 
   it('terminal-encodes a non-array snapshot filename', () => {

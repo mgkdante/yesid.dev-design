@@ -23,6 +23,9 @@ const AUTHORITY_ACTION = join(ROOT, '.github/actions/browser-authority/action.ym
 const TRUSTED_AUTHORITY_COMMIT = '48f79f4213411b321e8126363592e10e90a3c1c2';
 const AUTHORITY_IMAGE =
 	'mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48';
+const TERMINAL_CONTROLS =
+	/(?:[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029]|\p{Bidi_Control})/u;
+const PIN_DIAGNOSTIC_POISON = '\n::error title=forged::pin-control\u001b[2J\u009b31m\u061c\u200e\u200f\u202e';
 const OTHER_WORKSPACE_MANIFESTS = [
 	'packages/analytics/package.json',
 	'packages/config/package.json',
@@ -792,6 +795,37 @@ describe('browser accessibility authority', () => {
 			});
 			expect(result.status).toBe(2);
 			expect(result.stderr.toString()).toContain('dependency policy');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it.each([
+		[
+			'packageManager',
+			{ packageManager: `bun@1.3.12${PIN_DIAGNOSTIC_POISON}` },
+		],
+		['.bun-version', { bunVersion: `1.3.12${PIN_DIAGNOSTIC_POISON}` }],
+		[
+			'Gallery Playwright version',
+			{ playwrightVersion: `1.61.0${PIN_DIAGNOSTIC_POISON}` },
+		],
+	] as const)('does not echo rejected candidate %s controls', (_label, changes) => {
+		const fixture = authorityFixture(changes);
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: fixture,
+				env: fake.env,
+			});
+			const stderr = result.stderr.toString();
+			expect(result.status).toBe(2);
+			expect(stderr).toContain('authority pin mismatch');
+			expect(stderr).not.toMatch(TERMINAL_CONTROLS);
+			expect(stderr).not.toContain('::error');
+			expect(stderr).not.toContain('pin-control');
 			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
 		} finally {
 			fake.remove();
