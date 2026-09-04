@@ -13,6 +13,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { main } from '../../../tools/adopt.js';
@@ -26,6 +27,7 @@ import {
 } from '../../../tools/adopt/acquisition.js';
 
 const REPOSITORY_NUMERIC_ID = 1_303_136_912;
+const ADOPT_TOOL = fileURLToPath(new URL('../../../tools/adopt.ts', import.meta.url));
 const TAG = 'v1.2.3';
 const TAG_OBJECT = '0123456789abcdef0123456789abcdef01234567';
 const COMMIT = 'fedcba9876543210fedcba9876543210fedcba98';
@@ -293,6 +295,39 @@ describe('worktree acquisition', () => {
 });
 
 describe('archive acquisition', () => {
+	it.skipIf(process.platform === 'win32')(
+		'canonicalizes its owned temporary source beneath a linked system temp path',
+		() => {
+			const root = tempDir();
+			const actualTemp = join(root, 'actual-temp');
+			const linkedTemp = join(root, 'linked-temp');
+			mkdirSync(actualTemp);
+			linkDirectory(actualTemp, linkedTemp);
+			const archive = join(root, 'release.tar');
+			writeFileSync(archive, archiveFixture());
+			const dest = join(root, 'vendor', 'design');
+
+			const adopted = spawnSync(
+				'bun',
+				[
+					ADOPT_TOOL,
+					'--tag',
+					TAG,
+					'--packages',
+					'tokens',
+					'--dest',
+					dest,
+					'--archive',
+					archive,
+				],
+				{ encoding: 'utf8', env: { ...process.env, TMPDIR: linkedTemp } },
+			);
+
+			expect(adopted.status, `${adopted.stdout}\n${adopted.stderr}`).toBe(0);
+			expect(existsSync(join(dest, 'manifest.json'))).toBe(true);
+		},
+	);
+
 	it('extracts a bounded regular-file archive with an embedded receipt', () => {
 		const root = tempDir();
 		const path = join(root, 'release.tar');
@@ -392,6 +427,8 @@ describe('archive acquisition', () => {
 	it.each([
 		['alternate data stream', `yesid.dev-design-${TAG}/tokens.json:secret`],
 		['reserved device name', `yesid.dev-design-${TAG}/CON.json`],
+		['console-input device name', `yesid.dev-design-${TAG}/CONIN$.json`],
+		['console-output device name', `yesid.dev-design-${TAG}/CONOUT$`],
 		['trailing dot', `yesid.dev-design-${TAG}/tokens.`],
 		['trailing space', `yesid.dev-design-${TAG}/tokens `],
 	])('rejects Win32 %s path hazards', (_label, unsafePath) => {

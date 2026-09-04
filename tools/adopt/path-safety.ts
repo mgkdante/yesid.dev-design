@@ -1,4 +1,14 @@
-import { lstatSync, mkdirSync, realpathSync, type Stats } from 'node:fs';
+import {
+	closeSync,
+	constants,
+	fstatSync,
+	lstatSync,
+	mkdirSync,
+	openSync,
+	readSync,
+	realpathSync,
+	type Stats,
+} from 'node:fs';
 import { basename, dirname, join, parse, relative, resolve, sep } from 'node:path';
 
 interface PathSnapshot {
@@ -148,6 +158,49 @@ export function guardExistingDirectory(input: string, label: string): StableExis
 
 export function guardExistingFile(input: string, label: string): StableExistingPath {
 	return guardExisting(input, label, 'file');
+}
+
+export function readStableFile(
+	guard: StableExistingPath,
+	maxBytes: number,
+	limitMessage: string,
+): Buffer {
+	guard.assertStable();
+	const before = lstatSync(guard.path);
+	if (!before.isFile() || before.size <= 0 || before.size > maxBytes) {
+		throw new Error(limitMessage);
+	}
+	const noFollow = process.platform === 'win32' ? 0 : (constants.O_NOFOLLOW ?? 0);
+	const descriptor = openSync(guard.path, constants.O_RDONLY | noFollow);
+	try {
+		const opened = fstatSync(descriptor);
+		if (
+			!opened.isFile() ||
+			opened.dev !== before.dev ||
+			opened.ino !== before.ino ||
+			opened.size !== before.size
+		) {
+			throw new Error(`${limitMessage}; file identity changed before reading`);
+		}
+		const bytes = Buffer.allocUnsafe(opened.size);
+		let offset = 0;
+		while (offset < bytes.length) {
+			const count = readSync(descriptor, bytes, offset, bytes.length - offset, null);
+			if (count === 0) throw new Error(`${limitMessage}; file changed while reading`);
+			offset += count;
+		}
+		if (readSync(descriptor, Buffer.alloc(1), 0, 1, null) !== 0) {
+			throw new Error(`${limitMessage}; file grew while reading`);
+		}
+		const after = fstatSync(descriptor);
+		if (after.dev !== opened.dev || after.ino !== opened.ino || after.size !== opened.size) {
+			throw new Error(`${limitMessage}; file identity changed while reading`);
+		}
+		guard.assertStable();
+		return bytes;
+	} finally {
+		closeSync(descriptor);
+	}
 }
 
 class DestinationGuard implements DestinationPathGuard {

@@ -5,7 +5,7 @@ import {
 	lstatSync,
 	mkdirSync,
 	mkdtempSync,
-	readFileSync,
+	realpathSync,
 	rmSync,
 	writeFileSync,
 } from 'node:fs';
@@ -19,7 +19,7 @@ import {
 	type AdoptProvenance,
 	type TagIdentity,
 } from './contract.js';
-import { guardExistingDirectory, guardExistingFile } from './path-safety.js';
+import { guardExistingDirectory, guardExistingFile, readStableFile } from './path-safety.js';
 
 export { REPOSITORY_ID } from './contract.js';
 
@@ -190,7 +190,7 @@ function validateArchivePath(
 				part === '..' ||
 				/[<>:"|?*]/u.test(part) ||
 				/[. ]$/u.test(part) ||
-				/^(?:CON|PRN|AUX|NUL|COM[1-9¹²³]|LPT[1-9¹²³])$/iu.test(deviceStem)
+				/^(?:CON|CONIN\$|CONOUT\$|PRN|AUX|NUL|COM[1-9¹²³]|LPT[1-9¹²³])$/iu.test(deviceStem)
 			);
 		})
 	) {
@@ -310,7 +310,9 @@ function materializeEntries(
 	provenance: AdoptProvenance,
 ): AcquiredSource {
 	const tempRoot = mkdtempSync(join(tmpdir(), 'yesid-adopt-archive-'));
-	const source = join(tempRoot, rootName);
+	const canonicalTempRoot = realpathSync.native(tempRoot);
+	const tempRootGuard = guardExistingDirectory(canonicalTempRoot, 'owned archive temporary root');
+	const source = join(tempRootGuard.path, rootName);
 	try {
 		for (const entry of entries) {
 			const relative =
@@ -340,11 +342,13 @@ function materializeEntries(
 			source,
 			provenance,
 			cleanup() {
-				rmSync(tempRoot, { recursive: true, force: true });
+				tempRootGuard.assertStable();
+				rmSync(tempRootGuard.path, { recursive: true, force: true });
 			},
 		};
 	} catch (error) {
-		rmSync(tempRoot, { recursive: true, force: true });
+		tempRootGuard.assertStable();
+		rmSync(tempRootGuard.path, { recursive: true, force: true });
 		throw error;
 	}
 }
@@ -374,13 +378,19 @@ function materializeArchive(
 export function acquireArchive(archiveInput: string, tag: string): AcquiredSource {
 	assertTag(tag);
 	const archiveGuard = guardExistingFile(archiveInput, 'archive source');
-	const archivePath = archiveGuard.path;
-	archiveGuard.assertStable();
-	const size = lstatSync(archivePath).size;
-	if (size <= 0 || size > MAX_ARCHIVE_BYTES) throw new Error(`unsafe archive: invalid archive size`);
-	const archive = readFileSync(archivePath);
-	archiveGuard.assertStable();
-	if (archive.length !== size) throw new Error(`archive source changed while reading`);
+	const archive = readStableFile(
+		archiveGuard,
+		MAX_ARCHIVE_BYTES,
+		'unsafe archive: invalid archive size',
+	);
+	return acquireArchiveBytes(archive, tag);
+}
+
+export function acquireArchiveBytes(archive: Buffer, tag: string): AcquiredSource {
+	assertTag(tag);
+	if (archive.length === 0 || archive.length > MAX_ARCHIVE_BYTES) {
+		throw new Error('unsafe archive: invalid archive size');
+	}
 	return materializeArchive(archive, tag, 'archive');
 }
 

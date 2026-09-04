@@ -1,22 +1,22 @@
 import { spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import {
-	constants,
-	copyFileSync,
+	closeSync,
 	existsSync,
+	fsyncSync,
 	lstatSync,
 	mkdirSync,
 	mkdtempSync,
-	readFileSync,
+	openSync,
 	realpathSync,
 	rmSync,
-	statSync,
+	writeSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { acquireArchive } from './adopt/acquisition.js';
+import { acquireArchiveBytes } from './adopt/acquisition.js';
 import {
 	REPOSITORY_ID,
 	REQUIRED_LEGAL_FILES,
@@ -25,6 +25,7 @@ import {
 	requiresCompleteLegalBundle,
 	type TagIdentity,
 } from './adopt/contract.js';
+import { guardExistingFile, readStableFile } from './adopt/path-safety.js';
 import {
 	DEFAULT_MAIN_REF,
 	canonicalRepositoryRoot,
@@ -150,10 +151,10 @@ function receipt(identity: TagIdentity): string {
 
 function verifyBytes(
 	tag: string,
-	archive: string,
+	archive: Buffer,
 	identity: TagIdentity,
 ): ReleaseArchiveEvidence {
-	const acquired = acquireArchive(archive, tag);
+	const acquired = acquireArchiveBytes(archive, tag);
 	try {
 		if (
 			acquired.provenance.tag.name !== identity.name ||
@@ -165,22 +166,52 @@ function verifyBytes(
 	} finally {
 		acquired.cleanup();
 	}
-	const size = statSync(archive).size;
-	if (size <= 0 || size > MAX_ARCHIVE_BYTES) {
-		throw new Error(`release archive has an invalid size`);
-	}
 	return {
 		schema: RELEASE_RECEIPT_SCHEMA,
 		repository: REPOSITORY_ID,
 		name: releaseAssetName(tag),
-		size,
-		digest: `sha256:${createHash('sha256').update(readFileSync(archive)).digest('hex')}`,
+		size: archive.length,
+		digest: `sha256:${createHash('sha256').update(archive).digest('hex')}`,
 		tag: {
 			name: identity.name,
 			object: identity.object,
 			peeledCommit: identity.peeledCommit,
 		},
 	};
+}
+
+function readArchiveBytes(path: string, label: string): Buffer {
+	return readStableFile(
+		guardExistingFile(path, label),
+		MAX_ARCHIVE_BYTES,
+		'release archive has an invalid size',
+	);
+}
+
+function syncDirectory(path: string): void {
+	if (process.platform === 'win32') return;
+	const descriptor = openSync(path, 'r');
+	try {
+		fsyncSync(descriptor);
+	} finally {
+		closeSync(descriptor);
+	}
+}
+
+function writeArchiveExclusive(path: string, bytes: Buffer): void {
+	const descriptor = openSync(path, 'wx', 0o644);
+	try {
+		let offset = 0;
+		while (offset < bytes.length) {
+			const written = writeSync(descriptor, bytes, offset, bytes.length - offset, null);
+			if (written === 0) throw new Error('release archive write made no progress');
+			offset += written;
+		}
+		fsyncSync(descriptor);
+	} finally {
+		closeSync(descriptor);
+	}
+	syncDirectory(dirname(path));
 }
 
 function generateDeterministicArchive(
@@ -248,9 +279,10 @@ export function buildReleaseArchive(options: BuildReleaseArchiveOptions): Releas
 	const temporary = join(dirname(output), `.${basename(output)}.${process.pid}.${randomUUID()}.tmp`);
 	try {
 		generateDeterministicArchive(repositoryRoot, options.tag, identity, temporary);
-		const evidence = verifyBytes(options.tag, temporary, identity);
+		const archiveBytes = readArchiveBytes(temporary, 'generated release archive');
+		const evidence = verifyBytes(options.tag, archiveBytes, identity);
 		try {
-			copyFileSync(temporary, output, constants.COPYFILE_EXCL);
+			writeArchiveExclusive(output, archiveBytes);
 		} catch (error) {
 			if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
 				throw new Error(`release archive output already exists: ${output}`, { cause: error });
@@ -274,19 +306,18 @@ export function verifyReleaseArchive(options: VerifyReleaseArchiveOptions): Rele
 		RELEASE_IDENTITY_CONTRACT,
 	);
 	const expectedRoot = mkdtempSync(join(tmpdir(), 'yesid-release-verify-'));
-	const expectedArchive = join(expectedRoot, releaseAssetName(options.tag));
+	const canonicalExpectedRoot = realpathSync.native(expectedRoot);
+	const expectedArchive = join(canonicalExpectedRoot, releaseAssetName(options.tag));
 	try {
 		generateDeterministicArchive(repositoryRoot, options.tag, identity, expectedArchive);
-		const actualEvidence = verifyBytes(options.tag, archive, identity);
-		verifyBytes(options.tag, expectedArchive, identity);
-		const actualBytes = readFileSync(archive);
-		const expectedBytes = readFileSync(expectedArchive);
+		const actualBytes = readArchiveBytes(archive, 'release archive');
+		const expectedBytes = readArchiveBytes(expectedArchive, 'generated release archive');
 		if (!actualBytes.equals(expectedBytes)) {
 			throw new Error(`release archive does not match the deterministic tagged tree`);
 		}
-		return actualEvidence;
+		return verifyBytes(options.tag, actualBytes, identity);
 	} finally {
-		rmSync(expectedRoot, { recursive: true, force: true });
+		rmSync(canonicalExpectedRoot, { recursive: true, force: true });
 	}
 }
 

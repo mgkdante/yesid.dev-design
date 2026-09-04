@@ -71,7 +71,7 @@ function validatePath(pathInput: string, type: ConfigArchiveEntry['type']): stri
 				part === '..' ||
 				/[<>:"|?*]/u.test(part) ||
 				/[. ]$/u.test(part) ||
-				/^(?:CON|PRN|AUX|NUL|COM[1-9¹²³]|LPT[1-9¹²³])$/iu.test(deviceStem)
+				/^(?:CON|CONIN\$|CONOUT\$|PRN|AUX|NUL|COM[1-9¹²³]|LPT[1-9¹²³])$/iu.test(deviceStem)
 			);
 		})
 	) {

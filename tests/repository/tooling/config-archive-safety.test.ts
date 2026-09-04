@@ -91,6 +91,16 @@ describe('config archive safety boundary', () => {
 		);
 	});
 
+	it.each(['CONIN$', 'CONOUT$.json'])(
+		'rejects the Win32 console device path %s',
+		(path) => {
+			const archive = gzipSync(
+				tar([{ path: `package/${path}`, content: Buffer.from('unsafe\n') }]),
+			);
+			expect(() => parseConfigArchive(archive)).toThrow(/unsafe path/iu);
+		},
+	);
+
 	it('rejects a sixty-fifth archive entry', () => {
 		const entries = Array.from({ length: 65 }, (_, index) => ({
 			path: `package/member-${index}.txt`,
