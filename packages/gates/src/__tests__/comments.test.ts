@@ -41,13 +41,13 @@ describe('blankComments', () => {
 		expect(blankComments(source)).toBe(`${' '.repeat(10)}outside -->`);
 	});
 
-	it('rejects source text larger than the one-MiB scanner budget', () => {
+	it('rejects source text larger than the 1,048,576-code-unit scanner budget', () => {
 		const source = 'x'.repeat(1_048_577);
 
-		expect(() => blankComments(source)).toThrow(/1 MiB|1,048,576|1048576/u);
+		expect(() => blankComments(source)).toThrow(/1,048,576 UTF-16 code units/u);
 	});
 
-	it('accepts source text exactly at the one-MiB scanner budget', () => {
+	it('accepts source text at the 1,048,576-code-unit scanner budget', () => {
 		const source = 'x'.repeat(1_048_576);
 
 		expect(blankComments(source)).toBe(source);
