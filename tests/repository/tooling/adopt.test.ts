@@ -6,6 +6,7 @@ import {
 	mkdtempSync,
 	readFileSync,
 	readdirSync,
+	realpathSync,
 	renameSync,
 	rmSync,
 	statSync,
@@ -485,7 +486,9 @@ describe('adoptFromSource', () => {
 		const second = adoptWithRuntime(options, (point, paths) => {
 			checkpoints.push(point);
 			observedPaths = { ...paths };
-			if (point === 'stage.ready') expect(dirname(paths.stage)).toBe(dirname(dest));
+			if (point === 'stage.ready') {
+				expect(realpathSync.native(dirname(paths.stage))).toBe(realpathSync.native(dirname(dest)));
+			}
 		});
 
 		expect(second.outcome).toBe('noop');

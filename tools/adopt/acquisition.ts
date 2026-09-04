@@ -192,7 +192,17 @@ export function acquireWorktree(sourceInput: string, tag: string): AcquiredSourc
 	const rootName = `yesid.dev-design-${tag}`;
 	const archived = spawnSync(
 		'git',
-		[...SAFE_GIT_CONFIG, 'archive', '--format=tar', `--prefix=${rootName}/`, tree],
+		[
+			...SAFE_GIT_CONFIG,
+			'-c',
+			'core.autocrlf=false',
+			'-c',
+			'core.eol=lf',
+			'archive',
+			'--format=tar',
+			`--prefix=${rootName}/`,
+			tree,
+		],
 		{
 			cwd: source,
 			env: {
