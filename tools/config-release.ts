@@ -8,10 +8,8 @@ import {
 	existsSync,
 	lstatSync,
 	mkdtempSync,
-	readFileSync,
 	realpathSync,
 	rmSync,
-	statSync,
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -19,11 +17,15 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { REPOSITORY_ID, pathInside, type TagIdentity } from './adopt/contract.js';
-import { parseExactSemVer } from './release-core.js';
+import { guardExistingFile, readStableFile } from './adopt/path-safety.js';
+import {
+	CONFIG_ARCHIVE_LIMITS,
+	parseConfigArchive,
+} from './config-archive.js';
+import { compareVersions, parseExactSemVer } from './release-core.js';
 import {
 	DEFAULT_MAIN_REF,
 	canonicalRepositoryRoot,
-	readManifestAt,
 	resolveReleaseIdentity,
 	runGit,
 	type ReleaseIdentity,
@@ -33,7 +35,14 @@ const CONFIG_RECEIPT_SCHEMA = 1 as const;
 const CONFIG_PACKAGE_NAME = '@yesid/config' as const;
 const CONFIG_MANIFEST_PATH = 'packages/config/package.json';
 const CONFIG_RECEIPT_PATH = 'package/.yesid-config-release.json';
-const MAX_CONFIG_ARCHIVE_BYTES = 8 * 1024 * 1024;
+const MAX_CONFIG_MANIFEST_BYTES = 64 * 1024;
+const MAX_CHECKSUM_BYTES = 256;
+const GIT_READ_TIMEOUT_MS = 10_000;
+const GIT_ARCHIVE_TIMEOUT_MS = 30_000;
+const MAX_COMMAND_OUTPUT_BYTES = 64 * 1024;
+const EMPTY_GIT_CONFIG = process.platform === 'win32' ? 'NUL' : '/dev/null';
+const CONFIG_DIRECTORY_LAYOUT_CUTOVER = '0.2.2';
+const MAX_LEGACY_VIRTUAL_ARGUMENT_BYTES = 24 * 1024;
 const SAFE_PACKAGE_FILE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/u;
 const SECRET_FILE = /(?:^|\/)(?:\.env(?:\.|$)|[^/]*(?:credential|password|secret|token)[^/]*)/iu;
 
@@ -68,6 +77,73 @@ interface ConfigManifest {
 	files: string[];
 }
 
+type ConfigArchiveLayout = 'legacy-files' | 'explicit-directories';
+
+interface ConfigArchivePlan {
+	manifest: ConfigManifest;
+	files: string[];
+	receipt: string;
+	layout: ConfigArchiveLayout;
+	entries: string[];
+}
+
+function taggedBlobSize(repositoryRoot: string, commit: string, path: string): number {
+	const raw = runGit(repositoryRoot, ['cat-file', '-s', `${commit}:${path}`]);
+	if (!/^\d+$/u.test(raw)) throw new Error(`tagged config file has an invalid size: ${path}`);
+	const size = Number(raw);
+	if (!Number.isSafeInteger(size) || size < 0) {
+		throw new Error(`tagged config file has an invalid size: ${path}`);
+	}
+	return size;
+}
+
+function taggedFileBytes(
+	repositoryRoot: string,
+	commit: string,
+	path: string,
+	maxBytes = CONFIG_ARCHIVE_LIMITS.memberBytes,
+): Buffer {
+	const expectedSize = taggedBlobSize(repositoryRoot, commit, path);
+	if (expectedSize > maxBytes) {
+		throw new Error(`tagged config file exceeds its size limit: ${path}`);
+	}
+	const result = spawnSync(
+		'git',
+		[
+			'--no-replace-objects',
+			'-c',
+			'core.fsmonitor=false',
+			'-c',
+			'core.hooksPath=',
+			'-c',
+			`core.attributesFile=${EMPTY_GIT_CONFIG}`,
+			'show',
+			`${commit}:${path}`,
+		],
+		{
+			cwd: repositoryRoot,
+			env: {
+				...process.env,
+				GIT_ATTR_NOSYSTEM: '1',
+			},
+			maxBuffer: maxBytes + 1,
+			timeout: GIT_READ_TIMEOUT_MS,
+		},
+	);
+	if (result.error || result.status !== 0 || !Buffer.isBuffer(result.stdout)) {
+		const stderr = Buffer.isBuffer(result.stderr) ? result.stderr.toString('utf8').trim() : '';
+		const detail = result.error?.message || stderr || `git show exited ${result.status ?? 1}`;
+		throw new Error(`could not read tagged config file ${path}: ${detail}`);
+	}
+	if (result.stdout.length !== expectedSize) {
+		throw new Error(`tagged config file changed while reading: ${path}`);
+	}
+	if (result.stdout.includes(0)) {
+		throw new Error(`config release file must be text without NUL bytes: ${path}`);
+	}
+	return result.stdout;
+}
+
 export function parseConfigReleaseTag(tag: string): string {
 	if (!tag.startsWith('config-v')) {
 		throw new Error(`Invalid config release tag ${tag}; expected config-v<exact SemVer>`);
@@ -88,8 +164,29 @@ export function configReleaseChecksumName(tag: string): string {
 	return `${configReleaseAssetName(tag)}.sha256`;
 }
 
+function configArchiveLayout(tag: string): ConfigArchiveLayout {
+	const version = parseExactSemVer(parseConfigReleaseTag(tag));
+	return compareVersions(version, parseExactSemVer(CONFIG_DIRECTORY_LAYOUT_CUTOVER)) >= 0
+		? 'explicit-directories'
+		: 'legacy-files';
+}
+
 function readConfigManifest(repositoryRoot: string, commit: string): ConfigManifest {
-	const manifest = readManifestAt(repositoryRoot, commit, CONFIG_MANIFEST_PATH);
+	let manifest: Record<string, unknown>;
+	try {
+		const raw = taggedFileBytes(
+			repositoryRoot,
+			commit,
+			CONFIG_MANIFEST_PATH,
+			MAX_CONFIG_MANIFEST_BYTES,
+		);
+		const value = JSON.parse(raw.toString('utf8')) as unknown;
+		if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('not an object');
+		manifest = value as Record<string, unknown>;
+	} catch (error) {
+		const detail = error instanceof Error ? `: ${error.message}` : '';
+		throw new Error(`release manifest is invalid at ${CONFIG_MANIFEST_PATH}${detail}`, { cause: error });
+	}
 	if (manifest.name !== CONFIG_PACKAGE_NAME) {
 		throw new Error(`${CONFIG_MANIFEST_PATH} must name ${CONFIG_PACKAGE_NAME}`);
 	}
@@ -125,12 +222,43 @@ const CONFIG_IDENTITY_CONTRACT = {
 	assertVersions: assertConfigReleaseVersion,
 } as const;
 
-function packageFiles(repositoryRoot: string, commit: string): string[] {
-	const manifest = readConfigManifest(repositoryRoot, commit);
+function plannedEntries(files: readonly string[], layout: ConfigArchiveLayout): string[] {
+	if (layout === 'legacy-files') {
+		return [
+			'package/',
+			'package/package.json',
+			...files.slice(1).map((path) => `package/${path}`),
+			CONFIG_RECEIPT_PATH,
+		];
+	}
+	const payloadEntries = new Set<string>();
+	for (const file of files) {
+		const parts = file.split('/');
+		for (let depth = 1; depth < parts.length; depth += 1) {
+			payloadEntries.add(`package/${parts.slice(0, depth).join('/')}/`);
+		}
+		payloadEntries.add(`package/${file}`);
+	}
+	return ['package/', ...[...payloadEntries].sort(), CONFIG_RECEIPT_PATH];
+}
+
+function configArchivePlan(
+	repositoryRoot: string,
+	identity: ReleaseIdentity,
+): ConfigArchivePlan {
+	const manifest = readConfigManifest(repositoryRoot, identity.peeledCommit);
 	const files = ['package.json', ...manifest.files];
 	if (new Set(files).size !== files.length) {
 		throw new Error(`${CONFIG_MANIFEST_PATH} files must not contain duplicates`);
 	}
+	const receipt = configReceipt(identity, manifest.version);
+	const layout = configArchiveLayout(identity.name);
+	const entries = plannedEntries(files, layout);
+	if (entries.length > CONFIG_ARCHIVE_LIMITS.entries) {
+		throw new Error(`config release archive entry limit is ${CONFIG_ARCHIVE_LIMITS.entries}`);
+	}
+	let payloadBytes = Buffer.byteLength(receipt);
+	let legacyArgumentBytes = 0;
 	for (const path of files) {
 		if (
 			!SAFE_PACKAGE_FILE.test(path) ||
@@ -143,7 +271,7 @@ function packageFiles(repositoryRoot: string, commit: string): string[] {
 		}
 		const entry = runGit(repositoryRoot, [
 			'ls-tree',
-			commit,
+			identity.peeledCommit,
 			'--',
 			`packages/config/${path}`,
 		]);
@@ -151,8 +279,22 @@ function packageFiles(repositoryRoot: string, commit: string): string[] {
 		if (!entry.startsWith('100644 blob ') || !entry.endsWith(expectedSuffix) || entry.includes('\n')) {
 			throw new Error(`config release file must be one tracked non-executable regular file: ${path}`);
 		}
+		const size = taggedBlobSize(repositoryRoot, identity.peeledCommit, `packages/config/${path}`);
+		if (size > CONFIG_ARCHIVE_LIMITS.memberBytes) {
+			throw new Error(`config release file exceeds the 256 KiB member size limit: ${path}`);
+		}
+		payloadBytes += size;
+		if (payloadBytes > CONFIG_ARCHIVE_LIMITS.payloadBytes) {
+			throw new Error('config release files exceed the 1 MiB payload size limit');
+		}
+		if (layout === 'legacy-files' && path !== 'package.json') {
+			legacyArgumentBytes += Buffer.byteLength(`--add-virtual-file=package/${path}:`) + size;
+		}
 	}
-	return files;
+	if (layout === 'legacy-files' && legacyArgumentBytes > MAX_LEGACY_VIRTUAL_ARGUMENT_BYTES) {
+		throw new Error('legacy config release virtual-file argument limit is 24 KiB');
+	}
+	return { manifest, files, receipt, layout, entries };
 }
 
 function configReceipt(identity: TagIdentity, version: string): string {
@@ -168,125 +310,132 @@ function configReceipt(identity: TagIdentity, version: string): string {
 	})}\n`;
 }
 
-function taggedFile(repositoryRoot: string, commit: string, path: string): string {
-	const result = spawnSync('git', ['show', `${commit}:packages/config/${path}`], {
-		cwd: repositoryRoot,
-		encoding: 'utf8',
-	});
-	if (result.status !== 0) {
-		throw new Error(result.stderr.trim() || `could not read tagged config file ${path}`);
-	}
-	if (result.stdout.includes('\0')) {
-		throw new Error(`config release file must be text without NUL bytes: ${path}`);
-	}
-	return result.stdout;
-}
-
 function generateConfigArchive(
 	repositoryRoot: string,
 	identity: ReleaseIdentity,
 	destination: string,
-): void {
-	const manifest = readConfigManifest(repositoryRoot, identity.peeledCommit);
-	const files = packageFiles(repositoryRoot, identity.peeledCommit);
-	const virtualFiles = files.slice(1).map(
-		(path) =>
-			`--add-virtual-file=package/${path}:${taggedFile(
-				repositoryRoot,
-				identity.peeledCommit,
-				path,
-			)}`,
-	);
+): ConfigArchivePlan {
+	const plan = configArchivePlan(repositoryRoot, identity);
+	const contentArguments =
+		plan.layout === 'legacy-files'
+			? plan.files.slice(1).map((path) => {
+					const content = taggedFileBytes(
+						repositoryRoot,
+						identity.peeledCommit,
+						`packages/config/${path}`,
+					).toString('utf8');
+					return `--add-virtual-file=package/${path}:${content}`;
+				})
+			: [];
+	const selectedFiles = plan.layout === 'legacy-files' ? ['package.json'] : plan.files;
 	const archive = spawnSync(
 		'git',
 		[
+			'--no-replace-objects',
+			'-c',
+			'core.fsmonitor=false',
+			'-c',
+			'core.hooksPath=',
+			'-c',
+			`core.attributesFile=${EMPTY_GIT_CONFIG}`,
+			'-c',
+			'core.autocrlf=false',
+			'-c',
+			'core.eol=lf',
 			'-c',
 			'tar.umask=0002',
+			'-c',
+			'tar.tar.gz.command=gzip -cn',
 			'archive',
 			'--format=tar.gz',
 			'--prefix=package/',
 			`--mtime=@${identity.commitTime}`,
-			...virtualFiles,
-			`--add-virtual-file=${CONFIG_RECEIPT_PATH}:${configReceipt(identity, manifest.version)}`,
+			...contentArguments,
+			`--add-virtual-file=${CONFIG_RECEIPT_PATH}:${plan.receipt}`,
 			`--output=${destination}`,
 			`${identity.peeledCommit}:packages/config`,
 			'--',
-			'package.json',
+			...selectedFiles,
 		],
-		{ cwd: repositoryRoot, encoding: 'utf8' },
+		{
+			cwd: repositoryRoot,
+			encoding: 'utf8',
+			env: {
+				...process.env,
+				GIT_ATTR_NOSYSTEM: '1',
+			},
+			maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
+			timeout: GIT_ARCHIVE_TIMEOUT_MS,
+		},
 	);
-	if (archive.status !== 0) {
-		throw new Error(archive.stderr.trim() || `git archive exited ${archive.status ?? 1}`);
+	if (archive.error || archive.status !== 0 || archive.signal) {
+		const detail = archive.error?.message || archive.stderr.trim() ||
+			`git archive exited ${archive.status ?? 1}${archive.signal ? ` via ${archive.signal}` : ''}`;
+		throw new Error(detail);
 	}
+	return plan;
 }
 
-function tarOutput(archive: string, command: string, ...members: string[]): string {
-	const result = spawnSync('tar', [command, archive, ...members], { encoding: 'utf8' });
-	if (result.status !== 0) {
-		throw new Error(result.stderr.trim() || `tar exited ${result.status ?? 1}`);
-	}
-	return result.stdout;
+function readConfigArchive(path: string): Buffer {
+	return readStableFile(
+		guardExistingFile(path, 'config release archive'),
+		CONFIG_ARCHIVE_LIMITS.compressedBytes,
+		'config release archive compressed size limit is 8 MiB',
+	);
 }
 
-function sha256(archive: string): string {
-	return createHash('sha256').update(readFileSync(archive)).digest('hex');
+function sha256(bytes: Buffer): string {
+	return createHash('sha256').update(bytes).digest('hex');
 }
 
-function verifyChecksum(archive: string, tag: string): string {
+function verifyChecksum(archive: string, tag: string, archiveBytes: Buffer): string {
 	const checksumPath = `${archive}.sha256`;
 	if (!existsSync(checksumPath) || !lstatSync(checksumPath).isFile()) {
 		throw new Error(`config release checksum does not exist: ${checksumPath}`);
 	}
-	const expected = `${sha256(archive)}  ${configReleaseAssetName(tag)}\n`;
-	if (readFileSync(checksumPath, 'utf8') !== expected) {
+	const expected = `${sha256(archiveBytes)}  ${configReleaseAssetName(tag)}\n`;
+	const checksumBytes = readStableFile(
+		guardExistingFile(checksumPath, 'config release checksum'),
+		MAX_CHECKSUM_BYTES,
+		'config release checksum size limit is 256 bytes',
+	);
+	if (!checksumBytes.equals(Buffer.from(expected))) {
 		throw new Error('config release checksum does not match the artifact bytes');
 	}
 	return expected;
 }
 
 function verifyConfigBytes(
-	archive: string,
+	archiveBytes: Buffer,
 	tag: string,
 	identity: TagIdentity,
-	files: readonly string[],
+	plan: ConfigArchivePlan,
+	taggedManifest: Buffer,
 ): ConfigReleaseEvidence {
-	verifyChecksum(archive, tag);
-	const entries = tarOutput(archive, '-tzf').trim().split('\n');
-	const expectedEntries = [
-		'package/',
-		...files.map((path) => `package/${path}`),
-		CONFIG_RECEIPT_PATH,
-	];
-	if (JSON.stringify(entries) !== JSON.stringify(expectedEntries)) {
+	const parsed = parseConfigArchive(archiveBytes);
+	const entries = parsed.map((entry) => entry.path);
+	if (JSON.stringify(entries) !== JSON.stringify(plan.entries)) {
 		throw new Error('config release artifact contains files outside the package allowlist');
 	}
-	const manifest = JSON.parse(tarOutput(archive, '-xOzf', 'package/package.json')) as Record<
-		string,
-		unknown
-	>;
 	const version = parseConfigReleaseTag(tag);
-	if (manifest.name !== CONFIG_PACKAGE_NAME || manifest.version !== version) {
-		throw new Error('config release package identity does not match its tag');
+	const manifest = parsed.find((entry) => entry.path === 'package/package.json');
+	if (!manifest || manifest.type !== 'file' || !manifest.content.equals(taggedManifest)) {
+		throw new Error('config release package bytes do not match the exact tagged manifest');
 	}
-	const receipt = JSON.parse(tarOutput(archive, '-xOzf', CONFIG_RECEIPT_PATH)) as Record<
-		string,
-		unknown
-	>;
-	const expectedReceipt = JSON.parse(configReceipt(identity, version)) as Record<string, unknown>;
-	if (JSON.stringify(receipt) !== JSON.stringify(expectedReceipt)) {
+	const receipt = parsed.find((entry) => entry.path === CONFIG_RECEIPT_PATH);
+	if (
+		!receipt ||
+		receipt.type !== 'file' ||
+		!receipt.content.equals(Buffer.from(plan.receipt))
+	) {
 		throw new Error('config release receipt does not match the exact annotated tag');
 	}
-	const size = statSync(archive).size;
-	if (size <= 0 || size > MAX_CONFIG_ARCHIVE_BYTES) {
-		throw new Error('config release archive has an invalid size');
-	}
-	const digest = sha256(archive);
 	return {
 		schema: CONFIG_RECEIPT_SCHEMA,
 		repository: REPOSITORY_ID,
 		name: configReleaseAssetName(tag),
-		size,
-		digest: `sha256:${digest}`,
+		size: archiveBytes.length,
+		digest: `sha256:${sha256(archiveBytes)}`,
 		checksum: configReleaseChecksumName(tag),
 		package: { name: CONFIG_PACKAGE_NAME, version },
 		tag: {
@@ -322,18 +471,33 @@ export function buildConfigRelease(
 		options,
 		CONFIG_IDENTITY_CONTRACT,
 	);
-	const temporaryRoot = mkdtempSync(join(tmpdir(), 'yesid-config-release-build-'));
+	const temporaryRoot = realpathSync.native(
+		mkdtempSync(join(tmpdir(), 'yesid-config-release-build-')),
+	);
 	const temporaryArchive = join(temporaryRoot, configReleaseAssetName(options.tag));
 	try {
-		generateConfigArchive(repositoryRoot, identity, temporaryArchive);
-		const files = packageFiles(repositoryRoot, identity.peeledCommit);
-		const digest = sha256(temporaryArchive);
+		const plan = generateConfigArchive(repositoryRoot, identity, temporaryArchive);
+		const archiveBytes = readConfigArchive(temporaryArchive);
+		const digest = sha256(archiveBytes);
 		writeFileSync(
 			`${temporaryArchive}.sha256`,
 			`${digest}  ${configReleaseAssetName(options.tag)}\n`,
 			{ flag: 'wx' },
 		);
-		const evidence = verifyConfigBytes(temporaryArchive, options.tag, identity, files);
+		verifyChecksum(temporaryArchive, options.tag, archiveBytes);
+		const taggedManifest = taggedFileBytes(
+			repositoryRoot,
+			identity.peeledCommit,
+			CONFIG_MANIFEST_PATH,
+			MAX_CONFIG_MANIFEST_BYTES,
+		);
+		const evidence = verifyConfigBytes(
+			archiveBytes,
+			options.tag,
+			identity,
+			plan,
+			taggedManifest,
+		);
 		copyFileSync(temporaryArchive, output, constants.COPYFILE_EXCL);
 		try {
 			copyFileSync(`${temporaryArchive}.sha256`, checksum, constants.COPYFILE_EXCL);
@@ -355,25 +519,35 @@ export function verifyConfigRelease(
 	if (!existsSync(archive) || !lstatSync(archive).isFile()) {
 		throw new Error(`config release archive does not exist: ${archive}`);
 	}
+	const archiveBytes = readConfigArchive(archive);
+	verifyChecksum(archive, options.tag, archiveBytes);
 	const { repositoryRoot, identity } = resolveReleaseIdentity(
 		options,
 		CONFIG_IDENTITY_CONTRACT,
 	);
-	const expectedRoot = mkdtempSync(join(tmpdir(), 'yesid-config-release-verify-'));
+	const expectedRoot = realpathSync.native(
+		mkdtempSync(join(tmpdir(), 'yesid-config-release-verify-')),
+	);
 	const expected = join(expectedRoot, configReleaseAssetName(options.tag));
 	try {
-		generateConfigArchive(repositoryRoot, identity, expected);
-		const files = packageFiles(repositoryRoot, identity.peeledCommit);
-		writeFileSync(
-			`${expected}.sha256`,
-			`${sha256(expected)}  ${configReleaseAssetName(options.tag)}\n`,
-		);
-		const evidence = verifyConfigBytes(archive, options.tag, identity, files);
-		verifyConfigBytes(expected, options.tag, identity, files);
-		if (!readFileSync(archive).equals(readFileSync(expected))) {
+		const plan = generateConfigArchive(repositoryRoot, identity, expected);
+		const expectedBytes = readConfigArchive(expected);
+		if (!archiveBytes.equals(expectedBytes)) {
 			throw new Error('config release archive does not match the deterministic tagged package');
 		}
-		return evidence;
+		const taggedManifest = taggedFileBytes(
+			repositoryRoot,
+			identity.peeledCommit,
+			CONFIG_MANIFEST_PATH,
+			MAX_CONFIG_MANIFEST_BYTES,
+		);
+		return verifyConfigBytes(
+			archiveBytes,
+			options.tag,
+			identity,
+			plan,
+			taggedManifest,
+		);
 	} finally {
 		rmSync(expectedRoot, { recursive: true, force: true });
 	}

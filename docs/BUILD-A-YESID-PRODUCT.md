@@ -43,7 +43,7 @@ bun vendor/design/tools/adopt.ts --check --dest vendor/design
 rm -rf .yesid-design-bootstrap
 ```
 
-Production mode does not trust the checkout as payload. It verifies the fixed public repository identity, an exact published immutable Release, its one canonical asset and SHA-256 digest, the annotated tag object and peeled commit, and the receipt embedded in the bounded POSIX ustar archive. It then stages the selected runtime closure beside the destination, self-vendors the complete adoption tool, rewrites valid internal workspace links, writes the deterministic schema-2 manifest, and atomically swaps only after verification. It needs no GitHub token for the public repository.
+Production mode does not trust the checkout as payload. It verifies the fixed public repository identity, an exact published immutable Release, its one canonical asset and SHA-256 digest, the annotated tag object and peeled commit, and the receipt embedded in the bounded POSIX ustar archive. Structural and path validation completes before isolated temporary extraction; required payload checks then complete before adoption staging or installation. It stages the selected runtime closure beside the destination, self-vendors the complete adoption tool, and, from `v0.13.4` onward, carries the exact `LICENSE`, `NOTICE`, and `TRADEMARK.md` bytes. Earlier immutable tags retain their historical legal-file layout. The tool rewrites valid internal workspace links, writes the deterministic schema-2 manifest, and atomically swaps only after verification. It needs no GitHub token for the public repository.
 
 The bootstrap checkout supplies the acquisition tool, not the production
 payload. Default mode downloads the exact Release asset named for the requested
@@ -79,9 +79,10 @@ Add the vendored packages to the product's `package.json`:
 }
 ```
 
-Run `bun install`. Commit `vendor/design`, including `manifest.json`, the
-self-vendored `tools/adopt.ts` bundle, and `LICENSE`. Do not add the vendor
-directory to `.gitignore`.
+Run `bun install`. Commit `vendor/design`, including `manifest.json` and the
+self-vendored `tools/adopt.ts` bundle. For `v0.13.4` and later, this also includes `LICENSE`,
+`NOTICE`, and `TRADEMARK.md`; for an older immutable tag, commit the legal-file set that tag's
+historical archive installs. Do not add the vendor directory to `.gitignore`.
 
 ## 3. Generate the product token outputs
 
@@ -422,7 +423,8 @@ vendor/generated diff, and run the consumer's gates, tests, typecheck, build,
 and relevant browser checks. Commit the downgrade in its own pull request. If
 adoption exits non-zero, stop: the transaction either restored the last accepted
 tree or preserved explicit recovery evidence. Do not delete its lock, backup,
-stage, or tombstone paths until the tool output has been investigated.
+stage, tombstone, `.recovery-<token>.json`, or `.cleanup-<token>.json` paths until the tool output
+has been investigated.
 
 ### Re-upgrade
 

@@ -1,16 +1,19 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
+	chmodSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
 	rmSync,
 	statSync,
+	symlinkSync,
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { main } from '../../../tools/adopt.js';
@@ -24,9 +27,15 @@ import {
 } from '../../../tools/adopt/acquisition.js';
 
 const REPOSITORY_NUMERIC_ID = 1_303_136_912;
+const ADOPT_TOOL = fileURLToPath(new URL('../../../tools/adopt.ts', import.meta.url));
 const TAG = 'v1.2.3';
 const TAG_OBJECT = '0123456789abcdef0123456789abcdef01234567';
 const COMMIT = 'fedcba9876543210fedcba9876543210fedcba98';
+const LEGAL_FILES = [
+	['LICENSE', 'license\n'],
+	['NOTICE', 'notice\n'],
+	['TRADEMARK.md', 'trademark\n'],
+] as const;
 const scratch: string[] = [];
 
 function tempDir(): string {
@@ -40,6 +49,10 @@ function write(path: string, content: string): void {
 	writeFileSync(path, content, 'utf8');
 }
 
+function linkDirectory(target: string, path: string): void {
+	symlinkSync(target, path, process.platform === 'win32' ? 'junction' : 'dir');
+}
+
 function git(root: string, ...args: string[]): string {
 	const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
 	if (result.status !== 0) throw new Error(result.stderr || result.stdout);
@@ -47,10 +60,11 @@ function git(root: string, ...args: string[]): string {
 }
 
 function makeTaggedWorktree(root: string): { tagObject: string; commit: string } {
-	write(join(root, 'LICENSE'), 'license\n');
+	for (const [name, content] of LEGAL_FILES) write(join(root, name), content);
 	write(join(root, 'tools', 'adopt.ts'), 'export {};\n');
 	write(join(root, 'tools', 'adopt', 'contract.ts'), 'export {};\n');
 	write(join(root, 'packages', 'tokens', 'package.json'), '{"name":"@yesid/tokens"}\n');
+	write(join(root, 'packages', 'tokens', 'value.txt'), 'original\n');
 	git(root, 'init', '-q');
 	git(root, 'config', 'user.name', 'Test');
 	git(root, 'config', 'user.email', 'test@example.com');
@@ -97,6 +111,7 @@ function archiveFixture(
 	tagObject = TAG_OBJECT,
 	commit = COMMIT,
 	extra: ReadonlyArray<{ path: string; content: string; type?: '0' | '2' | '5' }> = [],
+	omitLegal?: string,
 ): Buffer {
 	const root = `yesid.dev-design-${tag}`;
 	const receipt = JSON.stringify({
@@ -106,7 +121,10 @@ function archiveFixture(
 	});
 	return tar([
 		{ path: `${root}/.yesid-release.json`, content: `${receipt}\n` },
-		{ path: `${root}/LICENSE`, content: 'license\n' },
+		...LEGAL_FILES.filter(([name]) => name !== omitLegal).map(([name, content]) => ({
+			path: `${root}/${name}`,
+			content,
+		})),
 		{ path: `${root}/tools/adopt.ts`, content: 'export {};\n' },
 		{ path: `${root}/tools/adopt/contract.ts`, content: 'export {};\n' },
 		{
@@ -218,7 +236,9 @@ describe('worktree acquisition', () => {
 
 		const acquired = acquireWorktree(root, TAG);
 		try {
-			expect(readFileSync(join(acquired.source, 'LICENSE'), 'utf8')).toBe('license\n');
+			for (const [name, content] of LEGAL_FILES) {
+				expect(readFileSync(join(acquired.source, name), 'utf8')).toBe(content);
+			}
 		} finally {
 			close(acquired);
 		}
@@ -236,6 +256,120 @@ describe('worktree acquisition', () => {
 		}
 	});
 
+	it('ignores local Git replacement refs when snapshotting the captured tag', () => {
+		const root = tempDir();
+		const expected = makeTaggedWorktree(root);
+		write(join(root, 'packages', 'tokens', 'value.txt'), 'replacement\n');
+		git(root, 'add', 'packages/tokens/value.txt');
+		git(root, 'commit', '-qm', 'replacement tree');
+		const replacement = git(root, 'rev-parse', 'HEAD');
+		git(root, 'checkout', '-q', '--detach', expected.commit);
+		git(root, 'replace', expected.commit, replacement);
+
+		const acquired = acquireWorktree(root, TAG);
+		try {
+			expect(readFileSync(join(acquired.source, 'packages', 'tokens', 'value.txt'), 'utf8')).toBe(
+				'original\n',
+			);
+		} finally {
+			close(acquired);
+		}
+	});
+
+	it.skipIf(process.platform === 'win32')('does not execute a repository-configured fsmonitor', () => {
+		const root = tempDir();
+		makeTaggedWorktree(root);
+		const marker = join(root, '.git', 'fsmonitor-executed');
+		const monitor = join(root, '.git', 'hostile-fsmonitor.sh');
+		write(monitor, `#!/bin/sh\nprintf executed > ${JSON.stringify(marker)}\nprintf '\\n'\n`);
+		chmodSync(monitor, 0o755);
+		git(root, 'config', 'core.fsmonitor', monitor);
+
+		const acquired = acquireWorktree(root, TAG);
+		close(acquired);
+		expect(existsSync(marker)).toBe(false);
+	});
+
+	it.skipIf(process.platform === 'win32')('does not execute a configured clean filter during status', () => {
+		const root = tempDir();
+		makeTaggedWorktree(root);
+		git(root, 'tag', '-d', TAG);
+		write(join(root, '.gitattributes'), 'packages/tokens/value.txt filter=evil\n');
+		git(root, 'add', '.gitattributes');
+		git(root, 'commit', '--amend', '-qm', 'fixture with attributes');
+		git(root, 'tag', '-a', TAG, '-m', TAG);
+		const marker = join(root, '.git', 'clean-filter-executed');
+		const filter = join(root, '.git', 'hostile-clean-filter.sh');
+		write(filter, `#!/bin/sh\ncat\nprintf executed > ${JSON.stringify(marker)}\n`);
+		chmodSync(filter, 0o755);
+		git(root, 'config', 'filter.evil.clean', filter);
+		write(join(root, 'packages', 'tokens', 'value.txt'), 'dirty\n');
+
+		expect(() => acquireWorktree(root, TAG)).toThrow(/clean worktree/iu);
+		expect(existsSync(marker)).toBe(false);
+	});
+
+	it.skipIf(process.platform === 'win32')('neutralizes a worktree-scoped clean filter during status', () => {
+		const root = tempDir();
+		makeTaggedWorktree(root);
+		git(root, 'tag', '-d', TAG);
+		write(join(root, '.gitattributes'), 'packages/tokens/value.txt filter=evil\n');
+		git(root, 'add', '.gitattributes');
+		git(root, 'commit', '--amend', '-qm', 'fixture with attributes');
+		git(root, 'tag', '-a', TAG, '-m', TAG);
+		const marker = join(root, '.git', 'worktree-clean-filter-executed');
+		const filter = join(root, '.git', 'hostile-worktree-filter.sh');
+		write(filter, `#!/bin/sh\ncat\nprintf executed > ${JSON.stringify(marker)}\n`);
+		chmodSync(filter, 0o755);
+		git(root, 'config', 'extensions.worktreeConfig', 'true');
+		git(root, 'config', '--worktree', 'filter.evil.clean', filter);
+		write(join(root, 'packages', 'tokens', 'value.txt'), 'dirty\n');
+
+		expect(() => acquireWorktree(root, TAG)).toThrow(/clean worktree/iu);
+		expect(existsSync(marker)).toBe(false);
+	});
+
+	it('allows unused global Git LFS filters without executing them', () => {
+		const root = tempDir();
+		makeTaggedWorktree(root);
+		const globalConfig = join(tempDir(), 'global.gitconfig');
+		write(
+			globalConfig,
+			'[filter "lfs"]\n\tclean = git-lfs clean -- %f\n\tprocess = git-lfs filter-process\n\trequired = true\n',
+		);
+		const dest = join(tempDir(), 'vendor', 'design');
+		const adopted = spawnSync(
+			'bun',
+			[
+				ADOPT_TOOL,
+				'--tag',
+				TAG,
+				'--packages',
+				'tokens',
+				'--dest',
+				dest,
+				'--source',
+				root,
+			],
+			{ encoding: 'utf8', env: { ...process.env, GIT_CONFIG_GLOBAL: globalConfig } },
+		);
+
+		expect(adopted.status, `${adopted.stdout}\n${adopted.stderr}`).toBe(0);
+		expect(existsSync(join(dest, 'manifest.json'))).toBe(true);
+	});
+
+	it.each(['info/attributes', 'info/grafts'])(
+		'refuses nonempty worktree-local Git override %s',
+		(relative) => {
+			const root = tempDir();
+			makeTaggedWorktree(root);
+			const gitPath = git(root, 'rev-parse', '--git-path', relative);
+			write(isAbsolute(gitPath) ? gitPath : join(root, gitPath), 'local override\n');
+
+			expect(() => acquireWorktree(root, TAG)).toThrow(/refuses local Git override/iu);
+		},
+	);
+
 	it('rejects a dirty or lightweight-tagged worktree', () => {
 		const dirty = tempDir();
 		makeTaggedWorktree(dirty);
@@ -248,9 +382,53 @@ describe('worktree acquisition', () => {
 		git(lightweight, 'tag', TAG);
 		expect(() => acquireWorktree(lightweight, TAG)).toThrow(/annotated tag/i);
 	});
+
+	it('rejects a symbolic-link worktree source alias', () => {
+		const root = tempDir();
+		const source = join(root, 'source');
+		const alias = join(root, 'source-alias');
+		mkdirSync(source);
+		makeTaggedWorktree(source);
+		linkDirectory(source, alias);
+
+		expect(() => acquireWorktree(alias, TAG)).toThrow(/worktree source.*refusing symbolic link/iu);
+	});
 });
 
 describe('archive acquisition', () => {
+	it.skipIf(process.platform === 'win32')(
+		'canonicalizes its owned temporary source beneath a linked system temp path',
+		() => {
+			const root = tempDir();
+			const actualTemp = join(root, 'actual-temp');
+			const linkedTemp = join(root, 'linked-temp');
+			mkdirSync(actualTemp);
+			linkDirectory(actualTemp, linkedTemp);
+			const archive = join(root, 'release.tar');
+			writeFileSync(archive, archiveFixture());
+			const dest = join(root, 'vendor', 'design');
+
+			const adopted = spawnSync(
+				'bun',
+				[
+					ADOPT_TOOL,
+					'--tag',
+					TAG,
+					'--packages',
+					'tokens',
+					'--dest',
+					dest,
+					'--archive',
+					archive,
+				],
+				{ encoding: 'utf8', env: { ...process.env, TMPDIR: linkedTemp } },
+			);
+
+			expect(adopted.status, `${adopted.stdout}\n${adopted.stderr}`).toBe(0);
+			expect(existsSync(join(dest, 'manifest.json'))).toBe(true);
+		},
+	);
+
 	it('extracts a bounded regular-file archive with an embedded receipt', () => {
 		const root = tempDir();
 		const path = join(root, 'release.tar');
@@ -268,6 +446,34 @@ describe('archive acquisition', () => {
 		}
 	});
 
+	it.each(LEGAL_FILES)('rejects an archive missing required legal file %s', (name) => {
+		const root = tempDir();
+		const path = join(root, 'missing-legal.tar');
+		writeFileSync(path, archiveFixture(TAG, TAG_OBJECT, COMMIT, [], name));
+
+		expect(() => acquireArchive(path, TAG)).toThrow(
+			new RegExp(`missing required path ${name.replace('.', '\\.')}`, 'u'),
+		);
+	});
+
+	it('requires legal archive entries to be regular files', () => {
+		const root = tempDir();
+		const path = join(root, 'legal-directory.tar');
+		const archiveRoot = `yesid.dev-design-${TAG}`;
+		writeFileSync(
+			path,
+			archiveFixture(
+				TAG,
+				TAG_OBJECT,
+				COMMIT,
+				[{ path: `${archiveRoot}/NOTICE/`, content: '', type: '5' }],
+				'NOTICE',
+			),
+		);
+
+		expect(() => acquireArchive(path, TAG)).toThrow(/required path NOTICE.*regular file/iu);
+	});
+
 	it.each([
 		['traversal', [{ path: `yesid.dev-design-${TAG}/../escape`, content: 'bad' }]],
 		['link', [{ path: `yesid.dev-design-${TAG}/link`, content: '', type: '2' as const }]],
@@ -276,6 +482,31 @@ describe('archive acquisition', () => {
 		const path = join(root, 'bad.tar');
 		writeFileSync(path, archiveFixture(TAG, TAG_OBJECT, COMMIT, entries));
 		expect(() => acquireArchive(path, TAG)).toThrow(/unsafe archive/i);
+	});
+
+	it.skipIf(process.platform === 'win32')('rejects existing and broken archive source links', () => {
+		for (const broken of [false, true]) {
+			const root = tempDir();
+			const target = join(root, broken ? 'missing.tar' : 'release.tar');
+			const alias = join(root, `release-${broken ? 'broken' : 'linked'}.tar`);
+			if (!broken) writeFileSync(target, archiveFixture());
+			symlinkSync(target, alias);
+
+			expect(() => acquireArchive(alias, TAG)).toThrow(/archive source.*refusing symbolic link/iu);
+		}
+	});
+
+	it('rejects a linked archive source parent on every supported platform', () => {
+		const root = tempDir();
+		const actual = join(root, 'actual');
+		const alias = join(root, 'alias');
+		mkdirSync(actual);
+		writeFileSync(join(actual, 'release.tar'), archiveFixture());
+		linkDirectory(actual, alias);
+
+		expect(() => acquireArchive(join(alias, 'release.tar'), TAG)).toThrow(
+			/archive source.*refusing symbolic link/iu,
+		);
 	});
 
 	it('accepts canonical POSIX ustar root and directory entries with trailing slashes', () => {
@@ -297,6 +528,8 @@ describe('archive acquisition', () => {
 	it.each([
 		['alternate data stream', `yesid.dev-design-${TAG}/tokens.json:secret`],
 		['reserved device name', `yesid.dev-design-${TAG}/CON.json`],
+		['console-input device name', `yesid.dev-design-${TAG}/CONIN$.json`],
+		['console-output device name', `yesid.dev-design-${TAG}/CONOUT$`],
 		['trailing dot', `yesid.dev-design-${TAG}/tokens.`],
 		['trailing space', `yesid.dev-design-${TAG}/tokens `],
 	])('rejects Win32 %s path hazards', (_label, unsafePath) => {

@@ -63,8 +63,10 @@ bun run config:release:build -- --tag config-vX.Y.Z --output <outside-repository
 ```
 
 Unsupported compiler/runtime versions, source drift, an unallowlisted file, a mismatched tag,
-checksum drift, or a non-deterministic archive fails the config contracts. Consumers keep their
-current exact asset until a corrected immutable release exists.
+checksum drift, a non-deterministic archive, or a compressed, expanded, member, payload, entry, or
+command-output limit breach fails the config contracts. Artifact bytes are bounded and compared with
+the deterministic tagged package before archive members are parsed. Consumers keep their current
+exact asset until a corrected immutable release exists.
 
 Config bytes, compatibility text, or exports use the independent `.config-changes` and
 `config-vX.Y.Z` process in [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/config-v0.2.1/RELEASING.md). They never force a coordinated

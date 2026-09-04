@@ -1,32 +1,34 @@
 import { spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import {
-	constants,
-	copyFileSync,
+	closeSync,
 	existsSync,
+	fsyncSync,
 	lstatSync,
 	mkdirSync,
 	mkdtempSync,
-	readFileSync,
+	openSync,
 	realpathSync,
 	rmSync,
-	statSync,
+	writeSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { acquireArchive } from './adopt/acquisition.js';
+import { acquireArchiveBytes } from './adopt/acquisition.js';
 import {
 	REPOSITORY_ID,
+	REQUIRED_LEGAL_FILES,
 	assertTag,
 	pathInside,
+	requiresCompleteLegalBundle,
 	type TagIdentity,
 } from './adopt/contract.js';
+import { guardExistingFile, readStableFile } from './adopt/path-safety.js';
 import {
 	DEFAULT_MAIN_REF,
 	canonicalRepositoryRoot,
-	git,
 	readManifestAt,
 	resolveReleaseIdentity,
 	runGit,
@@ -44,12 +46,14 @@ const RELEASED_PACKAGES = [
 	'i18n-core',
 ] as const;
 const RELEASE_PATHS = [
-	'LICENSE',
 	'tools/adopt.ts',
 	'tools/adopt',
 	...RELEASED_PACKAGES.map((name) => `packages/${name}`),
 ] as const;
 const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
+const GIT_ARCHIVE_TIMEOUT_MS = 30_000;
+const MAX_COMMAND_OUTPUT_BYTES = 64 * 1024;
+const EMPTY_GIT_CONFIG = process.platform === 'win32' ? 'NUL' : '/dev/null';
 
 export interface ReleaseArchiveOptions {
 	repositoryRoot: string;
@@ -98,6 +102,25 @@ function assertReleaseVersions(repositoryRoot: string, tag: string, commit: stri
 
 const RELEASE_IDENTITY_CONTRACT = { assertTag, assertVersions: assertReleaseVersions } as const;
 
+function releaseLegalFiles(repositoryRoot: string, tag: string, commit: string): string[] {
+	const trackedLegalFile = (name: string, required: boolean): boolean => {
+		const entry = runGit(repositoryRoot, ['ls-tree', commit, '--', name]);
+		if (entry === '' && !required) return false;
+		if (!entry.startsWith('100644 blob ') || !entry.endsWith(`\t${name}`) || entry.includes('\n')) {
+			throw new Error(`required legal file ${name} must be one tracked regular file`);
+		}
+		return true;
+	};
+	if (!requiresCompleteLegalBundle(tag)) {
+		trackedLegalFile('LICENSE', true);
+		const legacy = ['LICENSE'];
+		if (trackedLegalFile('NOTICE', false)) legacy.push('NOTICE');
+		return legacy;
+	}
+	for (const name of REQUIRED_LEGAL_FILES) trackedLegalFile(name, true);
+	return [...REQUIRED_LEGAL_FILES];
+}
+
 export function releaseAssetName(tag: string): string {
 	assertTag(tag);
 	return `yesid.dev-design-${tag}.tar`;
@@ -130,10 +153,10 @@ function receipt(identity: TagIdentity): string {
 
 function verifyBytes(
 	tag: string,
-	archive: string,
+	archive: Buffer,
 	identity: TagIdentity,
 ): ReleaseArchiveEvidence {
-	const acquired = acquireArchive(archive, tag);
+	const acquired = acquireArchiveBytes(archive, tag);
 	try {
 		if (
 			acquired.provenance.tag.name !== identity.name ||
@@ -145,22 +168,52 @@ function verifyBytes(
 	} finally {
 		acquired.cleanup();
 	}
-	const size = statSync(archive).size;
-	if (size <= 0 || size > MAX_ARCHIVE_BYTES) {
-		throw new Error(`release archive has an invalid size`);
-	}
 	return {
 		schema: RELEASE_RECEIPT_SCHEMA,
 		repository: REPOSITORY_ID,
 		name: releaseAssetName(tag),
-		size,
-		digest: `sha256:${createHash('sha256').update(readFileSync(archive)).digest('hex')}`,
+		size: archive.length,
+		digest: `sha256:${createHash('sha256').update(archive).digest('hex')}`,
 		tag: {
 			name: identity.name,
 			object: identity.object,
 			peeledCommit: identity.peeledCommit,
 		},
 	};
+}
+
+function readArchiveBytes(path: string, label: string): Buffer {
+	return readStableFile(
+		guardExistingFile(path, label),
+		MAX_ARCHIVE_BYTES,
+		'release archive has an invalid size',
+	);
+}
+
+function syncDirectory(path: string): void {
+	if (process.platform === 'win32') return;
+	const descriptor = openSync(path, 'r');
+	try {
+		fsyncSync(descriptor);
+	} finally {
+		closeSync(descriptor);
+	}
+}
+
+function writeArchiveExclusive(path: string, bytes: Buffer): void {
+	const descriptor = openSync(path, 'wx', 0o644);
+	try {
+		let offset = 0;
+		while (offset < bytes.length) {
+			const written = writeSync(descriptor, bytes, offset, bytes.length - offset, null);
+			if (written === 0) throw new Error('release archive write made no progress');
+			offset += written;
+		}
+		fsyncSync(descriptor);
+	} finally {
+		closeSync(descriptor);
+	}
+	syncDirectory(dirname(path));
 }
 
 function generateDeterministicArchive(
@@ -179,14 +232,22 @@ function generateDeterministicArchive(
 	if (existingReceipt !== '') {
 		throw new Error(`.yesid-release.json is reserved for the release archive builder`);
 	}
+	const legalFiles = releaseLegalFiles(repositoryRoot, tag, identity.peeledCommit);
 	const rootName = `yesid.dev-design-${tag}`;
-	const releasePaths = [...RELEASE_PATHS];
-	if (git(repositoryRoot, ['cat-file', '-e', `${identity.peeledCommit}:NOTICE`]).status === 0) {
-		releasePaths.splice(1, 0, 'NOTICE');
-	}
 	const archive = spawnSync(
 		'git',
 		[
+			'--no-replace-objects',
+			'-c',
+			'core.fsmonitor=false',
+			'-c',
+			'core.hooksPath=',
+			'-c',
+			`core.attributesFile=${EMPTY_GIT_CONFIG}`,
+			'-c',
+			'core.autocrlf=false',
+			'-c',
+			'core.eol=lf',
 			'-c',
 			'tar.umask=0002',
 			'archive',
@@ -197,12 +258,25 @@ function generateDeterministicArchive(
 			`--output=${destination}`,
 			`${identity.peeledCommit}^{tree}`,
 			'--',
-			...releasePaths,
+			...legalFiles,
+			...RELEASE_PATHS,
 		],
-		{ cwd: repositoryRoot, encoding: 'utf8' },
+		{
+			cwd: repositoryRoot,
+			encoding: 'utf8',
+			env: {
+				...process.env,
+				GIT_ATTR_NOSYSTEM: '1',
+			},
+			maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
+			timeout: GIT_ARCHIVE_TIMEOUT_MS,
+		},
 	);
-	if (archive.status !== 0) {
-		throw new Error(archive.stderr.trim() || `git archive exited ${archive.status ?? 1}`);
+	if (archive.error || archive.status !== 0 || archive.signal) {
+		throw new Error(
+			archive.error?.message || archive.stderr.trim() ||
+				`git archive exited ${archive.status ?? 1}${archive.signal ? ` via ${archive.signal}` : ''}`,
+		);
 	}
 }
 
@@ -218,9 +292,10 @@ export function buildReleaseArchive(options: BuildReleaseArchiveOptions): Releas
 	const temporary = join(dirname(output), `.${basename(output)}.${process.pid}.${randomUUID()}.tmp`);
 	try {
 		generateDeterministicArchive(repositoryRoot, options.tag, identity, temporary);
-		const evidence = verifyBytes(options.tag, temporary, identity);
+		const archiveBytes = readArchiveBytes(temporary, 'generated release archive');
+		const evidence = verifyBytes(options.tag, archiveBytes, identity);
 		try {
-			copyFileSync(temporary, output, constants.COPYFILE_EXCL);
+			writeArchiveExclusive(output, archiveBytes);
 		} catch (error) {
 			if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
 				throw new Error(`release archive output already exists: ${output}`, { cause: error });
@@ -244,19 +319,18 @@ export function verifyReleaseArchive(options: VerifyReleaseArchiveOptions): Rele
 		RELEASE_IDENTITY_CONTRACT,
 	);
 	const expectedRoot = mkdtempSync(join(tmpdir(), 'yesid-release-verify-'));
-	const expectedArchive = join(expectedRoot, releaseAssetName(options.tag));
+	const canonicalExpectedRoot = realpathSync.native(expectedRoot);
+	const expectedArchive = join(canonicalExpectedRoot, releaseAssetName(options.tag));
 	try {
 		generateDeterministicArchive(repositoryRoot, options.tag, identity, expectedArchive);
-		const actualEvidence = verifyBytes(options.tag, archive, identity);
-		verifyBytes(options.tag, expectedArchive, identity);
-		const actualBytes = readFileSync(archive);
-		const expectedBytes = readFileSync(expectedArchive);
+		const actualBytes = readArchiveBytes(archive, 'release archive');
+		const expectedBytes = readArchiveBytes(expectedArchive, 'generated release archive');
 		if (!actualBytes.equals(expectedBytes)) {
 			throw new Error(`release archive does not match the deterministic tagged tree`);
 		}
-		return actualEvidence;
+		return verifyBytes(options.tag, actualBytes, identity);
 	} finally {
-		rmSync(expectedRoot, { recursive: true, force: true });
+		rmSync(canonicalExpectedRoot, { recursive: true, force: true });
 	}
 }
 

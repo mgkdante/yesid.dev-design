@@ -9,7 +9,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -22,6 +22,11 @@ import {
 const TAG = 'v1.2.3-rc.1';
 const VERSION = '1.2.3-rc.1';
 const ADOPT_TOOL = fileURLToPath(new URL('../../../tools/adopt.ts', import.meta.url));
+const LEGAL_FILES = [
+	['LICENSE', 'MIT\n'],
+	['NOTICE', 'third-party notice\n'],
+	['TRADEMARK.md', 'trademark notice\n'],
+] as const;
 const scratch: string[] = [];
 
 function tempDir(prefix = 'yesid-release-test-'): string {
@@ -45,38 +50,47 @@ function manifest(name: string, version = VERSION): string {
 	return `${JSON.stringify({ name, version }, null, '\t')}\n`;
 }
 
-function repository(options: { lightweight?: boolean; version?: string } = {}): {
+function repository(options: {
+	lightweight?: boolean;
+	version?: string;
+	omitLegal?: string;
+	tag?: string;
+} = {}): {
 	root: string;
 	tagObject: string;
 	peeledCommit: string;
 	commitTime: number;
 } {
+	const tag = options.tag ?? TAG;
+	const version = options.version ?? (tag === TAG ? VERSION : tag.slice(1));
 	const root = join(tempDir(), 'repository');
 	mkdirSync(root);
 	git(root, 'init', '-q', '-b', 'main');
 	git(root, 'config', 'user.name', 'Release Test');
 	git(root, 'config', 'user.email', 'release-test@example.com');
-	write(join(root, 'package.json'), manifest('yesid-dev-design', options.version));
-	write(join(root, 'LICENSE'), 'MIT\n');
+	write(join(root, 'package.json'), manifest('yesid-dev-design', version));
+	for (const [name, content] of LEGAL_FILES) {
+		if (name !== options.omitLegal) write(join(root, name), content);
+	}
 	write(join(root, 'README.md'), 'repository-only documentation\n');
 	write(join(root, 'tools', 'adopt.ts'), 'export {};\n');
 	write(join(root, 'tools', 'adopt', 'contract.ts'), 'export {};\n');
 	for (const name of ['tokens', 'motion', 'gates', 'seo-kit', 'ui', 'analytics', 'i18n-core']) {
-		write(join(root, 'packages', name, 'package.json'), manifest(`@yesid/${name}`, options.version));
+		write(join(root, 'packages', name, 'package.json'), manifest(`@yesid/${name}`, version));
 		write(join(root, 'packages', name, 'src', 'index.ts'), `export const name = '${name}';\n`);
 	}
 	write(join(root, 'packages', 'config', 'package.json'), manifest('@yesid/config', '0.1.0'));
 	write(join(root, 'packages', 'config', '.env'), 'DO_NOT_SHIP=secret\n');
 	git(root, 'add', '.');
 	git(root, 'commit', '-qm', 'release fixture');
-	if (options.lightweight) git(root, 'tag', TAG);
-	else git(root, 'tag', '-a', TAG, '-m', TAG);
+	if (options.lightweight) git(root, 'tag', tag);
+	else git(root, 'tag', '-a', tag, '-m', tag);
 	git(root, 'update-ref', 'refs/remotes/origin/main', 'HEAD');
 	return {
 		root,
-		tagObject: git(root, 'rev-parse', `refs/tags/${TAG}`),
-		peeledCommit: git(root, 'rev-parse', `refs/tags/${TAG}^{commit}`),
-		commitTime: Number(git(root, 'show', '-s', '--format=%ct', `refs/tags/${TAG}^{commit}`)),
+		tagObject: git(root, 'rev-parse', `refs/tags/${tag}`),
+		peeledCommit: git(root, 'rev-parse', `refs/tags/${tag}^{commit}`),
+		commitTime: Number(git(root, 'show', '-s', '--format=%ct', `refs/tags/${tag}^{commit}`)),
 	};
 }
 
@@ -176,6 +190,11 @@ describe('immutable release archive', () => {
 		expect(entries.some((entry) => entry.includes('/packages/config/'))).toBe(false);
 		expect(entries.some((entry) => entry.endsWith('/README.md'))).toBe(false);
 		expect(entries.filter((entry) => entry.endsWith('/.yesid-release.json'))).toHaveLength(1);
+		for (const [name, content] of LEGAL_FILES) {
+			const entry = `yesid.dev-design-${TAG}/${name}`;
+			expect(entries.filter((candidate) => candidate === entry)).toHaveLength(1);
+			expect(tar(firstRoot, '-xOf', firstPath, entry)).toBe(content);
+		}
 		expect(tarMtimes(readFileSync(firstPath))).not.toHaveLength(0);
 		expect(tarMtimes(readFileSync(firstPath)).every((mtime) => mtime === source.commitTime)).toBe(
 			true,
@@ -225,6 +244,106 @@ describe('immutable release archive', () => {
 			encoding: 'utf8',
 		});
 		expect(checked.status, `${checked.stdout}\n${checked.stderr}`).toBe(0);
+		for (const [name, content] of LEGAL_FILES) {
+			expect(readFileSync(join(adoption, name), 'utf8')).toBe(content);
+		}
+	});
+
+	it.each(LEGAL_FILES)('refuses to build without required legal file %s', (name) => {
+		const source = repository({ omitLegal: name });
+		const output = join(tempDir(), releaseAssetName(TAG));
+
+		expect(() =>
+			buildReleaseArchive({ repositoryRoot: source.root, tag: TAG, output }),
+		).toThrow(new RegExp(`required legal file ${name.replace('.', '\\.')}`, 'u'));
+		expect(existsSync(output)).toBe(false);
+	});
+
+	it('preserves the pre-v0.13.4 legal bundle while verifying immutable historical assets', () => {
+		const tag = 'v0.13.3';
+		const source = repository({ tag });
+		const root = tempDir();
+		const output = join(root, releaseAssetName(tag));
+
+		const built = buildReleaseArchive({ repositoryRoot: source.root, tag, output });
+		const entries = tar(root, '-tf', output).trim().split('\n');
+		expect(entries).toContain(`yesid.dev-design-${tag}/LICENSE`);
+		expect(entries).toContain(`yesid.dev-design-${tag}/NOTICE`);
+		expect(entries).not.toContain(`yesid.dev-design-${tag}/TRADEMARK.md`);
+		expect(verifyReleaseArchive({ repositoryRoot: source.root, tag, archive: output })).toEqual(
+			built,
+		);
+
+		const adoption = join(tempDir(), 'vendor', 'design');
+		const adopted = spawnSync(
+			'bun',
+			[
+				ADOPT_TOOL,
+				'--tag',
+				tag,
+				'--packages',
+				'tokens',
+				'--dest',
+				adoption,
+				'--archive',
+				output,
+			],
+			{ encoding: 'utf8' },
+		);
+		expect(adopted.status, `${adopted.stdout}\n${adopted.stderr}`).toBe(0);
+		expect(readFileSync(join(adoption, 'LICENSE'), 'utf8')).toBe('MIT\n');
+		expect(existsSync(join(adoption, 'NOTICE'))).toBe(false);
+		expect(existsSync(join(adoption, 'TRADEMARK.md'))).toBe(false);
+	});
+
+	it('ignores local Git replacement refs when building the exact tagged tree', () => {
+		const source = repository();
+		write(
+			join(source.root, 'packages', 'tokens', 'src', 'index.ts'),
+			"export const name = 'replacement';\n",
+		);
+		git(source.root, 'add', 'packages/tokens/src/index.ts');
+		git(source.root, 'commit', '-qm', 'replacement tree');
+		const replacement = git(source.root, 'rev-parse', 'HEAD');
+		git(source.root, 'replace', source.peeledCommit, replacement);
+		const root = tempDir();
+		const output = join(root, releaseAssetName(TAG));
+
+		buildReleaseArchive({ repositoryRoot: source.root, tag: TAG, output });
+		expect(
+			tar(
+				root,
+				'-xOf',
+				output,
+				`yesid.dev-design-${TAG}/packages/tokens/src/index.ts`,
+			),
+		).toBe("export const name = 'tokens';\n");
+	});
+
+	it.each(['info/attributes', 'info/grafts'])(
+		'refuses nonempty local Git override %s',
+		(relative) => {
+			const source = repository();
+			const gitPath = git(source.root, 'rev-parse', '--git-path', relative);
+			write(isAbsolute(gitPath) ? gitPath : join(source.root, gitPath), 'local override\n');
+			const output = join(tempDir(), releaseAssetName(TAG));
+
+			expect(() =>
+				buildReleaseArchive({ repositoryRoot: source.root, tag: TAG, output }),
+			).toThrow(/refuses local Git override/iu);
+			expect(existsSync(output)).toBe(false);
+		},
+	);
+
+	it('allows an unused local clean filter without executing it', () => {
+		const source = repository();
+		git(source.root, 'config', 'filter.evil.clean', 'false');
+		const output = join(tempDir(), releaseAssetName(TAG));
+
+		expect(() =>
+			buildReleaseArchive({ repositoryRoot: source.root, tag: TAG, output }),
+		).not.toThrow();
+		expect(existsSync(output)).toBe(true);
 	});
 
 	it('fails closed before writing for dirty, lightweight, or version-mismatched trust roots', () => {
