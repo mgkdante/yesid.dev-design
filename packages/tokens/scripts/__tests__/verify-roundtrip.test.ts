@@ -9,6 +9,8 @@ import { buildVariables } from '../push-to-figma.ts';
 
 const packageRoot = resolve(import.meta.dirname, '../..');
 const temporaryDirectories: string[] = [];
+const terminalControls =
+  /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/u;
 
 function temporaryPath(name: string): string {
   const directory = mkdtempSync(join(tmpdir(), 'yesid-roundtrip-'));
@@ -17,10 +19,10 @@ function temporaryPath(name: string): string {
 }
 
 function run(snapshotPath: string) {
-	return spawnSync('bun', ['run', 'figma:verify', '--', snapshotPath], {
-		cwd: packageRoot,
-		encoding: 'utf8',
-	});
+  return spawnSync('bun', ['run', 'figma:verify', '--', snapshotPath], {
+    cwd: packageRoot,
+    encoding: 'utf8',
+  });
 }
 
 afterEach(() => {
@@ -45,11 +47,11 @@ describe('verify-roundtrip CLI', () => {
     expect(result.stderr).toContain('OK: 161 variables in parity');
   });
 
-	it('returns 1 and reports VALUE_DRIFT for a mutated value', () => {
-		const variables = buildVariables(parseTokens(tokens));
-		const nav = variables.find((variable) => variable.name === 'z/nav');
-		if (!nav) throw new Error('canonical fixture is missing z/nav');
-		nav.values.default = 71;
+  it('returns 1 and reports VALUE_DRIFT for a mutated value', () => {
+    const variables = buildVariables(parseTokens(tokens));
+    const nav = variables.find((variable) => variable.name === 'z/nav');
+    if (!nav) throw new Error('canonical fixture is missing z/nav');
+    nav.values.default = 71;
     const snapshotPath = temporaryPath('mutated.json');
     writeFileSync(snapshotPath, `${JSON.stringify(variables, null, 2)}\n`);
 
@@ -57,9 +59,9 @@ describe('verify-roundtrip CLI', () => {
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-		expect(result.stderr).toContain(
-			'VALUE_DRIFT z/nav mode=default expected=70 actual=71',
-		);
+    expect(result.stderr).toContain(
+      'VALUE_DRIFT z/nav mode=default expected=70 actual=71',
+    );
   });
 
   it('returns 2 with a tool-neutral error when the snapshot is missing', () => {
@@ -70,9 +72,60 @@ describe('verify-roundtrip CLI', () => {
     expect(result.status).toBe(2);
     expect(result.stdout).toBe('');
     expect(result.stderr).toContain(`cannot read snapshot ${missingPath}`);
-		expect(result.stderr).toContain('Operator contract:');
-		expect(result.stderr).toContain('After owner approval, import it using any compatible workflow.');
-		expect(result.stderr).toContain('This verifier only reads exported state; it never writes remotely.');
-		expect(result.stderr).not.toMatch(/Task 3\.5|orchestrator|MCP|use_figma/i);
-	});
+    expect(result.stderr).toContain('Operator contract:');
+    expect(result.stderr).toContain('After owner approval, import it using any compatible workflow.');
+    expect(result.stderr).toContain('This verifier only reads exported state; it never writes remotely.');
+    expect(result.stderr).not.toMatch(/Task 3\.5|orchestrator|MCP|use_figma/i);
+  });
+
+  it.each([
+    [
+      'unexpected property',
+      2,
+      (variables: ReturnType<typeof buildVariables>, control: string) => {
+        Object.assign(variables[0]!, { [`unexpected${control}`]: true });
+      },
+    ],
+    [
+      'variable name',
+      1,
+      (variables: ReturnType<typeof buildVariables>, control: string) => {
+        variables[0]!.name += control;
+      },
+    ],
+    [
+      'mode name',
+      1,
+      (variables: ReturnType<typeof buildVariables>, control: string) => {
+        const variable = variables[0]!;
+        const [mode, value] = Object.entries(variable.values)[0]!;
+        variable.values = { [`${mode}${control}`]: value };
+      },
+    ],
+    [
+      'string value',
+      1,
+      (variables: ReturnType<typeof buildVariables>, control: string) => {
+        const variable = variables.find(({ type }) => type === 'STRING')!;
+        const mode = Object.keys(variable.values)[0]!;
+        variable.values[mode] = `${variable.values[mode]}${control}`;
+      },
+    ],
+  ] as const)('terminal-encodes control bytes from a snapshot %s', (_label, status, mutate) => {
+    const variables = buildVariables(parseTokens(tokens));
+    const control = '\u001b]2;roundtrip-control\u0007\u009b31m\u202e';
+    mutate(variables, control);
+    const snapshotPath = temporaryPath('terminal-control.json');
+    writeFileSync(snapshotPath, `${JSON.stringify(variables, null, 2)}\n`);
+
+    const result = run(snapshotPath);
+
+    expect(result.status).toBe(status);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).not.toMatch(terminalControls);
+    expect(result.stderr).toContain('\\u001b');
+    expect(result.stderr).toContain('\\u0007');
+    expect(result.stderr).toContain('\\u009b');
+    expect(result.stderr).toContain('\\u202e');
+  });
 });

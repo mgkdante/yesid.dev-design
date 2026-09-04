@@ -42,9 +42,13 @@ bun run test:browser:noble -- <commit-or-tag>
 builds the production Gallery before executing the browser suite. `test:browser:noble` streams
 one resolved commit archive (default `HEAD`) into a disposable Docker volume. A networked
 bootstrap container uses the same digest-pinned Playwright Noble image as CI, clears proxy
-credentials, verifies the Bun checksum, and installs dependencies without lifecycle scripts. A
-second container prepares and tests the candidate with no network or Linux capabilities; cleanup
-removes the volume on success or failure. Docker and bootstrap network access are required.
+credentials, verifies the Bun checksum, and installs dependencies without lifecycle scripts. Before
+that install, the host-side policy rejects archive rewriting, install-loaded configuration, and
+dependency sources outside the npm registry or this workspace. Registry and cache locations are
+explicit. A second container prepares and tests the candidate with no network or Linux capabilities;
+cleanup removes the volume on success or failure. Docker and bootstrap network access are required.
+The hosted Noble job installs the pinned Bun 1.3.11 helper runtime without installing candidate
+dependencies before the policy runs.
 Working-tree changes, including ignored and untracked files, are intentionally excluded; commit
 the exact candidate you want to verify first.
 

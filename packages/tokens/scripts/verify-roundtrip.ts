@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  diagnosticText,
   diffVariables,
   formatFinding,
   parseVariableArray,
@@ -26,6 +27,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const defaultSnapshotPath = resolve(here, '../.tmp.figma-export.json');
 const generatorPath = resolve(here, 'push-to-figma.ts');
 
+function diagnosticMessage(value: string): string {
+  return value.split('\n').map(diagnosticText).join('\n');
+}
+
 function snapshotPathFromArgs(args: string[]): string {
   if (args.length > 1) {
     throw new Error('expected zero or one snapshot path argument');
@@ -38,7 +43,7 @@ function parseJson(raw: string, source: string): unknown {
     return JSON.parse(raw) as unknown;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`${source}: invalid JSON: ${message}`);
+    throw new Error(`${diagnosticText(source)}: invalid JSON: ${diagnosticText(message)}`);
   }
 }
 
@@ -48,12 +53,12 @@ function loadSnapshot(snapshotPath: string): FigmaVariable[] {
     raw = readFileSync(snapshotPath, 'utf8');
   } catch {
     throw new Error(
-      `cannot read snapshot ${snapshotPath}.\n` +
+      `cannot read snapshot ${diagnosticText(snapshotPath)}.\n` +
         `Operator contract:\n` +
         `1. Capture \`bun run --cwd packages/tokens figma:push\` stdout as the proposed variables.\n` +
         `2. After owner approval, import it using any compatible workflow.\n` +
-        `3. Export or read back FigmaVariable[] JSON and save the snapshot at ${snapshotPath}.\n` +
-        `4. Run \`bun run --cwd packages/tokens figma:verify -- ${snapshotPath}\`.\n` +
+        `3. Export or read back FigmaVariable[] JSON and save the snapshot at ${diagnosticText(snapshotPath)}.\n` +
+        `4. Run \`bun run --cwd packages/tokens figma:verify -- ${diagnosticText(snapshotPath)}\`.\n` +
         `This verifier only reads exported state; it never writes remotely.`,
     );
   }
@@ -72,7 +77,7 @@ async function loadExpected(): Promise<FigmaVariable[]> {
   const exitCode = await child.exited;
   if (exitCode !== 0) {
     throw new Error(
-      `expected-variable generation exited with code ${exitCode}: ${stderr.trim() || '(no diagnostic)'}`,
+      `expected-variable generation exited with code ${exitCode}: ${diagnosticText(stderr.trim() || '(no diagnostic)')}`,
     );
   }
   return parseVariableArray(
@@ -103,7 +108,7 @@ if (isMain) {
     process.exitCode = await run(process.argv.slice(2));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`verify-roundtrip: ${message}`);
+    console.error(`verify-roundtrip: ${diagnosticMessage(message)}`);
     process.exitCode = 2;
   }
 }

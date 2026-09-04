@@ -167,7 +167,11 @@ describe('generated token pre-commit guard', () => {
 		'@import "@yesid/tokens/tokens.css";',
 		'@import url("@yesid/tokens/tokens.css");',
 		'@import url(@yesid/tokens/tokens.css);',
-	])('accepts the exact top-level token stylesheet import %s', (tokenImport) => {
+		'@import "@yesid/tokens/token\\73 .css";',
+		'@import url(@yesid/tokens/token\\73 .css);',
+		'@import u\\72l("@yesid/tokens/tokens.css");',
+		'@layer reset, components;\n@import "@yesid/tokens/tokens.css";',
+	])('accepts the active top-level token stylesheet import %s', (tokenImport) => {
 		const root = repository();
 		write(
 			join(root, 'apps/gallery/src/app.css'),
@@ -204,6 +208,58 @@ describe('generated token pre-commit guard', () => {
 				"@import '@yesid/tokens/tokens.css';\n@import '@yesid/tokens/tokens.css';",
 			),
 		],
+		[
+			'import after a style rule',
+			APP_CSS.replace(
+				"@import '@yesid/tokens/tokens.css';",
+				".before-import { color: red; }\n@import '@yesid/tokens/tokens.css';",
+			),
+		],
+		[
+			'CSS-escaped semantic duplicate import',
+			APP_CSS.replace(
+				"@import '@yesid/tokens/tokens.css';",
+				"@import '@yesid/tokens/tokens.css';\n@import '@yesid/tokens/token\\73 .css';",
+			),
+		],
+		[
+			'CSS-escaped unquoted semantic duplicate import',
+			APP_CSS.replace(
+				"@import '@yesid/tokens/tokens.css';",
+				"@import '@yesid/tokens/tokens.css';\n@import url(@yesid/tokens/token\\73 .css);",
+			),
+		],
+		[
+			'comment-obscured semantic duplicate import',
+			APP_CSS.replace(
+				"@import '@yesid/tokens/tokens.css';",
+				"@import '@yesid/tokens/tokens.css';\n@import/**/'@yesid/tokens/tokens.css';",
+			),
+		],
+		[
+			'CSS-escaped URL-function semantic duplicate import',
+			APP_CSS.replace(
+				"@import '@yesid/tokens/tokens.css';",
+				"@import '@yesid/tokens/tokens.css';\n@import u\\72l('@yesid/tokens/tokens.css');",
+			),
+		],
+		[
+			'CSS-escaped at-rule semantic duplicate import',
+			APP_CSS.replace(
+				"@import '@yesid/tokens/tokens.css';",
+				"@import '@yesid/tokens/tokens.css';\n@i\\6dport '@yesid/tokens/tokens.css';",
+			),
+		],
+		...['layer(theme)', 'supports(display: grid)', 'screen'].map(
+			(conditions) =>
+				[
+					`qualified semantic duplicate import (${conditions})`,
+					APP_CSS.replace(
+						"@import '@yesid/tokens/tokens.css';",
+						`@import '@yesid/tokens/tokens.css';\n@import '@yesid/tokens/tokens.css' ${conditions};`,
+					),
+				] as const,
+		),
 	] as const)('rejects a %s as the token stylesheet authority', (_case, source) => {
 		const root = repository();
 		write(join(root, 'apps/gallery/src/app.css'), source);

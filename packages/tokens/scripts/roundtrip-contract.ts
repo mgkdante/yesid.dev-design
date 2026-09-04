@@ -17,13 +17,21 @@ export type Finding =
 
 const variableKeys = new Set(['name', 'type', 'values', 'description']);
 const colorPattern = /^#[0-9a-fA-F]{6}$/;
+const diagnosticControls = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/gu;
+
+export function diagnosticText(value: string): string {
+  return value.replace(diagnosticControls, (character) => {
+    const codePoint = character.codePointAt(0)!;
+    return `\\u${codePoint.toString(16).padStart(4, '0')}`;
+  });
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function fail(source: string, index: number, detail: string): never {
-  throw new Error(`${source}: item at index ${index} ${detail}`);
+  throw new Error(`${diagnosticText(source)}: item at index ${index} ${detail}`);
 }
 
 function validateValue(
@@ -34,7 +42,7 @@ function validateValue(
   type: VariableType,
   value: unknown,
 ): asserts value is string | number {
-  const location = `variable "${name}" mode "${mode}"`;
+  const location = `variable "${diagnosticText(name)}" mode "${diagnosticText(mode)}"`;
   if (type === 'COLOR' && (typeof value !== 'string' || !colorPattern.test(value))) {
     fail(source, index, `${location} COLOR value must be a six-hex string`);
   }
@@ -58,13 +66,17 @@ export function parseVariableArray(parsed: unknown, source: string): FigmaVariab
     if (!isRecord(item)) fail(source, index, 'must be an object');
 
     const unexpectedKey = Object.keys(item).find((key) => !variableKeys.has(key));
-    if (unexpectedKey) fail(source, index, `has unexpected property "${unexpectedKey}"`);
+    if (unexpectedKey) {
+      fail(source, index, `has unexpected property "${diagnosticText(unexpectedKey)}"`);
+    }
 
     if (typeof item.name !== 'string' || item.name.trim() === '') {
       fail(source, index, 'name must be a non-empty string');
     }
     if (names.has(item.name)) {
-      throw new Error(`${source}: duplicate variable name "${item.name}"`);
+      throw new Error(
+        `${diagnosticText(source)}: duplicate variable name "${diagnosticText(item.name)}"`,
+      );
     }
     names.add(item.name);
 
@@ -176,20 +188,21 @@ function sortFindings(findings: Finding[]): Finding[] {
 }
 
 function displayValue(value: string | number): string {
-  return JSON.stringify(value);
+  return diagnosticText(JSON.stringify(value));
 }
 
 export function formatFinding(finding: Finding): string {
+  const name = diagnosticText(finding.name);
   switch (finding.kind) {
     case 'MISSING':
-      return `MISSING ${finding.name}`;
+      return `MISSING ${name}`;
     case 'UNEXPECTED':
-      return `UNEXPECTED ${finding.name}`;
+      return `UNEXPECTED ${name}`;
     case 'TYPE_DRIFT':
-      return `TYPE_DRIFT ${finding.name} expected=${finding.expected} actual=${finding.actual}`;
+      return `TYPE_DRIFT ${name} expected=${finding.expected} actual=${finding.actual}`;
     case 'MODE_DRIFT':
-      return `MODE_DRIFT ${finding.name} expected=[${finding.expected.join(',')}] actual=[${finding.actual.join(',')}]`;
+      return `MODE_DRIFT ${name} expected=[${finding.expected.map(diagnosticText).join(',')}] actual=[${finding.actual.map(diagnosticText).join(',')}]`;
     case 'VALUE_DRIFT':
-      return `VALUE_DRIFT ${finding.name} mode=${finding.mode} expected=${displayValue(finding.expected)} actual=${displayValue(finding.actual)}`;
+      return `VALUE_DRIFT ${name} mode=${diagnosticText(finding.mode)} expected=${displayValue(finding.expected)} actual=${displayValue(finding.actual)}`;
   }
 }

@@ -79,22 +79,7 @@ require_pin '.bun-version' "$(trusted_git show "$commit:.bun-version")" "$BUN_VE
 require_pin '@playwright/test' \
 	"$(committed_json_value apps/gallery/package.json devDependencies '@playwright/test')" \
 	"$PLAYWRIGHT_VERSION"
-
-if ! workflow_image=$(trusted_git show "$commit:.github/workflows/ci.yml" | node -e '
-	const { parse } = require(process.argv[1]);
-	const chunks = [];
-	process.stdin.on("data", (chunk) => chunks.push(chunk));
-	process.stdin.on("end", () => {
-		const workflow = parse(Buffer.concat(chunks).toString("utf8"));
-		const image = workflow?.jobs?.["browser-authority-work"]?.container?.image;
-		if (typeof image !== "string") process.exit(2);
-		process.stdout.write(image);
-	});
-' "$ROOT/node_modules/yaml"); then
-	printf 'browser authority could not read jobs.browser-authority-work.container.image\n' >&2
-	exit 2
-fi
-require_pin 'CI browser authority image' "$workflow_image" "$IMAGE"
+bun "$ROOT/tools/browser-authority-dependency-policy.ts" "$ROOT" "$commit" "$IMAGE"
 
 printf 'browser authority: source=%s platform=linux/amd64 image=%s\n' "$commit" "$IMAGE" >&2
 
@@ -307,10 +292,13 @@ run_container "$bootstrap_container" "$archive" \
 	--mount "$mount" \
 	"${proxy_env[@]}" \
 	--env CI=1 \
+	--env HOME=/tmp/bootstrap-home \
+	--env XDG_CACHE_HOME=/tmp/bootstrap-cache \
+	--env XDG_CONFIG_HOME=/tmp/bootstrap-config \
 	--workdir /authority \
 	"$IMAGE" \
 	bash -euo pipefail -c '
-		mkdir -p /authority/repo /authority/toolchain
+		mkdir -p /authority/repo /authority/toolchain "$HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" /tmp/bun-cache
 		tar --extract --file=- --directory=/authority/repo
 		apt-get update
 		apt-get install --yes --no-install-recommends ca-certificates curl unzip
@@ -323,7 +311,9 @@ run_container "$bootstrap_container" "$archive" \
 		install -m 0755 /tmp/bun/bun-linux-x64/bun /authority/toolchain/bun
 		test "$(/authority/toolchain/bun --version)" = "1.3.11"
 		cd /authority/repo
-		/authority/toolchain/bun install --frozen-lockfile --ignore-scripts
+		/authority/toolchain/bun install --frozen-lockfile --ignore-scripts \
+			--registry=https://registry.npmjs.org \
+			--cache-dir=/tmp/bun-cache
 	'
 
 run_container "$test_container" /dev/null \

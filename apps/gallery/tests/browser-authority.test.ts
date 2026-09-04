@@ -18,6 +18,7 @@ import { describe, expect, it } from 'vitest';
 import { blockingAxeViolations } from './browser/authority.js';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
+const DEPENDENCY_POLICY = join(ROOT, 'tools/browser-authority-dependency-policy.ts');
 const AUTHORITY_IMAGE =
 	'mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48';
 const PROXY_VARIABLES = [
@@ -135,7 +136,7 @@ if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
 			FAKE_DOCKER_SLEEP_CONTAINER_RM: sleepContainerRemove ? '1' : '0',
 			FAKE_DOCKER_SLEEP_VOLUME_INSPECT: sleepEveryVolumeInspect ? '1' : '0',
 			FAKE_DOCKER_SLEEP_VOLUME_RM: sleepVolumeRemove ? '1' : '0',
-			FAKE_DOCKER_SLEEP_SECONDS: String(sleepSeconds),
+				FAKE_DOCKER_SLEEP_SECONDS: String(sleepSeconds),
 			BROWSER_AUTHORITY_CLEANUP_INSPECT_TIMEOUT_SECONDS: '1',
 			BROWSER_AUTHORITY_CONTAINER_REMOVE_TIMEOUT_SECONDS: '1',
 			BROWSER_AUTHORITY_VOLUME_REMOVE_TIMEOUT_SECONDS: '1',
@@ -196,9 +197,16 @@ function expectProxyCredentialsNeutralized(args: string[]) {
 }
 
 function authorityFixture(changes: {
+	attributes?: string;
 	bunVersion?: string;
+	bunfig?: string;
+	dependencySource?: string;
+	envFile?: string;
+	lockSource?: string;
 	packageManager?: string;
 	playwrightVersion?: string;
+	npmrc?: string;
+	npmrcSymlink?: boolean;
 	workflowImage?: string;
 }) {
 	const root = mkdtempSync(join(tmpdir(), 'yesid-browser-authority-fixture-'));
@@ -209,10 +217,26 @@ function authorityFixture(changes: {
 		join(root, 'tools/browser-authority-noble.sh'),
 		readFileSync(join(ROOT, 'tools/browser-authority-noble.sh')),
 	);
+	if (existsSync(DEPENDENCY_POLICY)) {
+		writeFileSync(
+			join(root, 'tools/browser-authority-dependency-policy.ts'),
+			readFileSync(DEPENDENCY_POLICY),
+		);
+	}
 	writeFileSync(join(root, '.bun-version'), `${changes.bunVersion ?? '1.3.11'}\n`);
+	const dependencySource = changes.dependencySource ?? '^1.0.0';
 	writeFileSync(
 		join(root, 'package.json'),
-		JSON.stringify({ packageManager: changes.packageManager ?? 'bun@1.3.11' }),
+		JSON.stringify({
+			name: 'authority-fixture',
+			private: true,
+			packageManager: changes.packageManager ?? 'bun@1.3.11',
+			workspaces: ['apps/*', 'packages/*'],
+			dependencies: {
+				'fixture-registry-package': dependencySource,
+				'@yesid/fixture': 'workspace:*',
+			},
+		}),
 	);
 	writeFileSync(
 		join(root, 'apps/gallery/package.json'),
@@ -222,6 +246,45 @@ function authorityFixture(changes: {
 		join(root, '.github/workflows/ci.yml'),
 		`jobs:\n  browser-authority-work:\n    container:\n      image: ${changes.workflowImage ?? AUTHORITY_IMAGE}\n`,
 	);
+	writeFileSync(
+		join(root, 'bun.lock'),
+		JSON.stringify(
+			{
+				lockfileVersion: 1,
+				configVersion: 1,
+				workspaces: {
+					'': {
+						name: 'authority-fixture',
+						dependencies: {
+							'fixture-registry-package': dependencySource,
+							'@yesid/fixture': 'workspace:*',
+						},
+					},
+				},
+				packages: {
+					'fixture-registry-package': [
+						`fixture-registry-package@${changes.lockSource ?? dependencySource}`,
+						{},
+						'sha512-fixture',
+					],
+				},
+			},
+			null,
+			2,
+		),
+	);
+	writeFileSync(join(root, '.npmrc'), changes.npmrc ?? 'engine-strict=true\n');
+	if (changes.npmrcSymlink) {
+		const target = 'engine-strict=true\n';
+		rmSync(join(root, '.npmrc'));
+		writeFileSync(join(root, target), 'registry=http://127.0.0.1:48123\n');
+		symlinkSync(target, join(root, '.npmrc'));
+	}
+	if (changes.bunfig !== undefined) writeFileSync(join(root, 'bunfig.toml'), changes.bunfig);
+	if (changes.envFile !== undefined) writeFileSync(join(root, '.env'), changes.envFile);
+	if (changes.attributes !== undefined) {
+		writeFileSync(join(root, '.gitattributes'), changes.attributes);
+	}
 	execFileSync('git', ['init', '--quiet'], { cwd: root });
 	execFileSync('git', ['config', 'user.email', 'authority@example.invalid'], { cwd: root });
 	execFileSync('git', ['config', 'user.name', 'Authority Test'], { cwd: root });
@@ -297,8 +360,12 @@ describe('browser accessibility authority', () => {
 				'8611ba935af886f05a6f38740a15160326c15e5d5d07adef966130b4493607ed  /tmp/bun-linux-x64.zip',
 			);
 			expect(bootstrapCommand).toContain('install --frozen-lockfile --ignore-scripts');
+			expect(bootstrapCommand).toContain('--registry=https://registry.npmjs.org');
+			expect(bootstrapCommand).toContain('--cache-dir=/tmp/bun-cache');
 			expect(bootstrapCommand).not.toContain('bun run');
 			expect(bootstrapCommand).not.toContain('test:browser');
+			expect(calls[2]!.args).toContain('HOME=/tmp/bootstrap-home');
+			expect(calls[2]!.args).toContain('XDG_CONFIG_HOME=/tmp/bootstrap-config');
 		} finally {
 			fake.remove();
 		}
@@ -472,6 +539,122 @@ describe('browser accessibility authority', () => {
 		}
 	});
 
+	it.each([
+		'http://127.0.0.1:48123/package.tgz',
+		'https://packages.example.invalid/package.tgz',
+		'git+https://example.invalid/owner/repository.git',
+		'git@example.invalid:owner/repository.git',
+		'github:owner/repository#main',
+		'file:../outside',
+		'link:../outside',
+	])('rejects selected dependency source %s before Docker starts', (dependencySource) => {
+		const fixture = authorityFixture({ dependencySource });
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: fixture,
+				env: fake.env,
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('dependency policy');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('rejects a lockfile-only network source before Docker starts', () => {
+		const fixture = authorityFixture({ lockSource: 'http://127.0.0.1:48123/package.tgz' });
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: fixture,
+				env: fake.env,
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('dependency policy');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it.each(['export-subst', 'export-ignore'])(
+		'rejects committed %s archive rewriting before Docker starts',
+		(attribute) => {
+			const fixture = authorityFixture({ attributes: `package.json ${attribute}\n` });
+			const fake = fakeDocker();
+			try {
+				const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+					cwd: fixture,
+					env: fake.env,
+				});
+				expect(result.status).toBe(2);
+				expect(result.stderr.toString()).toContain('dependency policy');
+				expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+			} finally {
+				fake.remove();
+				rmSync(fixture, { force: true, recursive: true });
+			}
+		},
+	);
+
+	it.each([
+		['npm registry override', { npmrc: 'registry=http://127.0.0.1:48123\n' }],
+		['Bun registry override', { bunfig: '[install]\nregistry = "http://127.0.0.1:48123"\n' }],
+		['loaded environment override', { envFile: 'NPM_CONFIG_REGISTRY=http://127.0.0.1:48123\n' }],
+	] as const)('rejects a selected %s before Docker starts', (_label, changes) => {
+		const fixture = authorityFixture(changes);
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: fixture,
+				env: fake.env,
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('dependency policy');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('rejects a symlinked npm configuration before Docker starts', () => {
+		const fixture = authorityFixture({ npmrcSymlink: true });
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: fixture,
+				env: fake.env,
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('dependency policy');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('accepts registry selectors, npm aliases, and workspace selectors', () => {
+		const fixture = authorityFixture({ dependencySource: 'npm:@scope/package@^1.2.3' });
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: fixture,
+				env: fake.env,
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			expect(dockerCalls(fake.capture)).toHaveLength(6);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
 	it('exposes the authority runner from the root and propagates Docker failure', () => {
 		const fake = fakeDocker({ failCall: 4, exitCode: 23 });
 		try {
@@ -479,7 +662,7 @@ describe('browser accessibility authority', () => {
 				cwd: ROOT,
 				env: fake.env,
 			});
-			expect(result.status).toBe(23);
+			expect(result.status, result.stderr.toString()).toBe(23);
 			const calls = dockerCalls(fake.capture);
 			const volume = createdVolume(calls);
 			expect(calls).toHaveLength(6);
@@ -762,9 +945,14 @@ describe('browser accessibility authority', () => {
 		expect(runnerJob).toBeDefined();
 		expect(runnerJob).toContain('runs-on: ubuntu-24.04');
 		expect(runnerJob).not.toMatch(/^    container:/mu);
-		expect(runnerJob).toContain('uses: ./.github/actions/setup');
+		expect(runnerJob).toContain(
+			'uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6',
+		);
+		expect(runnerJob).toContain('bun-version: 1.3.11');
+		expect(runnerJob).not.toContain('uses: ./.github/actions/setup');
+		expect(runnerJob).not.toContain('bun install');
 		expect(runnerJob).toContain('run: bun run test:browser:noble');
-		expect(runnerJob!.indexOf('uses: ./.github/actions/setup')).toBeLessThan(
+		expect(runnerJob!.indexOf('uses: oven-sh/setup-bun@')).toBeLessThan(
 			runnerJob!.indexOf('run: bun run test:browser:noble'),
 		);
 	});

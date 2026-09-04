@@ -312,7 +312,7 @@ describe('ST4 Design shared-tooling adoption', () => {
 				},
 			},
 			{
-				paths: ['tools/browser-authority-noble.sh'],
+				paths: ['tools/browser-authority-dependency-policy.ts'],
 				reason: 'matched',
 				relevant: {
 					'ci-work': true,
@@ -363,7 +363,20 @@ describe('ST4 Design shared-tooling adoption', () => {
 		expect(new Set(noble.prefixes)).toEqual(new Set(browser.prefixes));
 		for (const path of browser.paths) expect(noble.paths).toContain(path);
 		expect(noble.paths).toContain('apps/gallery/tests/browser-authority.test.ts');
-		expect(noble.paths).toContain('tools/browser-authority-noble.sh');
+		for (const path of [
+			'packages/analytics/package.json',
+			'packages/config/package.json',
+			'packages/gates/package.json',
+			'packages/i18n-core/package.json',
+			'packages/motion/package.json',
+			'packages/seo-kit/package.json',
+			'packages/tokens/package.json',
+			'packages/ui/package.json',
+			'tools/browser-authority-dependency-policy.ts',
+			'tools/browser-authority-noble.sh',
+		]) {
+			expect(noble.paths).toContain(path);
+		}
 	});
 
 	it('binds schema-1 configuration sources and the exact caller set', () => {
