@@ -2,22 +2,74 @@
 # Pre-commit guard for repository-owned generated token outputs.
 #
 # GUARD 1: staging any GENERATED token output without staging a matching token
-# SOURCE fails the commit. The guard is deliberately coarse for app.css (any
-# edit flags) — hand-region edits must pair with a token source change.
+# SOURCE fails the commit. For app.css, only changes to the generated sentinel
+# region count; hand-maintained regions remain independently editable.
 #
 # Opt in once per clone: `bun run setup:hooks` (git config core.hooksPath .githooks)
 
 set -euo pipefail
 
-staged() {
-	git diff --cached --name-only
+FULLY_GENERATED_RE='^(packages/tokens/tokens\.css|packages/motion/src/tokens\.ts|DESIGN\.md)$'
+SOURCE_RE='^(packages/tokens/(tokens\.json|src/.*\.ts)|packages/ui/(package\.json|src/brand/index\.ts)|tools/build-tokens\.ts)$'
+APP_CSS='apps/gallery/src/app.css'
+START='/* ===== TOKENS:START ===== */'
+END='/* ===== TOKENS:END ===== */'
+
+sentinel_region() {
+	local object=$1
+
+	git show "$object" | awk -v start="$START" -v end="$END" '
+		BEGIN { inside = 0; saw_start = 0; saw_end = 0; valid = 1 }
+		$0 == start {
+			if (saw_start || saw_end) valid = 0
+			saw_start = 1
+			inside = 1
+		}
+		inside { print }
+		$0 == end {
+			if (!inside || !saw_start || saw_end) valid = 0
+			saw_end = 1
+			inside = 0
+		}
+		END {
+			if (!valid || !saw_start || !saw_end || inside) exit 1
+		}
+	'
 }
 
-GENERATED_RE='^(packages/tokens/tokens\.css|apps/gallery/src/app\.css|packages/motion/src/tokens\.ts|DESIGN\.md)$'
-SOURCE_RE='^(packages/tokens/(tokens\.json|src/.*\.ts)|packages/ui/(package\.json|src/brand/index\.ts)|tools/build-tokens\.ts)$'
+app_sentinel_changed() {
+	local head_hash
+	local index_hash
 
-if staged | grep -qE "$GENERATED_RE"; then
-	if ! staged | grep -qE "$SOURCE_RE"; then
+	if ! git cat-file -e "HEAD:$APP_CSS" 2>/dev/null; then
+		git cat-file -e ":$APP_CSS" 2>/dev/null
+		return
+	fi
+	if ! git cat-file -e ":$APP_CSS" 2>/dev/null; then
+		return 0
+	fi
+	if ! head_hash=$(sentinel_region "HEAD:$APP_CSS" | git hash-object --stdin); then
+		return 0
+	fi
+	if ! index_hash=$(sentinel_region ":$APP_CSS" | git hash-object --stdin); then
+		return 0
+	fi
+	[[ "$head_hash" != "$index_hash" ]]
+}
+
+# --no-renames keeps both sides of a staged rename visible, including a
+# generated file renamed away from its protected path.
+staged_paths=$(git diff --cached --name-only --no-renames --)
+generated_change=false
+
+if grep -qE "$FULLY_GENERATED_RE" <<< "$staged_paths"; then
+	generated_change=true
+elif grep -qxF "$APP_CSS" <<< "$staged_paths" && app_sentinel_changed; then
+	generated_change=true
+fi
+
+if [[ "$generated_change" == true ]]; then
+	if ! grep -qE "$SOURCE_RE" <<< "$staged_paths"; then
 		echo "✗ pre-commit GUARD 1: generated token output staged without a token source change." >&2
 		echo "  Generated files (package tokens.css / app.css sentinel region / motion tokens.ts / DESIGN.md)" >&2
 		echo "  are owned by the root token build — edit its source inputs and run" >&2
