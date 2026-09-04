@@ -300,7 +300,7 @@ describe('immutable workflow callers', () => {
 		},
 	);
 
-	it('rejects missing, duplicate, and untracked shared-action callers', async () => {
+	it('rejects missing and duplicate tracked shared-tooling callers', async () => {
 		const subject = await modules();
 		const missing = fixture();
 		write(
@@ -315,13 +315,6 @@ describe('immutable workflow callers', () => {
 			`${workflow()}      - uses: ${REPOSITORY}/${GATE}@${SHA}\n`,
 		);
 		expect(() => verify(subject, duplicate)).toThrow(/duplicate|exactly once/iu);
-
-		const untracked = fixture();
-		write(
-			join(untracked.root, '.github', 'workflows', 'ci.yml'),
-			`${workflow()}      - uses: ${REPOSITORY}/.github/actions/undeclared@${SHA}\n`,
-		);
-		expect(() => verify(subject, untracked)).toThrow(/undeclared|untracked/iu);
 	});
 
 	it('rejects relevant repository references hidden outside literal uses scalars', async () => {
@@ -329,19 +322,29 @@ describe('immutable workflow callers', () => {
 		const state = fixture();
 		write(
 			join(state.root, '.github', 'workflows', 'ci.yml'),
-			`${workflow()}env:\n  HIDDEN_ACTION: ${REPOSITORY}/.github/actions/hidden@${SHA}\n`,
+			`${workflow()}env:\n  HIDDEN_ACTION: ${REPOSITORY}/${GATE}@${SHA}\n`,
 		);
-		expect(() => verify(subject, state)).toThrow(/outside.*uses|hidden|literal/iu);
+		expect(() => verify(subject, state)).toThrow(/outside.*uses|literal/iu);
 	});
 
-	it('scans undeclared workflow files and rejects any extra shared-repository caller', async () => {
+	it('scans undeclared workflow files and rejects an extra tracked shared-tooling caller', async () => {
 		const subject = await modules();
 		const state = fixture();
 		write(
 			join(state.root, '.github', 'workflows', 'undeclared.yml'),
-			`name: undeclared\non: push\njobs:\n  extra:\n    uses: ${REPOSITORY}/.github/workflows/extra.yml@${SHA}\n`,
+			`name: undeclared\non: push\njobs:\n  extra:\n    uses: ${REPOSITORY}/${GATE}@${SHA}\n`,
 		);
-		expect(() => verify(subject, state)).toThrow(/undeclared\.yml.*untracked|untracked.*extra/iu);
+		expect(() => verify(subject, state)).toThrow(/undeclared\.yml.*untracked|untracked.*shared/iu);
+	});
+
+	it('allows a separately versioned action from the same repository', async () => {
+		const subject = await modules();
+		const state = fixture();
+		write(
+			join(state.root, '.github', 'workflows', 'ci.yml'),
+			`${workflow()}  separate:\n    uses: ${REPOSITORY}/.github/actions/browser-authority@${'b'.repeat(40)}\n`,
+		);
+		expect(() => verify(subject, state)).not.toThrow();
 	});
 
 	it('rejects shared-action callers split across quoted YAML lines', async () => {

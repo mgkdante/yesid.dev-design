@@ -46,10 +46,13 @@ function yamlScalar(input, label) {
 	return value;
 }
 
-function workflowReferences(contents, workflow, sourceRepository) {
+function workflowReferences(contents, workflow, sourceRepository, trackedActions) {
 	const references = [];
 	const repositoryPrefix = `${sourceRepository}/`;
 	const lowerPrefix = repositoryPrefix.toLowerCase();
+	const trackedReferences = [...trackedActions].map(
+		(action) => `${repositoryPrefix}${action}`.toLowerCase(),
+	);
 	let blockIndent = null;
 	for (const [index, line] of contents.split(/\r?\n/u).entries()) {
 		if (/^\s*\t/u.test(line)) fail(`${workflow}:${index + 1} uses unsupported tab indentation`);
@@ -67,7 +70,7 @@ function workflowReferences(contents, workflow, sourceRepository) {
 		const match = visible.match(/^\s*(?:-\s*)?uses\s*:\s*(.+?)\s*$/u);
 		if (!match) {
 			const lower = visible.toLowerCase();
-			if (lower.includes(lowerPrefix) || lower.includes(`${sourceRepository.toLowerCase()}@`)) {
+			if (trackedReferences.some((reference) => lower.includes(reference))) {
 				fail(`${workflow}:${index + 1} contains a shared repository reference outside a literal uses scalar`);
 			}
 			continue;
@@ -75,18 +78,20 @@ function workflowReferences(contents, workflow, sourceRepository) {
 		const reference = yamlScalar(match[1], `${workflow}:${index + 1}`);
 		const lower = reference.toLowerCase();
 		if (!lower.startsWith(lowerPrefix) && !lower.startsWith(`${sourceRepository.toLowerCase()}@`)) continue;
-		if (!reference.startsWith(repositoryPrefix)) {
-			fail(`${workflow}:${index + 1} must use canonical repository casing and a shared action path`);
-		}
 		const separator = reference.lastIndexOf('@');
 		if (separator <= repositoryPrefix.length || separator === reference.length - 1) {
 			fail(`${workflow}:${index + 1} contains a malformed shared action reference`);
 		}
+		const action = canonicalPath(
+			reference.slice(repositoryPrefix.length, separator),
+			`${workflow}:${index + 1} action`,
+		);
+		if (!trackedActions.has(action)) continue;
+		if (!reference.startsWith(repositoryPrefix)) {
+			fail(`${workflow}:${index + 1} must use canonical repository casing and a shared action path`);
+		}
 		references.push({
-			action: canonicalPath(
-				reference.slice(repositoryPrefix.length, separator),
-				`${workflow}:${index + 1} action`,
-			),
+			action,
 			ref: reference.slice(separator + 1),
 			line: index + 1,
 		});
@@ -96,6 +101,7 @@ function workflowReferences(contents, workflow, sourceRepository) {
 
 export function verifyCallers(root, manifest) {
 	const expectedByWorkflow = new Map();
+	const trackedActions = new Set(manifest.callers.map(({ action }) => action));
 	for (const caller of manifest.callers) {
 		const actions = expectedByWorkflow.get(caller.workflow) ?? [];
 		actions.push(caller.action);
@@ -109,6 +115,7 @@ export function verifyCallers(root, manifest) {
 			textAt(root, workflow, 'caller workflow'),
 			workflow,
 			manifest.source.repository,
+			trackedActions,
 		);
 		for (const reference of references) {
 			if (!SHA_PATTERN.test(reference.ref) || reference.ref !== manifest.source.sha) {

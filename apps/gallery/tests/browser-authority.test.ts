@@ -20,6 +20,7 @@ import { blockingAxeViolations } from './browser/authority.js';
 const ROOT = resolve(import.meta.dirname, '../../..');
 const DEPENDENCY_POLICY = join(ROOT, 'tools/browser-authority-dependency-policy.ts');
 const AUTHORITY_ACTION = join(ROOT, '.github/actions/browser-authority/action.yml');
+const TRUSTED_AUTHORITY_COMMIT = '61fe23e0b55292f71b3d22159ba5ada362f6e5ae';
 const AUTHORITY_IMAGE =
 	'mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48';
 const PROXY_VARIABLES = [
@@ -1022,15 +1023,27 @@ describe('browser accessibility authority', () => {
 		expect(runnerJob).toContain('runs-on: ubuntu-24.04');
 		expect(runnerJob).not.toMatch(/^    container:/mu);
 		expect(runnerJob).toContain(
-			'uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6',
+			`uses: mgkdante/yesid.dev-design/.github/actions/browser-authority@${TRUSTED_AUTHORITY_COMMIT}`,
 		);
-		expect(runnerJob).toContain('bun-version: 1.3.11');
+		expect(runnerJob).toContain('target-root: ${{ github.workspace }}');
+		expect(runnerJob).toContain('target-ref: ${{ github.sha }}');
 		expect(runnerJob).not.toContain('uses: ./.github/actions/setup');
+		expect(runnerJob).not.toContain('uses: oven-sh/setup-bun@');
 		expect(runnerJob).not.toContain('bun install');
-		expect(runnerJob).toContain('run: bun run test:browser:noble');
-		expect(runnerJob!.indexOf('uses: oven-sh/setup-bun@')).toBeLessThan(
-			runnerJob!.indexOf('run: bun run test:browser:noble'),
-		);
+		expect(runnerJob).not.toContain('bun run');
+	});
+
+	it('pins the exact reviewed harness bytes used by hosted CI', () => {
+		for (const path of [
+			'.github/actions/browser-authority/action.yml',
+			'tools/browser-authority-dependency-policy.ts',
+			'tools/browser-authority-noble.sh',
+		]) {
+			const pinned = execFileSync('git', ['show', `${TRUSTED_AUTHORITY_COMMIT}:${path}`], {
+				cwd: ROOT,
+			});
+			expect(Buffer.compare(pinned, readFileSync(join(ROOT, path)))).toBe(0);
+		}
 	});
 
 	it('ships a trusted composite launcher for candidate-as-data execution', () => {
