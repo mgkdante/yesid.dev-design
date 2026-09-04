@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -154,6 +155,10 @@ function classifierRules(source: string): ClassifierRules {
 	return JSON.parse(jsonLines.join('\n')) as ClassifierRules;
 }
 
+function matches(path: string, rules: MatchRules): boolean {
+	return rules.paths.includes(path) || rules.prefixes.some((prefix) => path.startsWith(prefix));
+}
+
 function manifest(): Manifest {
 	expect(existsSync(MANIFEST_PATH), '.github/shared-tooling.json must exist').toBe(true);
 	return JSON.parse(text(MANIFEST_PATH)) as Manifest;
@@ -264,8 +269,36 @@ describe('ST4 Design shared-tooling adoption', () => {
 		const fixtures = [
 			{
 				paths: ['README.md'],
-				reason: 'docs-only',
-				relevant: Object.fromEntries(WORK_JOBS.map((job) => [job, false])),
+				reason: 'matched',
+				relevant: {
+					'ci-work': false,
+					'browser-authority-work': false,
+					'noble-runner-work': true,
+					'token-outputs-windows-work': false,
+					'token-byte-parity-work': false,
+				},
+			},
+			{
+				paths: ['.idea/workspace.xml'],
+				reason: 'matched',
+				relevant: {
+					'ci-work': false,
+					'browser-authority-work': false,
+					'noble-runner-work': true,
+					'token-outputs-windows-work': false,
+					'token-byte-parity-work': false,
+				},
+			},
+			{
+				paths: ['packages/analytics/src/example.ts'],
+				reason: 'matched',
+				relevant: {
+					'ci-work': true,
+					'browser-authority-work': false,
+					'noble-runner-work': true,
+					'token-outputs-windows-work': true,
+					'token-byte-parity-work': false,
+				},
 			},
 			{
 				paths: ['packages/ui/src/Button.svelte'],
@@ -295,7 +328,7 @@ describe('ST4 Design shared-tooling adoption', () => {
 				relevant: {
 					'ci-work': true,
 					'browser-authority-work': false,
-					'noble-runner-work': false,
+					'noble-runner-work': true,
 					'token-outputs-windows-work': true,
 					'token-byte-parity-work': false,
 				},
@@ -306,7 +339,7 @@ describe('ST4 Design shared-tooling adoption', () => {
 				relevant: {
 					'ci-work': true,
 					'browser-authority-work': false,
-					'noble-runner-work': false,
+					'noble-runner-work': true,
 					'token-outputs-windows-work': true,
 					'token-byte-parity-work': false,
 				},
@@ -355,28 +388,22 @@ describe('ST4 Design shared-tooling adoption', () => {
 		}
 	});
 
-	it('runs the hosted Noble command for every browser-authority input', () => {
+	it('runs the hosted Noble command for every tracked archive input', () => {
 		const rules = classifierRules(text(CI_PATH));
 		const browser = rules.jobs['browser-authority-work']!;
 		const noble = rules.jobs['noble-runner-work']!;
 
-		expect(new Set(noble.prefixes)).toEqual(new Set(browser.prefixes));
-		for (const path of browser.paths) expect(noble.paths).toContain(path);
-		expect(noble.paths).toContain('apps/gallery/tests/browser-authority.test.ts');
-		for (const path of [
-			'packages/analytics/package.json',
-			'packages/config/package.json',
-			'packages/gates/package.json',
-			'packages/i18n-core/package.json',
-			'packages/motion/package.json',
-			'packages/seo-kit/package.json',
-			'packages/tokens/package.json',
-			'packages/ui/package.json',
-			'tools/browser-authority-dependency-policy.ts',
-			'tools/browser-authority-noble.sh',
-		]) {
-			expect(noble.paths).toContain(path);
+		for (const path of browser.paths) expect(matches(path, noble), path).toBe(true);
+		for (const prefix of browser.prefixes) {
+			expect(noble.prefixes.some((candidate) => prefix.startsWith(candidate)), prefix).toBe(true);
 		}
+		const tracked = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT })
+			.toString('utf8')
+			.split('\0')
+			.filter(Boolean);
+		for (const path of tracked) expect(matches(path, noble), path).toBe(true);
+		expect(matches('.idea/workspace.xml', noble)).toBe(true);
+		expect(matches('.vscode/settings.json', noble)).toBe(true);
 	});
 
 	it('binds schema-1 configuration sources and the exact caller set', () => {

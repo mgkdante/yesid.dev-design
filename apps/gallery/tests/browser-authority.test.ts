@@ -1033,6 +1033,15 @@ describe('browser accessibility authority', () => {
 		expect(runnerJob).not.toContain('bun run');
 	});
 
+	it('keeps the pinned harness commit available to ci-work tests', () => {
+		const workflow = readFileSync(new URL('../../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+		const ciJob = workflow.match(/^  ci-work:\n[\s\S]*?^  browser-authority-work:\n/m)?.[0];
+		expect(ciJob).toBeDefined();
+		expect(ciJob).toMatch(
+			/- uses: actions\/checkout@[0-9a-f]{40}[^\n]*\n\s+with:\n\s+fetch-depth: 0/u,
+		);
+	});
+
 	it('pins the exact reviewed harness bytes used by hosted CI', () => {
 		for (const path of [
 			'.github/actions/browser-authority/action.yml',
