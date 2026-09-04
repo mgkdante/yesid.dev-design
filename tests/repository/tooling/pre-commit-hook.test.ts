@@ -17,7 +17,8 @@ const APP_CSS = `@import '@yesid/tokens/tokens.css';
 /* gallery-owned footer */
 `;
 const scratch: string[] = [];
-const terminalControls = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/u;
+const terminalControls =
+	/(?:[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029]|\p{Bidi_Control})/u;
 
 function write(path: string, content: string): void {
 	mkdirSync(dirname(path), { recursive: true });
@@ -269,11 +270,16 @@ describe('generated token pre-commit guard', () => {
 		expectLayoutRejected(root);
 	});
 
-	it('terminal-encodes PostCSS syntax errors', () => {
+	it.each([
+		['C0 escape', '\u001b', '\\u001b'],
+		['Arabic letter mark', '\u061c', '\\u061c'],
+		['left-to-right mark', '\u200e', '\\u200e'],
+		['right-to-left mark', '\u200f', '\\u200f'],
+	] as const)('terminal-encodes %s in PostCSS syntax errors', (_label, control, escaped) => {
 		const root = repository();
 		write(
 			join(root, 'apps/gallery/src/app.css'),
-			`${APP_CSS}\n.invalid { color: red; } \u001b]2;css-error\u0007 ???\n`,
+			`${APP_CSS}\n.invalid { color: red; } ${control} ???\n`,
 		);
 		git(root, 'add', '--', 'apps/gallery/src/app.css');
 
@@ -281,7 +287,7 @@ describe('generated token pre-commit guard', () => {
 
 		expect(result.status).toBe(1);
 		expect(result.stderr).not.toMatch(terminalControls);
-		expect(result.stderr).toContain('\\u001b');
+		expect(result.stderr).toContain(escaped);
 	});
 
 	it('rejects moving the sentinel across duplicate hand-maintained lines', () => {

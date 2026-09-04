@@ -10,7 +10,7 @@ import { buildVariables } from '../push-to-figma.ts';
 const packageRoot = resolve(import.meta.dirname, '../..');
 const temporaryDirectories: string[] = [];
 const terminalControls =
-  /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/u;
+  /(?:[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029]|\p{Bidi_Control})/u;
 
 function temporaryPath(name: string): string {
   const directory = mkdtempSync(join(tmpdir(), 'yesid-roundtrip-'));
@@ -124,7 +124,7 @@ describe('verify-roundtrip CLI', () => {
     ],
   ] as const)('terminal-encodes control bytes from a snapshot %s', (_label, status, mutate) => {
     const variables = buildVariables(parseTokens(tokens));
-    const control = '\u001b]2;roundtrip-control\u0007\u009b31m\u202e';
+    const control = '\u001b]2;roundtrip-control\u0007\u009b31m\u061c\u200e\u200f\u2028\u2029\u202e';
     mutate(variables, control);
     const snapshotPath = temporaryPath('terminal-control.json');
     writeFileSync(snapshotPath, `${JSON.stringify(variables, null, 2)}\n`);
@@ -137,6 +137,11 @@ describe('verify-roundtrip CLI', () => {
     expect(result.stderr).toContain('\\u001b');
     expect(result.stderr).toContain('\\u0007');
     expect(result.stderr).toContain('\\u009b');
+    expect(result.stderr).toContain('\\u061c');
+    expect(result.stderr).toContain('\\u200e');
+    expect(result.stderr).toContain('\\u200f');
+    expect(result.stderr).toContain('\\u2028');
+    expect(result.stderr).toContain('\\u2029');
     expect(result.stderr).toContain('\\u202e');
   });
 });

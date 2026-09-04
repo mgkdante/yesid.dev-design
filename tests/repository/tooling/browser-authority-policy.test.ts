@@ -65,4 +65,16 @@ describe('browser authority archive policy', () => {
 		).join('');
 		expect(() => inspectArchiveTree(input)).toThrow('entry limit');
 	});
+
+	it('terminal-encodes Unicode bidi controls in rejected paths', () => {
+		let message = '';
+		try {
+			inspectArchiveTree(entry('120000', 'blob', 8, 'link-\u061c\u200e\u200f\u202e'));
+		} catch (error) {
+			message = error instanceof Error ? error.message : String(error);
+		}
+
+		expect(message).not.toMatch(/\p{Bidi_Control}/u);
+		expect(message).toContain('link-\\u061c\\u200e\\u200f\\u202e');
+	});
 });

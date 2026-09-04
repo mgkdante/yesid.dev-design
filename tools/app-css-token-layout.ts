@@ -6,7 +6,7 @@ const SENTINEL_START = '===== TOKENS:START =====';
 const LAYOUT_ERROR =
 	'app.css must keep exactly one active top-level @yesid/tokens/tokens.css import before the generated token sentinel';
 const diagnosticControls =
-	/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/gu;
+	/(?:[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029]|\p{Bidi_Control})/gu;
 
 function diagnosticMessage(value: string): string {
 	return value.replace(diagnosticControls, (character) => {

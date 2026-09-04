@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 declare const Bun: {
@@ -26,11 +27,13 @@ const DEPENDENCY_FIELDS = [
 	'peerDependencies',
 ] as const;
 const RESOLUTION_FIELDS = ['overrides', 'resolutions'] as const;
+const AUTHORITY_TOOL_PACKAGES = ['@playwright/test', '@sveltejs/kit', 'vite'] as const;
 const registrySelector = /^[0-9A-Za-z*^~<>=|&!+._\-\s]+$/u;
 const remoteSource =
 	/(?:^|@)(?:(?:https?|git(?:\+[a-z0-9]+)?|ssh|github|gitlab|bitbucket|file|link):|\/\/)/iu;
 const scpSource = /(?:^|@)git@[^:\s]+:/iu;
-const diagnosticControls = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/gu;
+const diagnosticControls =
+	/(?:[\u0000-\u001f\u007f-\u009f\u2028\u2029]|\p{Bidi_Control})/gu;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -161,7 +164,7 @@ function assertArchiveAttributes(root: string, commit: string, paths: string[]):
 	}
 }
 
-function readBlob(root: string, commit: string, path: string, maximum: number): string {
+function readBlobBuffer(root: string, commit: string, path: string, maximum: number): Buffer {
 	assertRegularBlob(root, commit, path);
 	const object = `${commit}:${path}`;
 	const rawSize = gitText(root, ['cat-file', '-s', object], 1024).trim();
@@ -172,27 +175,17 @@ function readBlob(root: string, commit: string, path: string, maximum: number): 
 	if (!Number.isSafeInteger(size) || size > maximum) {
 		throw new Error(`${path} exceeds the ${maximum}-byte policy limit`);
 	}
-	return gitText(root, ['show', object], maximum + 1);
+	return gitBuffer(root, ['show', object], maximum + 1);
+}
+
+function readBlob(root: string, commit: string, path: string, maximum: number): string {
+	return readBlobBuffer(root, commit, path, maximum).toString('utf8');
 }
 
 function parseJsonObject(source: string, path: string): JsonRecord {
 	const parsed = JSON.parse(source) as unknown;
 	if (!isRecord(parsed)) throw new Error(`${path} must contain a JSON object`);
 	return parsed;
-}
-
-function npmAliasIsRegistryOnly(specifier: string): boolean {
-	const alias = specifier.slice(4);
-	const separator = alias.startsWith('@')
-		? alias.indexOf('@', alias.indexOf('/') + 1)
-		: alias.indexOf('@');
-	const name = separator === -1 ? alias : alias.slice(0, separator);
-	const selector = separator === -1 ? 'latest' : alias.slice(separator + 1);
-	return (
-		/^(?:@[A-Za-z0-9._-]+\/)?[A-Za-z0-9._-]+$/u.test(name) &&
-		selector.length > 0 &&
-		registrySelector.test(selector)
-	);
 }
 
 function dependencySpecifierIsAllowed(specifier: string): boolean {
@@ -209,7 +202,7 @@ function dependencySpecifierIsAllowed(specifier: string): boolean {
 		const selector = value.slice('workspace:'.length);
 		return selector.length > 0 && registrySelector.test(selector);
 	}
-	if (value.startsWith('npm:')) return npmAliasIsRegistryOnly(value);
+	if (value.startsWith('npm:')) return false;
 	return registrySelector.test(value) && !/\.(?:tar\.gz|tgz)$/iu.test(value);
 }
 
@@ -218,7 +211,7 @@ function assertDependencyMap(value: unknown, location: string): void {
 	if (!isRecord(value)) throw new Error(`${location} must be an object`);
 	for (const [name, specifier] of Object.entries(value)) {
 		if (typeof specifier !== 'string' || !dependencySpecifierIsAllowed(specifier)) {
-			throw new Error(`${location}.${diagnosticText(name)} uses a non-registry dependency source`);
+			throw new Error(`${location}.${diagnosticText(name)} uses a disallowed dependency source`);
 		}
 	}
 }
@@ -229,7 +222,7 @@ function assertResolutionMap(value: unknown, location: string): void {
 	for (const [name, resolution] of Object.entries(value)) {
 		if (typeof resolution === 'string') {
 			if (!dependencySpecifierIsAllowed(resolution)) {
-				throw new Error(`${location}.${diagnosticText(name)} uses a non-registry dependency source`);
+				throw new Error(`${location}.${diagnosticText(name)} uses a disallowed dependency source`);
 			}
 		} else {
 			assertResolutionMap(resolution, `${location}.${diagnosticText(name)}`);
@@ -238,6 +231,13 @@ function assertResolutionMap(value: unknown, location: string): void {
 }
 
 function assertManifest(manifest: JsonRecord, path: string): void {
+	if (path !== 'package.json') {
+		for (const field of [...RESOLUTION_FIELDS, 'patchedDependencies'] as const) {
+			if (manifest[field] !== undefined) {
+				throw new Error(`${path} workspace manifest may not define ${field}`);
+			}
+		}
+	}
 	for (const field of DEPENDENCY_FIELDS) {
 		assertDependencyMap(manifest[field], `${path}:${field}`);
 	}
@@ -270,13 +270,146 @@ function assertLockfile(lockfile: unknown): void {
 }
 
 function isLoadedEnvironment(path: string): boolean {
-	if (path.includes('/')) return false;
+	const separator = path.lastIndexOf('/');
+	const directory = separator === -1 ? '' : path.slice(0, separator);
+	if (directory !== '' && directory !== 'apps/gallery') return false;
 	const name = path.split('/').at(-1)!;
 	if (!name.startsWith('.env')) return false;
 	return !/^\.env\.(?:example|sample|template)$/u.test(name);
 }
 
-export function assertBrowserAuthorityDependencyPolicy(root: string, commit: string): void {
+function stringMap(value: unknown, location: string): Record<string, string> {
+	if (!isRecord(value)) throw new Error(`${location} must be an object`);
+	const entries = Object.entries(value);
+	if (entries.some(([, item]) => typeof item !== 'string')) {
+		throw new Error(`${location} values must be strings`);
+	}
+	return Object.fromEntries(entries) as Record<string, string>;
+}
+
+function sortedEntries(value: Record<string, string>): [string, string][] {
+	return Object.entries(value).sort(([left], [right]) =>
+		left < right ? -1 : left > right ? 1 : 0,
+	);
+}
+
+function canonicalJson(value: unknown): string {
+	if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+	if (isRecord(value)) {
+		return `{${Object.keys(value)
+			.sort()
+			.map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+			.join(',')}}`;
+	}
+	const primitive = JSON.stringify(value);
+	if (primitive === undefined) throw new Error('bun.lock contains a non-JSON value');
+	return primitive;
+}
+
+function lockResolutionSurface(lockfile: JsonRecord): string {
+	const { workspaces: _workspaceMetadata, ...resolutionSurface } = lockfile;
+	return canonicalJson(resolutionSurface);
+}
+
+function assertWorkspaceLockMetadata(
+	lockfile: JsonRecord,
+	workspaceManifests: Map<string, JsonRecord>,
+): void {
+	if (!isRecord(lockfile.workspaces)) throw new Error('bun.lock workspaces must be an object');
+	const expectedPaths = [...workspaceManifests.keys()].sort();
+	const actualPaths = Object.keys(lockfile.workspaces).sort();
+	if (JSON.stringify(expectedPaths) !== JSON.stringify(actualPaths)) {
+		throw new Error('bun.lock workspace paths must match tracked workspace manifests');
+	}
+	for (const [path, manifest] of workspaceManifests) {
+		const locked = lockfile.workspaces[path];
+		if (!isRecord(locked) || locked.name !== manifest.name) {
+			throw new Error(`${path || 'package.json'} workspace name must match bun.lock`);
+		}
+	}
+}
+
+function assertTrustedFile(
+	root: string,
+	commit: string,
+	trustedRoot: string,
+	path: string,
+	maximum: number,
+): void {
+	const candidate = readBlobBuffer(root, commit, path, maximum);
+	const trusted = readFileSync(resolve(trustedRoot, path));
+	if (trusted.byteLength > maximum || !candidate.equals(trusted)) {
+		throw new Error(`${diagnosticText(path)} must match the immutable browser authority`);
+	}
+}
+
+function assertTrustedDependencyInputs(
+	root: string,
+	commit: string,
+	trustedRoot: string,
+	rootManifest: JsonRecord,
+	galleryManifest: JsonRecord,
+	lockfile: JsonRecord,
+): void {
+	const trustedManifest = parseJsonObject(
+		readFileSync(resolve(trustedRoot, 'package.json'), 'utf8'),
+		'immutable package.json',
+	);
+	for (const field of RESOLUTION_FIELDS) {
+		if (JSON.stringify(rootManifest[field]) !== JSON.stringify(trustedManifest[field])) {
+			throw new Error(`package.json:${field} must match the immutable browser authority`);
+		}
+	}
+	const candidatePatches = stringMap(
+		rootManifest.patchedDependencies,
+		'package.json:patchedDependencies',
+	);
+	const trustedPatches = stringMap(
+		trustedManifest.patchedDependencies,
+		'immutable package.json:patchedDependencies',
+	);
+	if (JSON.stringify(sortedEntries(candidatePatches)) !== JSON.stringify(sortedEntries(trustedPatches))) {
+		throw new Error('package.json:patchedDependencies must match the immutable browser authority');
+	}
+	for (const path of Object.values(trustedPatches)) {
+		if (!/^patches\/[A-Za-z0-9@._+-]+\.patch$/u.test(path)) {
+			throw new Error('immutable package.json contains an invalid dependency patch path');
+		}
+		assertTrustedFile(root, commit, trustedRoot, path, MAX_MANIFEST_BYTES);
+	}
+	const trustedGallery = parseJsonObject(
+		readFileSync(resolve(trustedRoot, 'apps/gallery/package.json'), 'utf8'),
+		'immutable apps/gallery/package.json',
+	);
+	const candidateTools = stringMap(
+		galleryManifest.devDependencies,
+		'apps/gallery/package.json:devDependencies',
+	);
+	const trustedTools = stringMap(
+		trustedGallery.devDependencies,
+		'immutable apps/gallery/package.json:devDependencies',
+	);
+	for (const name of AUTHORITY_TOOL_PACKAGES) {
+		if (candidateTools[name] !== trustedTools[name]) {
+			throw new Error(
+				`apps/gallery/package.json:${name} must match the immutable browser authority`,
+			);
+		}
+	}
+	const trustedLockfile = Bun.JSONC.parse(
+		readFileSync(resolve(trustedRoot, 'bun.lock'), 'utf8'),
+	) as unknown;
+	if (!isRecord(trustedLockfile)) throw new Error('immutable bun.lock must contain an object');
+	if (lockResolutionSurface(lockfile) !== lockResolutionSurface(trustedLockfile)) {
+		throw new Error('bun.lock dependency graph must match the immutable browser authority');
+	}
+}
+
+export function assertBrowserAuthorityDependencyPolicy(
+	root: string,
+	commit: string,
+	trustedRoot = resolve(import.meta.dirname, '..'),
+): void {
 	if (!/^[0-9a-f]{40}$/u.test(commit)) throw new Error('commit must be a lowercase 40-hex SHA');
 	const { paths } = inspectArchiveTree(gitBuffer(
 		root,
@@ -286,7 +419,14 @@ export function assertBrowserAuthorityDependencyPolicy(root: string, commit: str
 	assertArchiveAttributes(root, commit, paths);
 
 	for (const path of paths) {
-		if (path === 'bunfig.toml' || isLoadedEnvironment(path)) {
+		if (
+			path === 'bunfig.toml' ||
+			path === 'apps/gallery/bunfig.toml' ||
+			isLoadedEnvironment(path)
+		) {
+			throw new Error(`${diagnosticText(path)} is not allowed in a browser authority candidate`);
+		}
+		if (/(?:^|\/)node_modules(?:\/|$)/u.test(path)) {
 			throw new Error(`${diagnosticText(path)} is not allowed in a browser authority candidate`);
 		}
 	}
@@ -305,9 +445,15 @@ export function assertBrowserAuthorityDependencyPolicy(root: string, commit: str
 	if (manifestPaths.length > MAX_MANIFESTS) {
 		throw new Error(`candidate has more than ${MAX_MANIFESTS} workspace manifests`);
 	}
+	let rootManifest: JsonRecord | undefined;
+	let galleryManifest: JsonRecord | undefined;
+	const workspaceManifests = new Map<string, JsonRecord>();
+	const workspaceNames = new Set<string>();
 	for (const path of manifestPaths) {
 		const manifest = parseJsonObject(readBlob(root, commit, path, MAX_MANIFEST_BYTES), path);
 		if (path === 'package.json') {
+			rootManifest = manifest;
+			workspaceManifests.set('', manifest);
 			if (
 				!Array.isArray(manifest.workspaces) ||
 				manifest.workspaces.length !== WORKSPACES.length ||
@@ -315,14 +461,36 @@ export function assertBrowserAuthorityDependencyPolicy(root: string, commit: str
 			) {
 				throw new Error(`package.json workspaces must be ${WORKSPACES.join(', ')}`);
 			}
+		} else {
+			const name = manifest.name;
+			if (typeof name !== 'string' || !/^@yesid\/[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/u.test(name)) {
+				throw new Error(`${diagnosticText(path)} has an invalid workspace name`);
+			}
+			if (workspaceNames.has(name)) {
+				throw new Error(`${diagnosticText(path)} has a duplicate workspace name`);
+			}
+			workspaceNames.add(name);
+			workspaceManifests.set(path.slice(0, -'/package.json'.length), manifest);
+			if (path === 'apps/gallery/package.json') galleryManifest = manifest;
 		}
 		assertManifest(manifest, path);
 	}
+	if (!rootManifest) throw new Error('package.json is required');
+	if (!galleryManifest) throw new Error('apps/gallery/package.json is required');
 
 	const lockfileSource = readBlob(root, commit, 'bun.lock', MAX_LOCK_BYTES);
 	const lockfile = Bun.JSONC.parse(lockfileSource) as unknown;
 	if (!isRecord(lockfile)) throw new Error('bun.lock must contain an object');
 	assertLockfile(lockfile);
+	assertWorkspaceLockMetadata(lockfile, workspaceManifests);
+	assertTrustedDependencyInputs(
+		root,
+		commit,
+		trustedRoot,
+		rootManifest,
+		galleryManifest,
+		lockfile,
+	);
 }
 
 function assertWorkflowImage(root: string, commit: string, expectedImage: string): void {

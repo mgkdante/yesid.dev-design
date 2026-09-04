@@ -45,12 +45,20 @@ bootstrap container uses the same digest-pinned Playwright Noble image as CI, cl
 credentials, verifies the Bun checksum, and installs dependencies without lifecycle scripts. Before
 that install, the host-side policy rejects archive rewriting, install-loaded configuration, and
 dependency sources outside the npm registry or this workspace. Registry and cache locations are
-explicit. A second container prepares and tests the candidate with no network or Linux capabilities;
-cleanup removes the volume on success or failure. Docker and bootstrap network access are required.
-The hosted Noble job invokes this harness from an immutable action revision, treats its pull-request
-checkout as target data, and installs the pinned Bun 1.3.11 helper runtime without installing
-candidate dependencies before the policy runs. The policy accepts only regular files within fixed
-per-file, aggregate-byte, and entry-count bounds before creating the archive.
+explicit. A second container uses the image's unprivileged `pwuser`, a read-only image filesystem,
+no network, and no Linux capabilities. Its generated output directories and bounded `/tmp` are
+writable; the source, installed dependency CLIs, browser image, and Bun toolchain are not. Cleanup
+removes the volume on success or failure. Docker and bootstrap network access are required.
+
+The hosted Noble job invokes the harness from an immutable action revision. The host treats the
+candidate as Git data through policy and archive creation, pins the dependency resolution surface
+and approved patch bytes to that revision, and installs the pinned Bun 1.3.11 helper runtime without
+installing candidate dependencies before the policy runs. The policy accepts only regular files
+within fixed per-file, aggregate-byte, and entry-count bounds before creating the archive. Candidate
+build configuration, browser configuration, tests, and application code execute only inside the
+confined second container. Green proves that the exact reviewed candidate suite ran in the pinned
+environment. It does not make candidate assertions immutable, replace visual review, or prove
+consumer adoption.
 Working-tree changes, including ignored and untracked files, are intentionally excluded; commit
 the exact candidate you want to verify first.
 

@@ -17,7 +17,8 @@ export type Finding =
 
 const variableKeys = new Set(['name', 'type', 'values', 'description']);
 const colorPattern = /^#[0-9a-fA-F]{6}$/;
-const diagnosticControls = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/gu;
+const diagnosticControls =
+  /(?:[\u0000-\u001f\u007f-\u009f\u2028\u2029]|\p{Bidi_Control})/gu;
 
 export function diagnosticText(value: string): string {
   return value.replace(diagnosticControls, (character) => {

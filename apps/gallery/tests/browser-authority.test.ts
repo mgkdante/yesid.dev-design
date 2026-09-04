@@ -23,6 +23,16 @@ const AUTHORITY_ACTION = join(ROOT, '.github/actions/browser-authority/action.ym
 const TRUSTED_AUTHORITY_COMMIT = '4b92ac4317d592af3339da8b9008b6cc42e1ac3d';
 const AUTHORITY_IMAGE =
 	'mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48';
+const OTHER_WORKSPACE_MANIFESTS = [
+	'packages/analytics/package.json',
+	'packages/config/package.json',
+	'packages/gates/package.json',
+	'packages/i18n-core/package.json',
+	'packages/motion/package.json',
+	'packages/seo-kit/package.json',
+	'packages/tokens/package.json',
+	'packages/ui/package.json',
+] as const;
 const PROXY_VARIABLES = [
 	'HTTP_PROXY',
 	'HTTPS_PROXY',
@@ -204,17 +214,46 @@ function authorityFixture(changes: {
 	bunfig?: string;
 	dependencySource?: string;
 	envFile?: string;
+	galleryBunfig?: string;
+	galleryEnvFile?: string;
+	galleryOverrides?: Record<string, string>;
+	galleryPatchedDependencies?: Record<string, string>;
+	galleryScripts?: Record<string, string>;
+	lockDrift?: boolean;
 	lockSource?: string;
 	packageManager?: string;
+	patchSource?: string;
 	playwrightVersion?: string;
+	preloadSource?: string;
 	npmrc?: string;
 	npmrcSymlink?: boolean;
+	rootOverrides?: Record<string, string>;
+	rootScripts?: Record<string, string>;
+	svelteKitVersion?: string;
+	viteVersion?: string;
 	workflowImage?: string;
+	workspaceName?: string;
+	workspaceVersion?: string;
 }) {
 	const root = mkdtempSync(join(tmpdir(), 'yesid-browser-authority-fixture-'));
+	const trustedRootManifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
+		dependencies?: Record<string, string>;
+		overrides: Record<string, string>;
+		packageManager: string;
+		scripts: Record<string, string>;
+	};
+	const trustedGalleryManifest = JSON.parse(
+		readFileSync(join(ROOT, 'apps/gallery/package.json'), 'utf8'),
+	) as {
+		devDependencies: Record<string, string>;
+		name: string;
+		scripts: Record<string, string>;
+		version: string;
+	};
 	mkdirSync(join(root, 'tools'), { recursive: true });
 	mkdirSync(join(root, 'apps/gallery'), { recursive: true });
 	mkdirSync(join(root, '.github/workflows'), { recursive: true });
+	mkdirSync(join(root, 'patches'), { recursive: true });
 	writeFileSync(
 		join(root, 'tools/browser-authority-noble.sh'),
 		readFileSync(join(ROOT, 'tools/browser-authority-noble.sh')),
@@ -225,55 +264,75 @@ function authorityFixture(changes: {
 			readFileSync(DEPENDENCY_POLICY),
 		);
 	}
+	for (const path of OTHER_WORKSPACE_MANIFESTS) {
+		mkdirSync(join(root, path, '..'), { recursive: true });
+		writeFileSync(join(root, path), readFileSync(join(ROOT, path)));
+	}
 	writeFileSync(join(root, '.bun-version'), `${changes.bunVersion ?? '1.3.11'}\n`);
-	const dependencySource = changes.dependencySource ?? '^1.0.0';
+	const dependencies = { ...trustedRootManifest.dependencies };
+	if (changes.dependencySource !== undefined) {
+		dependencies['fixture-registry-package'] = changes.dependencySource;
+	}
 	writeFileSync(
 		join(root, 'package.json'),
 		JSON.stringify({
-			name: 'authority-fixture',
-			private: true,
-			packageManager: changes.packageManager ?? 'bun@1.3.11',
-			workspaces: ['apps/*', 'packages/*'],
-			dependencies: {
-				'fixture-registry-package': dependencySource,
-				'@yesid/fixture': 'workspace:*',
-			},
+			...trustedRootManifest,
+			packageManager: changes.packageManager ?? trustedRootManifest.packageManager,
+			scripts: changes.rootScripts ?? trustedRootManifest.scripts,
+			dependencies,
+			overrides: changes.rootOverrides ?? trustedRootManifest.overrides,
 		}),
 	);
 	writeFileSync(
 		join(root, 'apps/gallery/package.json'),
-		JSON.stringify({ devDependencies: { '@playwright/test': changes.playwrightVersion ?? '1.61.1' } }),
+		JSON.stringify({
+			...trustedGalleryManifest,
+			name: changes.workspaceName ?? trustedGalleryManifest.name,
+			version: changes.workspaceVersion ?? trustedGalleryManifest.version,
+			overrides: changes.galleryOverrides,
+			patchedDependencies: changes.galleryPatchedDependencies,
+			scripts: changes.galleryScripts ?? trustedGalleryManifest.scripts,
+			devDependencies: {
+				...trustedGalleryManifest.devDependencies,
+				'@playwright/test':
+					changes.playwrightVersion ?? trustedGalleryManifest.devDependencies['@playwright/test'],
+				'@sveltejs/kit':
+					changes.svelteKitVersion ?? trustedGalleryManifest.devDependencies['@sveltejs/kit'],
+				vite: changes.viteVersion ?? trustedGalleryManifest.devDependencies.vite,
+			},
+		}),
 	);
 	writeFileSync(
 		join(root, '.github/workflows/ci.yml'),
 		`jobs:\n  browser-authority-work:\n    container:\n      image: ${changes.workflowImage ?? AUTHORITY_IMAGE}\n`,
 	);
+	let lockfile = readFileSync(join(ROOT, 'bun.lock'), 'utf8');
+	if (changes.lockSource !== undefined) {
+		lockfile = lockfile.replace(
+			/\n\}\s*$/u,
+			`,\n  "__authorityFixture": ${JSON.stringify(changes.lockSource)}\n}\n`,
+		);
+	}
+	if (changes.lockDrift) {
+		const changed = lockfile.replace('"vite@7.3.6"', '"vite@7.3.5"');
+		if (changed === lockfile) throw new Error('authority fixture could not mutate the Vite lock tuple');
+		lockfile = changed;
+	}
+	if (changes.workspaceVersion !== undefined) {
+		const current = `"apps/gallery": {\n      "name": "${trustedGalleryManifest.name}",\n      "version": "${trustedGalleryManifest.version}"`;
+		const changed = lockfile.replace(
+			current,
+			`"apps/gallery": {\n      "name": "${trustedGalleryManifest.name}",\n      "version": "${changes.workspaceVersion}"`,
+		);
+		if (changed === lockfile) {
+			throw new Error('authority fixture could not update Gallery workspace metadata');
+		}
+		lockfile = changed;
+	}
+	writeFileSync(join(root, 'bun.lock'), lockfile);
 	writeFileSync(
-		join(root, 'bun.lock'),
-		JSON.stringify(
-			{
-				lockfileVersion: 1,
-				configVersion: 1,
-				workspaces: {
-					'': {
-						name: 'authority-fixture',
-						dependencies: {
-							'fixture-registry-package': dependencySource,
-							'@yesid/fixture': 'workspace:*',
-						},
-					},
-				},
-				packages: {
-					'fixture-registry-package': [
-						`fixture-registry-package@${changes.lockSource ?? dependencySource}`,
-						{},
-						'sha512-fixture',
-					],
-				},
-			},
-			null,
-			2,
-		),
+		join(root, 'patches/bits-ui@2.18.1.patch'),
+		changes.patchSource ?? readFileSync(join(ROOT, 'patches/bits-ui@2.18.1.patch'), 'utf8'),
 	);
 	writeFileSync(join(root, '.npmrc'), changes.npmrc ?? 'engine-strict=true\n');
 	if (changes.npmrcSymlink) {
@@ -283,6 +342,15 @@ function authorityFixture(changes: {
 		symlinkSync(target, join(root, '.npmrc'));
 	}
 	if (changes.bunfig !== undefined) writeFileSync(join(root, 'bunfig.toml'), changes.bunfig);
+	if (changes.galleryBunfig !== undefined) {
+		writeFileSync(join(root, 'apps/gallery/bunfig.toml'), changes.galleryBunfig);
+	}
+	if (changes.galleryEnvFile !== undefined) {
+		writeFileSync(join(root, 'apps/gallery/.env.production'), changes.galleryEnvFile);
+	}
+	if (changes.preloadSource !== undefined) {
+		writeFileSync(join(root, 'validation-preload.ts'), changes.preloadSource);
+	}
 	if (changes.envFile !== undefined) writeFileSync(join(root, '.env'), changes.envFile);
 	if (changes.attributes !== undefined) {
 		writeFileSync(join(root, '.gitattributes'), changes.attributes);
@@ -373,7 +441,7 @@ describe('browser accessibility authority', () => {
 		}
 	});
 
-	it('runs candidate preparation and the fixed browser inventory without network or capabilities', () => {
+	it('runs fixed dependency CLIs and the browser inventory without candidate scripts or privileges', () => {
 		const fake = fakeDocker();
 		try {
 			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
@@ -389,12 +457,129 @@ describe('browser accessibility authority', () => {
 			expect(offline.args).toContain('--cap-drop=ALL');
 			expect(offline.args).toContain('--security-opt=no-new-privileges');
 			expect(offline.args).toContain('--shm-size=1g');
+			expect(offline.args).toContain('/authority/repo/apps/gallery');
 			const offlineCommand = offline.args.at(-1)!;
-			expect(offlineCommand.indexOf('bun run --cwd apps/gallery prepare')).toBeLessThan(
-				offlineCommand.indexOf('bun run test:browser:list'),
+			const trustedBun =
+				'/authority/toolchain/bun --cwd=/authority/repo/apps/gallery --config=/dev/null --no-env-file';
+			const prepareIndex = offlineCommand.indexOf(
+				`${trustedBun} ./node_modules/@sveltejs/kit/svelte-kit.js sync`,
 			);
+			const listIndex = offlineCommand.indexOf('browser_list=$(run_playwright --list)');
+			const buildIndex = offlineCommand.indexOf(
+				`${trustedBun} ./node_modules/vite/bin/vite.js build`,
+			);
+			const testIndex = offlineCommand.lastIndexOf('\n\t\trun_playwright\n');
+			expect(prepareIndex).toBeGreaterThan(-1);
+			expect(listIndex).toBeGreaterThan(prepareIndex);
+			expect(buildIndex).toBeGreaterThan(listIndex);
+			expect(testIndex).toBeGreaterThan(buildIndex);
 			expect(offlineCommand).toContain('Total: 16 tests in 4 files');
-			expect(offlineCommand).toContain('bun run test:browser');
+			expect(offlineCommand).toContain(
+				`${trustedBun} ./node_modules/vite/bin/vite.js build`,
+			);
+			expect(offlineCommand).toContain('./node_modules/@playwright/test/cli.js test');
+			expect(offlineCommand).toContain('browser_list=$(run_playwright --list)');
+			expect(offlineCommand).toContain('run_playwright');
+			for (const fixedArgument of [
+				'--forbid-only',
+				'--workers=1',
+				'--retries=0',
+				'--update-snapshots=none',
+				'--reporter=line',
+				'--project=chromium-noble-desktop',
+				'--project=chromium-noble-mobile',
+				'tests/browser/accessibility.spec.ts',
+				'tests/browser/gallery.authority.spec.ts',
+				'tests/browser/gallery.visual.spec.ts',
+				'tests/browser/runtime.spec.ts',
+			]) {
+				expect(offlineCommand).toContain(fixedArgument);
+			}
+			expect(offlineCommand).toContain('mapfile -t browser_totals');
+			expect(offlineCommand).not.toContain('bun run');
+		} finally {
+			fake.remove();
+		}
+	});
+
+	it('does not resolve forged candidate package scripts in the offline authority command', () => {
+		const fixture = authorityFixture({
+			rootScripts: {
+				'test:browser': 'true',
+				'test:browser:list': "printf 'Total: 16 tests in 4 files\\n'",
+			},
+			galleryScripts: {
+				build: 'true',
+				prepare: 'true',
+				'test:browser': 'true',
+				'test:browser:list': "printf 'Total: 16 tests in 4 files\\n'",
+			},
+		});
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
+				cwd: fixture,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			const offlineCommand = dockerCalls(fake.capture)[3]!.args.at(-1)!;
+			expect(offlineCommand).not.toContain('bun run');
+			expect(offlineCommand).toContain('./node_modules/@sveltejs/kit/svelte-kit.js');
+			expect(offlineCommand).toContain('./node_modules/vite/bin/vite.js');
+			expect(offlineCommand).toContain('./node_modules/@playwright/test/cli.js');
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('runs the offline phase as pwuser with a read-only image and protected tools', () => {
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: ROOT,
+				env: fake.env,
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			const calls = dockerCalls(fake.capture);
+			const bootstrapCommand = calls[2]!.args.at(-1)!;
+			const offline = calls[3]!;
+			const offlineCommand = offline.args.at(-1)!;
+			const userIndex = offline.args.indexOf('--user');
+			expect(userIndex).toBeGreaterThan(-1);
+			expect(offline.args[userIndex + 1]).toBe('pwuser');
+			expect(offline.args).toContain('--read-only');
+			expect(offline.args).toContain('/tmp:rw,nosuid,nodev,exec,size=1g,mode=1777');
+			expect(offline.args).toContain('HOME=/tmp/home');
+			expect(offline.args).toContain('XDG_CACHE_HOME=/tmp/cache');
+			expect(offline.args).toContain('XDG_CONFIG_HOME=/tmp/config');
+			expect(offline.args).toContain('TMPDIR=/tmp');
+			expect(bootstrapCommand).toContain(
+				'chown -h -R -P root:root /authority/repo /authority/toolchain',
+			);
+			expect(bootstrapCommand).toContain(
+				'chmod -R u=rwX,go=rX /authority/repo /authority/toolchain',
+			);
+			expect(bootstrapCommand).toContain('chown root:pwuser /authority/repo/apps/gallery');
+			expect(bootstrapCommand).toContain('chmod 1770 /authority/repo/apps/gallery');
+			expect(bootstrapCommand).toContain(
+				'--cwd=/authority/repo --config=/dev/null --no-env-file',
+			);
+			for (const path of [
+				'apps/gallery/.svelte-kit',
+				'apps/gallery/build',
+				'apps/gallery/test-results',
+				'apps/gallery/playwright-report',
+				'apps/gallery/node_modules/.vite',
+				'apps/gallery/node_modules/.vite-temp',
+			]) {
+				expect(bootstrapCommand).toContain(path);
+			}
+			expect(offlineCommand).toContain('--config=/dev/null --no-env-file');
+			expect(offlineCommand).toContain('test "$(id -un)" = pwuser');
+			expect(offlineCommand).toContain('test "$(stat -c %a .)" = 1770');
+			expect(offlineCommand).toContain('test ! -w /authority/toolchain/bun');
+			expect(offlineCommand).toContain('test ! -w ./node_modules/@playwright/test/cli.js');
 		} finally {
 			fake.remove();
 		}
@@ -631,6 +816,101 @@ describe('browser accessibility authority', () => {
 		}
 	});
 
+	it('rejects dependency graph drift in the lockfile before Docker starts', () => {
+		const fixture = authorityFixture({ lockDrift: true });
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
+				cwd: fixture,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('bun.lock');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('rejects a modified dependency patch before Docker starts', () => {
+		const fixture = authorityFixture({ patchSource: 'forged patch\n' });
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
+				cwd: fixture,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('patches/bits-ui@2.18.1.patch');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('rejects third-party workspace names before Docker starts', () => {
+		const fixture = authorityFixture({ workspaceName: 'vite' });
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
+				cwd: fixture,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('workspace name');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it.each([
+		['root override drift', { rootOverrides: { vite: '0.0.0' } }],
+		['SvelteKit selector drift', { svelteKitVersion: '^2.70.4' }],
+		['Vite selector drift', { viteVersion: '^7.4.0' }],
+	] as const)('rejects %s before Docker starts', (_label, changes) => {
+		const fixture = authorityFixture(changes);
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
+				cwd: fixture,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('immutable browser authority');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it.each([
+		['workspace override', { galleryOverrides: { vite: '7.3.6' } }],
+		[
+			'workspace patch declaration',
+			{ galleryPatchedDependencies: { 'vite@7.3.6': 'patches/vite.patch' } },
+		],
+	] as const)('rejects a %s before Docker starts', (_label, changes) => {
+		const fixture = authorityFixture(changes);
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
+				cwd: fixture,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('workspace manifest');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
 	it.each(['export-subst', 'export-ignore'])(
 		'rejects committed %s archive rewriting before Docker starts',
 		(attribute) => {
@@ -672,6 +952,50 @@ describe('browser accessibility authority', () => {
 		}
 	});
 
+	it('rejects candidate Bun configuration without executing its preload', () => {
+		const canaryRoot = mkdtempSync(join(tmpdir(), 'yesid-browser-authority-canary-'));
+		const canary = join(canaryRoot, 'preload-executed');
+		const fixture = authorityFixture({
+			bunfig: 'preload = ["./validation-preload.ts"]\n',
+			preloadSource: `import { writeFileSync } from 'node:fs';\nwriteFileSync(${JSON.stringify(canary)}, 'executed');\n`,
+		});
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
+				cwd: fixture,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('bunfig.toml');
+			expect(existsSync(canary)).toBe(false);
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+			rmSync(canaryRoot, { force: true, recursive: true });
+		}
+	});
+
+	it.each([
+		['Gallery bunfig', { galleryBunfig: 'preload = ["./preload.ts"]\n' }],
+		['Gallery environment', { galleryEnvFile: 'BUN_OPTIONS=--preload=./preload.ts\n' }],
+	] as const)('rejects selected %s configuration before Docker starts', (_label, changes) => {
+		const fixture = authorityFixture(changes);
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
+				cwd: fixture,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('not allowed');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
 	it('rejects a symlinked npm configuration before Docker starts', () => {
 		const fixture = authorityFixture({ npmrcSymlink: true });
 		const fake = fakeDocker();
@@ -689,16 +1013,42 @@ describe('browser accessibility authority', () => {
 		}
 	});
 
-	it('accepts registry selectors, npm aliases, and workspace selectors', () => {
+	it('rejects committed node_modules entries before Docker starts', () => {
+		const fixture = authorityFixture({});
+		const fake = fakeDocker();
+		try {
+			const forgedCli = join(fixture, 'apps/gallery/node_modules/vite/bin/vite.js');
+			mkdirSync(join(forgedCli, '..'), { recursive: true });
+			writeFileSync(forgedCli, 'console.log("forged build");\n');
+			execFileSync('git', ['add', '--force', '--', 'apps/gallery/node_modules/vite/bin/vite.js'], {
+				cwd: fixture,
+			});
+			execFileSync('git', ['commit', '--quiet', '--amend', '--no-edit'], { cwd: fixture });
+
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
+				cwd: fixture,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('node_modules');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('rejects npm aliases before Docker starts', () => {
 		const fixture = authorityFixture({ dependencySource: 'npm:@scope/package@^1.2.3' });
 		const fake = fakeDocker();
 		try {
-			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
 				cwd: fixture,
-				env: fake.env,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
 			});
-			expect(result.status, result.stderr.toString()).toBe(0);
-			expect(dockerCalls(fake.capture)).toHaveLength(6);
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('disallowed dependency source');
+			expect(existsSync(join(fake.capture, 'count'))).toBe(false);
 		} finally {
 			fake.remove();
 			rmSync(fixture, { force: true, recursive: true });
@@ -723,6 +1073,22 @@ describe('browser accessibility authority', () => {
 			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
 				cwd: fixture,
 				env: fake.env,
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			expect(dockerCalls(fake.capture)).toHaveLength(6);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('allows synchronized workspace version metadata without changing dependency authority', () => {
+		const fixture = authorityFixture({ workspaceVersion: '0.1.1' });
+		const fake = fakeDocker();
+		try {
+			const result = spawnSync('bash', [join(ROOT, 'tools/browser-authority-noble.sh')], {
+				cwd: fixture,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: fixture },
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
 			expect(dockerCalls(fake.capture)).toHaveLength(6);
@@ -1055,10 +1421,13 @@ describe('browser accessibility authority', () => {
 		}
 	});
 
-	it('ships a trusted composite launcher for candidate-as-data execution', () => {
+	it('ships a trusted composite launcher with an honest candidate execution boundary', () => {
 		expect(existsSync(AUTHORITY_ACTION)).toBe(true);
 		if (!existsSync(AUTHORITY_ACTION)) return;
 		const action = readFileSync(AUTHORITY_ACTION, 'utf8');
+		expect(action).toContain(
+			'description: Validate candidate metadata as Git data, then run its Gallery suite in a confined Noble container.',
+		);
 		expect(action).toContain(
 			'uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6',
 		);

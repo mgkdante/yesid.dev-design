@@ -88,7 +88,12 @@ require_pin '.bun-version' "$(trusted_git show "$commit:.bun-version")" "$BUN_VE
 require_pin '@playwright/test' \
 	"$(committed_json_value apps/gallery/package.json devDependencies '@playwright/test')" \
 	"$PLAYWRIGHT_VERSION"
-bun "$HARNESS_ROOT/tools/browser-authority-dependency-policy.ts" "$TARGET_ROOT" "$commit" "$IMAGE"
+(
+	cd "$HARNESS_ROOT"
+	bun --cwd="$HARNESS_ROOT" --config=/dev/null --no-env-file \
+		"$HARNESS_ROOT/tools/browser-authority-dependency-policy.ts" \
+		"$TARGET_ROOT" "$commit" "$IMAGE"
+)
 
 printf 'browser authority: source=%s platform=linux/amd64 image=%s\n' "$commit" "$IMAGE" >&2
 
@@ -320,9 +325,26 @@ run_container "$bootstrap_container" "$archive" \
 		install -m 0755 /tmp/bun/bun-linux-x64/bun /authority/toolchain/bun
 		test "$(/authority/toolchain/bun --version)" = "1.3.11"
 		cd /authority/repo
-		/authority/toolchain/bun install --frozen-lockfile --ignore-scripts \
+		/authority/toolchain/bun --cwd=/authority/repo --config=/dev/null --no-env-file \
+			install --frozen-lockfile --ignore-scripts \
 			--registry=https://registry.npmjs.org \
 			--cache-dir=/tmp/bun-cache
+		getent passwd pwuser >/dev/null
+		getent group pwuser >/dev/null
+		chown -h -R -P root:root /authority/repo /authority/toolchain
+		chmod -R u=rwX,go=rX /authority/repo /authority/toolchain
+		generated_paths=(
+			/authority/repo/apps/gallery/.svelte-kit
+			/authority/repo/apps/gallery/build
+			/authority/repo/apps/gallery/test-results
+			/authority/repo/apps/gallery/playwright-report
+			/authority/repo/apps/gallery/node_modules/.vite
+			/authority/repo/apps/gallery/node_modules/.vite-temp
+		)
+		rm -rf -- "${generated_paths[@]}"
+		install -d -m 0700 -o pwuser -g pwuser -- "${generated_paths[@]}"
+		chown root:pwuser /authority/repo/apps/gallery
+		chmod 1770 /authority/repo/apps/gallery
 	'
 
 run_container "$test_container" /dev/null \
@@ -330,27 +352,62 @@ run_container "$test_container" /dev/null \
 	--pull=never \
 	--rm \
 	--init \
+	--read-only \
 	--network=none \
 	--cap-drop=ALL \
 	--security-opt=no-new-privileges \
+	--user pwuser \
+	--tmpfs /tmp:rw,nosuid,nodev,exec,size=1g,mode=1777 \
 	--shm-size=1g \
 	--mount "$mount" \
 	"${proxy_env[@]}" \
 	--env CI=1 \
 	--env HOME=/tmp/home \
 	--env XDG_CACHE_HOME=/tmp/cache \
-	--workdir /authority/repo \
+	--env XDG_CONFIG_HOME=/tmp/config \
+	--env TMPDIR=/tmp \
+	--workdir /authority/repo/apps/gallery \
 	"$IMAGE" \
 	bash -euo pipefail -c '
-		export PATH="/authority/toolchain:$PATH"
-		mkdir -p "$HOME" "$XDG_CACHE_HOME"
-		test "$(bun --version)" = "1.3.11"
-		bun run --cwd apps/gallery prepare
-		browser_list=$(bun run test:browser:list)
+		mkdir -p "$HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME"
+		readonly -a browser_specs=(
+			tests/browser/accessibility.spec.ts
+			tests/browser/gallery.authority.spec.ts
+			tests/browser/gallery.visual.spec.ts
+			tests/browser/runtime.spec.ts
+		)
+		run_playwright() {
+			/authority/toolchain/bun --cwd=/authority/repo/apps/gallery --config=/dev/null --no-env-file \
+				./node_modules/@playwright/test/cli.js test \
+				--config playwright.config.ts \
+				--forbid-only \
+				--workers=1 \
+				--retries=0 \
+				--update-snapshots=none \
+				--reporter=line \
+				--project=chromium-noble-desktop \
+				--project=chromium-noble-mobile \
+				"$@" "${browser_specs[@]}"
+		}
+		test "$(id -un)" = pwuser
+		test "$(stat -c %a .)" = 1770
+		test -w .
+		test ! -w /authority/toolchain/bun
+		test ! -w ./node_modules/@sveltejs/kit/svelte-kit.js
+		test ! -w ./node_modules/@playwright/test/cli.js
+		test ! -w ./node_modules/vite/bin/vite.js
+		test -w .svelte-kit
+		test -w build
+		test -w test-results
+		test "$(/authority/toolchain/bun --cwd=/authority/repo/apps/gallery --config=/dev/null --no-env-file --version)" = "1.3.11"
+		/authority/toolchain/bun --cwd=/authority/repo/apps/gallery --config=/dev/null --no-env-file ./node_modules/@sveltejs/kit/svelte-kit.js sync
+		browser_list=$(run_playwright --list)
 		printf "%s\n" "$browser_list"
-		if ! grep -Fqx "Total: 16 tests in 4 files" <<< "$browser_list"; then
+		mapfile -t browser_totals < <(grep -E "^Total: " <<< "$browser_list")
+		if (( ${#browser_totals[@]} != 1 )) || [[ "${browser_totals[0]}" != "Total: 16 tests in 4 files" ]]; then
 			printf "browser authority expected exactly 16 tests in 4 files\n" >&2
 			exit 2
 		fi
-		bun run test:browser
+		/authority/toolchain/bun --cwd=/authority/repo/apps/gallery --config=/dev/null --no-env-file ./node_modules/vite/bin/vite.js build
+		run_playwright
 	'
