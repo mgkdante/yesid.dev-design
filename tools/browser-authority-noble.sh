@@ -6,7 +6,19 @@ IMAGE='mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a
 BUN_VERSION='1.3.11'
 PLAYWRIGHT_VERSION='1.61.1'
 VOLUME_OWNER_LABEL='dev.yesid.browser-authority.owner'
-CLEANUP_DOCKER_TIMEOUT_SECONDS=1
+CLEANUP_INSPECT_TIMEOUT_SECONDS=${BROWSER_AUTHORITY_CLEANUP_INSPECT_TIMEOUT_SECONDS:-5}
+CONTAINER_REMOVE_TIMEOUT_SECONDS=${BROWSER_AUTHORITY_CONTAINER_REMOVE_TIMEOUT_SECONDS:-10}
+VOLUME_REMOVE_TIMEOUT_SECONDS=${BROWSER_AUTHORITY_VOLUME_REMOVE_TIMEOUT_SECONDS:-120}
+
+for timeout in \
+	"$CLEANUP_INSPECT_TIMEOUT_SECONDS" \
+	"$CONTAINER_REMOVE_TIMEOUT_SECONDS" \
+	"$VOLUME_REMOVE_TIMEOUT_SECONDS"; do
+	if [[ ! "$timeout" =~ ^[1-9][0-9]*$ ]]; then
+		printf 'browser authority cleanup timeouts must be positive integer seconds\n' >&2
+		exit 2
+	fi
+done
 
 trusted_git() {
 	GIT_ATTR_NOSYSTEM=1 git \
@@ -111,8 +123,14 @@ stop_active_container() {
 	local pid=$active_pid
 	local container=$active_container
 	if [[ -n "$pid" ]]; then kill -TERM "$pid" 2>/dev/null || true; fi
-	if [[ -n "$container" ]]; then docker rm --force "$container" >/dev/null 2>&1 || true; fi
-	if [[ -n "$pid" ]]; then wait "$pid" 2>/dev/null || true; fi
+	if [[ -n "$container" ]]; then
+		if ! run_cleanup_bounded "$CONTAINER_REMOVE_TIMEOUT_SECONDS" \
+			docker rm --force "$container" >/dev/null 2>&1; then
+			printf 'could not remove active browser authority container %s within %ss\n' \
+				"$container" "$CONTAINER_REMOVE_TIMEOUT_SECONDS" >&2
+		fi
+	fi
+	if [[ -n "$pid" ]]; then kill -KILL "$pid" 2>/dev/null || true; fi
 	active_pid=
 	active_container=
 }
@@ -154,7 +172,7 @@ run_cleanup_bounded() {
 		fi
 	) &
 	watchdog=$!
-	if wait "$pid"; then status=0; else status=$?; fi
+	if wait "$pid" 2>/dev/null; then status=0; else status=$?; fi
 	kill "$watchdog" 2>/dev/null || true
 	wait "$watchdog" 2>/dev/null || true
 	if [[ -e "$marker" ]]; then
@@ -172,18 +190,28 @@ cleanup() {
 	trap '' HUP INT TERM
 	if [[ -n "$volume" && "$volume_state" != foreign ]]; then
 		if verify_volume_owner cleanup; then
-			if run_cleanup_bounded "$CLEANUP_DOCKER_TIMEOUT_SECONDS" \
+			if run_cleanup_bounded "$VOLUME_REMOVE_TIMEOUT_SECONDS" \
 				docker volume rm --force "$volume" >/dev/null; then
 				:
 			else
 				cleanup_status=$?
-				printf 'failed to remove browser authority volume %s\n' "$volume" >&2
+				if (( cleanup_status == 124 )); then
+					printf 'timed out after %ss removing browser authority volume %s\n' \
+						"$VOLUME_REMOVE_TIMEOUT_SECONDS" "$volume" >&2
+				else
+					printf 'failed to remove browser authority volume %s\n' "$volume" >&2
+				fi
 				if (( status == 0 )); then status=$cleanup_status; fi
 			fi
 		else
 			verification_status=$?
-			printf 'refusing to remove browser authority volume %s: ownership could not be verified\n' \
-				"$volume" >&2
+			if (( verification_status == 124 )); then
+				printf 'timed out after %ss verifying browser authority volume %s ownership; leaving it intact\n' \
+					"$CLEANUP_INSPECT_TIMEOUT_SECONDS" "$volume" >&2
+			else
+				printf 'refusing to remove browser authority volume %s: ownership could not be verified\n' \
+					"$volume" >&2
+			fi
 			if (( status == 0 )); then status=$verification_status; fi
 		fi
 	fi
@@ -225,12 +253,10 @@ verify_volume_owner() {
 	local observed
 	: > "$output"
 	if [[ "$mode" == cleanup ]]; then
-		if ! run_cleanup_bounded "$CLEANUP_DOCKER_TIMEOUT_SECONDS" \
+		if run_cleanup_bounded "$CLEANUP_INSPECT_TIMEOUT_SECONDS" \
 			docker volume inspect \
 			--format "{{ index .Labels \"$VOLUME_OWNER_LABEL\" }}" \
-			"$volume" > "$output"; then
-			return 2
-		fi
+			"$volume" > "$output"; then :; else return $?; fi
 	else
 		if ! run_active docker volume inspect \
 			--format "{{ index .Labels \"$VOLUME_OWNER_LABEL\" }}" \

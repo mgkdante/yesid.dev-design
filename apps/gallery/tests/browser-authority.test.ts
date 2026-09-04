@@ -38,7 +38,9 @@ function fakeDocker({
 	exitCode = 23,
 	preexistingWrongLabel = false,
 	sleepCall = 0,
+	sleepContainerRemove = false,
 	sleepEveryVolumeInspect = false,
+	sleepVolumeRemove = false,
 	sleepSeconds = 3,
 } = {}) {
 	const root = mkdtempSync(join(tmpdir(), 'yesid-browser-authority-'));
@@ -101,12 +103,15 @@ fi
 if [ "\${1-}" = volume ] && [ "\${2-}" = rm ]; then
 	name=
 	for arg in "$@"; do name=$arg; done
-	if [ "$FAKE_DOCKER_SLEEP_CALL" -eq "$count" ]; then exec sleep "$FAKE_DOCKER_SLEEP_SECONDS"; fi
+	if [ "$FAKE_DOCKER_SLEEP_VOLUME_RM" = 1 ] || [ "$FAKE_DOCKER_SLEEP_CALL" -eq "$count" ]; then exec sleep "$FAKE_DOCKER_SLEEP_SECONDS"; fi
 	if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
 	[ -e "$volume_state/$name" ] || exit 44
 	rm "$volume_state/$name"
 	printf '%s\n' "$name"
 	exit 0
+fi
+if [ "\${1-}" = rm ] && [ "$FAKE_DOCKER_SLEEP_CONTAINER_RM" = 1 ]; then
+	exec sleep "$FAKE_DOCKER_SLEEP_SECONDS"
 fi
 if [ "$FAKE_DOCKER_SLEEP_CALL" -eq "$count" ]; then exec sleep "$FAKE_DOCKER_SLEEP_SECONDS"; fi
 if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
@@ -127,8 +132,13 @@ if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
 			FAKE_DOCKER_FAIL_CALL: String(failCall),
 			FAKE_DOCKER_PREEXISTING_WRONG_LABEL: preexistingWrongLabel ? '1' : '0',
 			FAKE_DOCKER_SLEEP_CALL: String(sleepCall),
+			FAKE_DOCKER_SLEEP_CONTAINER_RM: sleepContainerRemove ? '1' : '0',
 			FAKE_DOCKER_SLEEP_VOLUME_INSPECT: sleepEveryVolumeInspect ? '1' : '0',
+			FAKE_DOCKER_SLEEP_VOLUME_RM: sleepVolumeRemove ? '1' : '0',
 			FAKE_DOCKER_SLEEP_SECONDS: String(sleepSeconds),
+			BROWSER_AUTHORITY_CLEANUP_INSPECT_TIMEOUT_SECONDS: '1',
+			BROWSER_AUTHORITY_CONTAINER_REMOVE_TIMEOUT_SECONDS: '1',
+			BROWSER_AUTHORITY_VOLUME_REMOVE_TIMEOUT_SECONDS: '1',
 			PATH: `${bin}${delimiter}${process.env.PATH ?? ''}`,
 			TEST_CAPTURE_DIR: capture,
 		},
@@ -523,6 +533,25 @@ describe('browser accessibility authority', () => {
 		}
 	});
 
+	it('reports a bounded volume-removal timeout distinctly', () => {
+		const fake = fakeDocker({ sleepVolumeRemove: true });
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: ROOT,
+				env: fake.env,
+			});
+			expect(result.status).toBe(124);
+			expect(result.stderr.toString()).toContain(
+				'timed out after 1s removing browser authority volume',
+			);
+			const calls = dockerCalls(fake.capture);
+			const volume = createdVolume(calls);
+			expect(calls.at(-1)!.args).toEqual(['volume', 'rm', '--force', volume]);
+		} finally {
+			fake.remove();
+		}
+	});
+
 	it('refuses a same-name volume carrying another owner label', () => {
 		const fake = fakeDocker({ preexistingWrongLabel: true });
 		try {
@@ -545,7 +574,7 @@ describe('browser accessibility authority', () => {
 	});
 
 	it('terminates an active Docker call before cleaning the volume', async () => {
-		const fake = fakeDocker({ sleepCall: 3 });
+		const fake = fakeDocker({ sleepCall: 3, sleepContainerRemove: true });
 		const child = spawn('bash', ['tools/browser-authority-noble.sh'], {
 			cwd: ROOT,
 			env: fake.env,
@@ -566,7 +595,7 @@ describe('browser accessibility authority', () => {
 			child.kill('SIGTERM');
 			const promptExit = await Promise.race([
 				exited.then((result) => ({ result })),
-				delay(750).then(() => null),
+				delay(1_750).then(() => null),
 			]);
 			if (!promptExit) {
 				child.kill('SIGKILL');
@@ -576,6 +605,8 @@ describe('browser accessibility authority', () => {
 			expect(promptExit, stderr).not.toBeNull();
 			if (!promptExit) return;
 			expect(promptExit.result).toEqual({ code: 143, signal: null });
+			expect(stderr).toContain('could not remove active browser authority container');
+			expect(stderr).toContain('within 1s');
 			const calls = dockerCalls(fake.capture);
 			const volume = createdVolume(calls);
 			expect(calls.at(-2)!.args.slice(0, 2)).toEqual(['volume', 'inspect']);
@@ -664,7 +695,11 @@ describe('browser accessibility authority', () => {
 			expect(promptExit, stderr).not.toBeNull();
 			if (!promptExit) return;
 			expect(promptExit.result).toEqual({ code: 143, signal: null });
-			expect(stderr).toContain('ownership could not be verified');
+			expect(stderr).toContain(
+				'timed out after 1s verifying browser authority volume',
+			);
+			expect(stderr).toContain('ownership; leaving it intact');
+			expect(stderr).not.toContain('Killed');
 			expect(
 				dockerCalls(fake.capture).some(
 					({ args }) => args[0] === 'volume' && args[1] === 'rm',
