@@ -15,18 +15,24 @@ describe('blankComments', () => {
 		expect(blankComments(source)).toBe('a   \r\n   b   \r\nc');
 	});
 
-	it('blanks incomplete HTML and block comments through EOF', () => {
+	it('leaves incomplete HTML and block delimiters unchanged', () => {
 		const html = 'a<!--x\nb';
 		const block = 'a/*x\nb';
 
-		expect(blankComments(html)).toBe('a     \n ');
-		expect(blankComments(block)).toBe('a   \n ');
+		expect(blankComments(html)).toBe(html);
+		expect(blankComments(block)).toBe(block);
 	});
 
-	it('handles many incomplete delimiters as one comment span', () => {
+	it('handles many incomplete delimiters without hiding their source text', () => {
 		const source = '<!--'.repeat(4_096);
 
-		expect(blankComments(source)).toBe(' '.repeat(source.length));
+		expect(blankComments(source)).toBe(source);
+	});
+
+	it('does not let an incomplete delimiter in ordinary source hide a later violation', () => {
+		const source = "const marker = '<!--';\nconst color = '#123ABC';";
+
+		expect(blankComments(source)).toBe(source);
 	});
 
 	it('uses the first opening delimiter when comment syntaxes overlap', () => {
