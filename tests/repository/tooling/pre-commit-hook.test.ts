@@ -87,6 +87,20 @@ describe('generated token pre-commit guard', () => {
 		expectAccepted(root);
 	});
 
+	it('allows independent staged edits in both hand-maintained regions', () => {
+		const root = repository();
+		write(
+			join(root, 'apps/gallery/src/app.css'),
+			APP_CSS.replace('/* gallery-owned header */', '/* revised gallery-owned header */').replace(
+				'/* gallery-owned footer */',
+				'/* revised gallery-owned footer */',
+			),
+		);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+
+		expectAccepted(root);
+	});
+
 	it('ignores an unstaged sentinel edit when only a hand-maintained app.css edit is staged', () => {
 		const root = repository();
 		const appCss = join(root, 'apps/gallery/src/app.css');
