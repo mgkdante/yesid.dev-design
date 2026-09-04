@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const HOOK = fileURLToPath(new URL('../../../.githooks/pre-commit', import.meta.url));
-const APP_CSS = `/* gallery-owned header */
+const APP_CSS = `@import '@yesid/tokens/tokens.css';
+/* gallery-owned header */
 /* ===== TOKENS:START ===== */
 /* GENERATED FROM packages/tokens/tokens.json - DO NOT EDIT */
 @theme {
@@ -165,11 +166,58 @@ describe('generated token pre-commit guard', () => {
 		const end = APP_CSS.indexOf(endMarker) + endMarker.length;
 		const region = APP_CSS.slice(start, end);
 		const appCss = join(root, 'apps/gallery/src/app.css');
-		write(appCss, `@import 'tokens.css';\n${region}\n/* footer */\n`);
+		write(appCss, `@import '@yesid/tokens/tokens.css';\n${region}\n/* footer */\n`);
 		git(root, 'add', '--', 'apps/gallery/src/app.css');
 		git(root, 'commit', '--amend', '-qm', 'crossing baseline');
 
-		write(appCss, `${region}\n@import "tokens.css";\n/* footer */\n`);
+		write(appCss, `${region}\n@import "@yesid/tokens/tokens.css";\n/* footer */\n`);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+
+		expectRejected(root);
+	});
+
+	it('rejects moving the required token import after the sentinel when its text also changes', () => {
+		const root = repository();
+		const startMarker = '/* ===== TOKENS:START ===== */';
+		const endMarker = '/* ===== TOKENS:END ===== */';
+		const start = APP_CSS.indexOf(startMarker);
+		const end = APP_CSS.indexOf(endMarker) + endMarker.length;
+		const region = APP_CSS.slice(start, end);
+		const appCss = join(root, 'apps/gallery/src/app.css');
+		write(appCss, `@import '@yesid/tokens/tokens.css';\n${region}\n/* footer */\n`);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+		git(root, 'commit', '--amend', '-qm', 'import ordering baseline');
+
+		write(
+			appCss,
+			`${region}\n@import "@yesid/tokens/tokens.css"; /* moved */\n/* footer */\n`,
+		);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+
+		expectRejected(root);
+	});
+
+	it('does not collapse semantically different CSS while detecting crossings', () => {
+		const root = repository();
+		const startMarker = '/* ===== TOKENS:START ===== */';
+		const endMarker = '/* ===== TOKENS:END ===== */';
+		const start = APP_CSS.indexOf(startMarker);
+		const end = APP_CSS.indexOf(endMarker) + endMarker.length;
+		const region = APP_CSS.slice(start, end);
+		const spaced = '.same { content: "a b"; }';
+		const compact = '.same { content: "ab"; }';
+		const appCss = join(root, 'apps/gallery/src/app.css');
+		write(
+			appCss,
+			`@import '@yesid/tokens/tokens.css';\n${spaced}\n${region}\n${compact}\n`,
+		);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+		git(root, 'commit', '--amend', '-qm', 'semantic collision baseline');
+
+		write(
+			appCss,
+			`@import '@yesid/tokens/tokens.css';\n${compact}\n${region}\n${spaced}\n`,
+		);
 		git(root, 'add', '--', 'apps/gallery/src/app.css');
 
 		expectRejected(root);
