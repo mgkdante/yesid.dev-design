@@ -1333,9 +1333,6 @@ export function installAdoption(
 			identities.tombstone = identities.backup;
 			delete identities.backup;
 			syncDirectory(dirname(paths.dest));
-			acquisition.owner.state = 'committed-cleanup';
-			lockIdentity = rewriteLock(paths.lock, acquisition.owner, lockIdentity);
-			identities.lock = lockIdentity;
 			retainLock = true;
 		}
 		try {
@@ -1355,7 +1352,12 @@ export function installAdoption(
 				runtime,
 				assertDestinationStable,
 			);
-			if (!removed) return { outcome: 'installed', manifest: accepted };
+			if (!removed) {
+				acquisition.owner.state = 'committed-cleanup';
+				lockIdentity = rewriteLock(paths.lock, acquisition.owner, lockIdentity);
+				identities.lock = lockIdentity;
+				return { outcome: 'installed', manifest: accepted };
+			}
 			delete identities.tombstone;
 			assertDestinationStable();
 		}
