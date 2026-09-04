@@ -32,9 +32,9 @@
 		"satori": ">=0.10.0 <1"
 	},
 	"devDependencies": {
-		"@types/node": "^22.0.0",
-		"satori": "^0.28.0",
-		"typescript": "^5.5.0",
+		"@types/node": "^26.4.0",
+		"satori": "^0.33.4",
+		"typescript": "^7.0.2",
 		"vitest": "^4.1.0"
 	}
 }
