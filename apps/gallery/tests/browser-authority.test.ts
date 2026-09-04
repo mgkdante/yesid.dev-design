@@ -20,7 +20,6 @@ import { blockingAxeViolations } from './browser/authority.js';
 const ROOT = resolve(import.meta.dirname, '../../..');
 const AUTHORITY_IMAGE =
 	'mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48';
-const TEST_VOLUME = 'yesid-browser-authority-test-volume';
 const PROXY_VARIABLES = [
 	'HTTP_PROXY',
 	'HTTPS_PROXY',
@@ -65,7 +64,7 @@ printf '%s\\0' "$@" >"$TEST_CAPTURE_DIR/$count.args"
 cat >"$TEST_CAPTURE_DIR/$count.stdin"
 if [ "$FAKE_DOCKER_SLEEP_CALL" -eq "$count" ]; then exec sleep "$FAKE_DOCKER_SLEEP_SECONDS"; fi
 if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
-if [ "\${1-}" = volume ] && [ "\${2-}" = create ]; then printf '%s\n' "$FAKE_DOCKER_VOLUME"; fi
+if [ "\${1-}" = volume ] && [ "\${2-}" = create ]; then printf '%s\n' "\${3-}"; fi
 `,
 	);
 	chmodSync(docker, 0o755);
@@ -83,7 +82,6 @@ if [ "\${1-}" = volume ] && [ "\${2-}" = create ]; then printf '%s\n' "$FAKE_DOC
 			FAKE_DOCKER_FAIL_CALL: String(failCall),
 			FAKE_DOCKER_SLEEP_CALL: String(sleepCall),
 			FAKE_DOCKER_SLEEP_SECONDS: String(sleepSeconds),
-			FAKE_DOCKER_VOLUME: TEST_VOLUME,
 			PATH: `${bin}${delimiter}${process.env.PATH ?? ''}`,
 			TEST_CAPTURE_DIR: capture,
 		},
@@ -110,6 +108,12 @@ function dockerCalls(capture: string) {
 			stdin: readFileSync(join(capture, `${call}.stdin`)),
 		};
 	});
+}
+
+function createdVolume(calls: ReturnType<typeof dockerCalls>): string {
+	const create = calls.find(({ args }) => args[0] === 'volume' && args[1] === 'create');
+	expect(create?.args).toHaveLength(3);
+	return create!.args[2]!;
 }
 
 function expectProxyCredentialsNeutralized(args: string[]) {
@@ -165,9 +169,10 @@ describe('browser accessibility authority', () => {
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
 			const calls = dockerCalls(fake.capture);
+			const volume = createdVolume(calls);
 			expect(calls).toHaveLength(4);
 			expect(calls[0]!.args.slice(0, 2)).toEqual(['volume', 'create']);
-			expect(calls[3]!.args).toEqual(['volume', 'rm', '--force', TEST_VOLUME]);
+			expect(calls[3]!.args).toEqual(['volume', 'rm', '--force', volume]);
 			const committedArchive = execFileSync('git', ['archive', '--format=tar', 'HEAD'], {
 				cwd: ROOT,
 				maxBuffer: 32 * 1024 * 1024,
@@ -187,7 +192,8 @@ describe('browser accessibility authority', () => {
 				env: fake.env,
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
-			const runs = dockerCalls(fake.capture).filter(({ args }) => args[0] === 'run');
+			const calls = dockerCalls(fake.capture);
+			const runs = calls.filter(({ args }) => args[0] === 'run');
 			expect(runs).toHaveLength(2);
 			expectProxyCredentialsNeutralized(runs[0]!.args);
 			expectProxyCredentialsNeutralized(runs[1]!.args);
@@ -253,13 +259,15 @@ describe('browser accessibility authority', () => {
 				env: fake.env,
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
-			const runs = dockerCalls(fake.capture).filter(({ args }) => args[0] === 'run');
+			const calls = dockerCalls(fake.capture);
+			const volume = createdVolume(calls);
+			const runs = calls.filter(({ args }) => args[0] === 'run');
 			expect(runs).toHaveLength(2);
 			for (const call of runs) {
 				expect(call.args).toContain('linux/amd64');
 				expect(call.args).toContain(AUTHORITY_IMAGE);
 				expect(call.args).toContain(
-					`type=volume,source=${TEST_VOLUME},target=/authority,volume-nocopy`,
+					`type=volume,source=${volume},target=/authority,volume-nocopy`,
 				);
 				expect(call.args).not.toContain('--volume');
 				expect(call.args).not.toContain('-v');
@@ -393,9 +401,10 @@ describe('browser accessibility authority', () => {
 			});
 			expect(result.status).toBe(23);
 			const calls = dockerCalls(fake.capture);
+			const volume = createdVolume(calls);
 			expect(calls).toHaveLength(4);
 			expect(calls[2]!.args).toContain(AUTHORITY_IMAGE);
-			expect(calls[3]!.args).toEqual(['volume', 'rm', '--force', TEST_VOLUME]);
+			expect(calls[3]!.args).toEqual(['volume', 'rm', '--force', volume]);
 		} finally {
 			fake.remove();
 		}
@@ -410,9 +419,10 @@ describe('browser accessibility authority', () => {
 			});
 			expect(result.status).toBe(24);
 			const calls = dockerCalls(fake.capture);
+			const volume = createdVolume(calls);
 			expect(calls).toHaveLength(3);
 			expect(calls[1]!.args[0]).toBe('run');
-			expect(calls[2]!.args).toEqual(['volume', 'rm', '--force', TEST_VOLUME]);
+			expect(calls[2]!.args).toEqual(['volume', 'rm', '--force', volume]);
 		} finally {
 			fake.remove();
 		}
@@ -426,11 +436,13 @@ describe('browser accessibility authority', () => {
 				env: fake.env,
 			});
 			expect(result.status).toBe(25);
-			expect(dockerCalls(fake.capture)[3]!.args).toEqual([
+			const calls = dockerCalls(fake.capture);
+			const volume = createdVolume(calls);
+			expect(calls[3]!.args).toEqual([
 				'volume',
 				'rm',
 				'--force',
-				TEST_VOLUME,
+				volume,
 			]);
 			expect(result.stderr.toString()).toContain('failed to remove browser authority volume');
 		} finally {
@@ -471,8 +483,50 @@ describe('browser accessibility authority', () => {
 			if (!promptExit) return;
 			expect(promptExit.result).toEqual({ code: 143, signal: null });
 			const calls = dockerCalls(fake.capture);
-			expect(calls.at(-1)!.args).toEqual(['volume', 'rm', '--force', TEST_VOLUME]);
+			const volume = createdVolume(calls);
+			expect(calls.at(-1)!.args).toEqual(['volume', 'rm', '--force', volume]);
 			expect(calls.some(({ args }) => args[0] === 'rm' && args[1] === '--force')).toBe(true);
+		} finally {
+			if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+			fake.remove();
+		}
+	});
+
+	it('knows the volume name before a hanging create call can lose its response', async () => {
+		const fake = fakeDocker({ sleepCall: 1 });
+		const child = spawn('bash', ['tools/browser-authority-noble.sh'], {
+			cwd: ROOT,
+			env: fake.env,
+			stdio: ['ignore', 'ignore', 'pipe'],
+		});
+		let stderr = '';
+		child.stderr!.setEncoding('utf8');
+		child.stderr!.on('data', (chunk: string) => {
+			stderr += chunk;
+		});
+		const exited = once(child, 'exit').then(([code, signal]) => ({
+			code: code as number | null,
+			signal: signal as NodeJS.Signals | null,
+		}));
+
+		try {
+			await waitForDockerCall(fake.capture, 1);
+			child.kill('SIGTERM');
+			const promptExit = await Promise.race([
+				exited.then((result) => ({ result })),
+				delay(750).then(() => null),
+			]);
+			if (!promptExit) {
+				child.kill('SIGKILL');
+				await exited;
+			}
+
+			expect(promptExit, stderr).not.toBeNull();
+			if (!promptExit) return;
+			expect(promptExit.result).toEqual({ code: 143, signal: null });
+			const calls = dockerCalls(fake.capture);
+			const volume = createdVolume(calls);
+			expect(calls.at(-1)!.args).toEqual(['volume', 'rm', '--force', volume]);
 		} finally {
 			if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
 			fake.remove();

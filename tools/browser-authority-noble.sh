@@ -100,16 +100,8 @@ proxy_env=(
 volume=
 scratch=
 archive=
-volume_output=
 active_pid=
 active_container=
-
-load_created_volume() {
-	local candidate
-	if [[ -n "$volume" || -z "$volume_output" || ! -s "$volume_output" ]]; then return; fi
-	IFS= read -r candidate < "$volume_output"
-	if [[ "$candidate" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]; then volume=$candidate; fi
-}
 
 stop_active_container() {
 	local pid=$active_pid
@@ -132,7 +124,6 @@ cleanup() {
 	local status=$?
 	local cleanup_status
 	trap - EXIT
-	load_created_volume
 	if [[ -n "$volume" ]]; then
 		if docker volume rm --force "$volume" >/dev/null; then
 			:
@@ -180,14 +171,14 @@ run_container() {
 
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/yesid-browser-authority.XXXXXXXX")
 archive="$scratch/source.tar"
-volume_output="$scratch/volume"
 trusted_git archive --format=tar --output="$archive" "$commit"
-run_active docker volume create > "$volume_output"
-load_created_volume
-if [[ -z "$volume" ]]; then
-	printf 'browser authority could not resolve the created Docker volume\n' >&2
+nonce=${scratch##*.}
+volume="yesid-browser-authority-${commit:0:12}-$nonce"
+if [[ ! "$volume" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]; then
+	printf 'browser authority generated an invalid Docker volume name\n' >&2
 	exit 2
 fi
+run_active docker volume create "$volume" >/dev/null
 mount="type=volume,source=$volume,target=/authority,volume-nocopy"
 bootstrap_container="yesid-browser-bootstrap-$volume"
 test_container="yesid-browser-test-$volume"
