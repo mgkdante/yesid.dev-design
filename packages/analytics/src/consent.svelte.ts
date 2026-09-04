@@ -69,6 +69,7 @@ export function createAnalyticsConsentStore(
 	let focusRequest = 0;
 	let storageSafetyFailed = false;
 	let stopListening: (() => void) | null = null;
+	let listenerTeardownFailed = false;
 
 	function commit(next: AnalyticsConsentState): void {
 		current = next;
@@ -106,9 +107,17 @@ export function createAnalyticsConsentStore(
 		}
 	}
 
-	function stopStorageListener(): void {
-		stopListening?.();
-		stopListening = null;
+	function stopStorageListener(expected = stopListening): boolean {
+		if (!expected || stopListening !== expected) return true;
+		try {
+			expected();
+		} catch {
+			listenerTeardownFailed = true;
+			return false;
+		}
+		listenerTeardownFailed = false;
+		if (stopListening === expected) stopListening = null;
+		return true;
 	}
 
 	function commitUnavailable(choice: AnalyticsConsentChoice = 'unknown'): void {
@@ -117,7 +126,7 @@ export function createAnalyticsConsentStore(
 	}
 
 	function syncExternalChoice(value: string | null): void {
-		if (!current.ready || !current.available) return;
+		if (listenerTeardownFailed || !current.ready || !current.available) return;
 		if (value === 'granted') {
 			clearSafetyMarker();
 			refreshOpenMarker('granted');
@@ -242,8 +251,17 @@ export function createAnalyticsConsentStore(
 		subscribe,
 		preferencesFocusRequests,
 		init(): () => void {
-			stopStorageListener();
-			const available = dependencies.hostname() === preset.domain;
+			if (!stopStorageListener()) {
+				commitUnavailable(current.choice);
+				return () => {};
+			}
+			let available: boolean;
+			try {
+				available = dependencies.hostname() === preset.domain;
+			} catch {
+				commitUnavailable();
+				return () => {};
+			}
 			if (!available) {
 				commitUnavailable();
 				return () => {};
@@ -319,8 +337,7 @@ export function createAnalyticsConsentStore(
 				clearPreferencesMarker();
 			}
 			return () => {
-				if (stopListening === unsubscribe) stopListening = null;
-				unsubscribe();
+				if (!stopStorageListener(unsubscribe)) commitUnavailable(current.choice);
 			};
 		},
 		grant(): void {

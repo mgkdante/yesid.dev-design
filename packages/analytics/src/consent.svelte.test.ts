@@ -25,6 +25,7 @@ const ANALYTICS_STORAGE_PROBE_KEY = PRESET.storageKeys.storageProbe;
 
 interface HarnessOptions {
 	hostname?: string;
+	hostnameThrows?: boolean;
 	stored?: string | null;
 	marker?: string | null;
 	safetyMarker?: string | null;
@@ -41,10 +42,12 @@ interface HarnessOptions {
 	safetyRemoveThrows?: boolean;
 	reloadThrows?: boolean;
 	listenThrows?: boolean;
+	listenerTeardownThrows?: boolean;
 }
 
 function createHarness({
 	hostname = 'metrics.example',
+	hostnameThrows = false,
 	stored = null,
 	marker = null,
 	safetyMarker = null,
@@ -61,6 +64,7 @@ function createHarness({
 	safetyRemoveThrows = false,
 	reloadThrows = false,
 	listenThrows = false,
+	listenerTeardownThrows = false,
 }: HarnessOptions = {}) {
 	let value = stored;
 	let markerValue = marker;
@@ -71,7 +75,13 @@ function createHarness({
 	let activeRemoveThrows = removeThrows;
 	let activeMarkerWriteThrows = markerWriteThrows;
 	let activeSafetyWriteThrows = safetyWriteThrows;
+	let activeListenerTeardownThrows = listenerTeardownThrows;
 	const listeners = new Set<(next: string | null) => void>();
+	const listenerStops: Array<ReturnType<typeof vi.fn<() => void>>> = [];
+	const hostnameValue = vi.fn(() => {
+		if (hostnameThrows) throw new Error('hostname blocked');
+		return hostname;
+	});
 	const probeDurableStorage = vi.fn(() => {
 		if (activeProbeThrows) throw new Error('durable storage probe blocked');
 	});
@@ -120,10 +130,15 @@ function createHarness({
 	const listen = vi.fn((listener: (next: string | null) => void) => {
 		if (listenThrows) throw new Error('storage listener blocked');
 		listeners.add(listener);
-		return () => listeners.delete(listener);
+		const stop = vi.fn(() => {
+			if (activeListenerTeardownThrows) throw new Error('storage listener teardown blocked');
+			listeners.delete(listener);
+		});
+		listenerStops.push(stop);
+		return stop;
 	});
 	const dependencies = {
-		hostname: () => hostname,
+		hostname: hostnameValue,
 		probeDurableStorage,
 		read,
 		write,
@@ -141,6 +156,8 @@ function createHarness({
 
 	return {
 		store,
+		hostname: hostnameValue,
+		listenerStops,
 		probeDurableStorage,
 		read,
 		write,
@@ -153,6 +170,7 @@ function createHarness({
 		removeSafetyMarker,
 		reload,
 		listen,
+		listenerCount: () => listeners.size,
 		stored: () => value,
 		marker: () => markerValue,
 		safetyMarker: () => safetyMarkerValue,
@@ -166,18 +184,21 @@ function createHarness({
 			remove,
 			markerWrite,
 			safetyWrite,
+			listenerTeardown,
 		}: Partial<{
 			probe: boolean;
 			write: boolean;
 			remove: boolean;
 			markerWrite: boolean;
 			safetyWrite: boolean;
+			listenerTeardown: boolean;
 		}>) => {
 			if (probe !== undefined) activeProbeThrows = probe;
 			if (write !== undefined) activeWriteThrows = write;
 			if (remove !== undefined) activeRemoveThrows = remove;
 			if (markerWrite !== undefined) activeMarkerWriteThrows = markerWrite;
 			if (safetyWrite !== undefined) activeSafetyWriteThrows = safetyWrite;
+			if (listenerTeardown !== undefined) activeListenerTeardownThrows = listenerTeardown;
 		},
 		freshStore: () => createAnalyticsConsentStore(PRESET, dependencies),
 	};
@@ -213,6 +234,85 @@ describe('analytics consent state', () => {
 		expect(harness.readPreferencesMarker).not.toHaveBeenCalled();
 		expect(get(harness.store)).toEqual({
 			choice: 'unknown',
+			ready: true,
+			available: false,
+			preferencesOpen: false,
+		});
+	});
+
+	it('fails unavailable without probing storage when hostname lookup throws', () => {
+		const harness = createHarness({ hostnameThrows: true, stored: 'granted', marker: '1' });
+
+		expect(() => harness.store.init()).not.toThrow();
+
+		expect(get(harness.store)).toEqual({
+			choice: 'unknown',
+			ready: true,
+			available: false,
+			preferencesOpen: false,
+		});
+		expect(harness.probeDurableStorage).not.toHaveBeenCalled();
+		expect(harness.read).not.toHaveBeenCalled();
+		expect(harness.listen).not.toHaveBeenCalled();
+	});
+
+	it.each(['granted', 'denied'] as const)(
+		'preserves a %s choice but fails unavailable when re-init listener teardown throws',
+		(choice) => {
+			const harness = createHarness({ stored: choice, listenerTeardownThrows: true });
+			harness.store.init();
+			harness.hostname.mockClear();
+			harness.probeDurableStorage.mockClear();
+
+			expect(() => harness.store.init()).not.toThrow();
+
+			expect(get(harness.store)).toEqual({
+				choice,
+				ready: true,
+				available: false,
+				preferencesOpen: false,
+			});
+			expect(harness.hostname).not.toHaveBeenCalled();
+			expect(harness.probeDurableStorage).not.toHaveBeenCalled();
+			expect(harness.listen).toHaveBeenCalledOnce();
+			expect(harness.listenerStops[0]).toHaveBeenCalledOnce();
+		},
+	);
+
+	it('retries a failed listener teardown before installing a replacement listener', () => {
+		const harness = createHarness({ stored: 'granted', listenerTeardownThrows: true });
+		harness.store.init();
+		harness.store.init();
+		harness.setFailures({ listenerTeardown: false });
+
+		harness.store.init();
+
+		expect(harness.listenerStops[0]).toHaveBeenCalledTimes(2);
+		expect(harness.listen).toHaveBeenCalledTimes(2);
+		expect(harness.listenerCount()).toBe(1);
+		expect(get(harness.store)).toEqual({
+			choice: 'granted',
+			ready: true,
+			available: true,
+			preferencesOpen: false,
+		});
+	});
+
+	it('contains a returned listener-disposer failure and ignores the surviving listener', () => {
+		const harness = createHarness({ stored: 'granted', listenerTeardownThrows: true });
+		const dispose = harness.store.init();
+
+		expect(() => dispose()).not.toThrow();
+		expect(get(harness.store)).toEqual({
+			choice: 'granted',
+			ready: true,
+			available: false,
+			preferencesOpen: false,
+		});
+
+		harness.emitStoredChange('denied');
+		expect(get(harness.store)).toEqual({
+			choice: 'granted',
 			ready: true,
 			available: false,
 			preferencesOpen: false,
