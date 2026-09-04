@@ -25,6 +25,7 @@
 		"test:repository": "vitest run --config vitest.repository.config.ts",
 		"test:browser": "bun run --cwd apps/gallery test:browser",
 		"test:browser:list": "bun run --cwd apps/gallery test:browser:list",
+		"test:browser:noble": "bash tools/browser-authority-noble.sh",
 		"browser:install": "bun run --cwd apps/gallery browser:install",
 		"check": "bun run api:check && tsc --project tsconfig.tools.json && tsc --project tsconfig.repository-tests.json && turbo run check",
 		"dev": "turbo run dev",

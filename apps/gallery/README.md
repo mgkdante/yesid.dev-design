@@ -34,10 +34,16 @@ bun run --cwd apps/gallery check
 bun run --cwd apps/gallery build
 bun run test:browser:list
 bun run test:browser
+bun run test:browser:noble
+bun run test:browser:noble -- <commit-or-tag>
 ```
 
 `test:browser:list` discovers the fixed matrix without building. `test:browser` deliberately
-builds the production Gallery before executing the browser suite.
+builds the production Gallery before executing the browser suite. `test:browser:noble` streams
+one resolved commit archive (default `HEAD`) into the same digest-pinned Playwright Noble
+container used by CI, installs the checksum-verified Bun pin there, then runs `test:browser`. It
+requires Docker and network access. Working-tree changes, including ignored and untracked files,
+are intentionally excluded; commit the exact candidate you want to verify first.
 
 ## Failure modes and release implications
 
