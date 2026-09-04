@@ -33,7 +33,13 @@ const PROXY_VARIABLES = [
 	'no_proxy',
 ] as const;
 
-function fakeDocker({ failCall = 0, exitCode = 23, sleepCall = 0, sleepSeconds = 3 } = {}) {
+function fakeDocker({
+	failCall = 0,
+	exitCode = 23,
+	preexistingWrongLabel = false,
+	sleepCall = 0,
+	sleepSeconds = 3,
+} = {}) {
 	const root = mkdtempSync(join(tmpdir(), 'yesid-browser-authority-'));
 	const bin = join(root, 'bin');
 	const capture = join(root, 'capture');
@@ -56,15 +62,53 @@ function fakeDocker({ failCall = 0, exitCode = 23, sleepCall = 0, sleepSeconds =
 		docker,
 		`#!/bin/sh
 set -eu
+volume_state="$TEST_CAPTURE_DIR/volumes"
+mkdir -p "$volume_state"
 count=0
 if [ -f "$TEST_CAPTURE_DIR/count" ]; then read -r count <"$TEST_CAPTURE_DIR/count"; fi
 count=$((count + 1))
 printf '%s\n' "$count" >"$TEST_CAPTURE_DIR/count"
 printf '%s\\0' "$@" >"$TEST_CAPTURE_DIR/$count.args"
 cat >"$TEST_CAPTURE_DIR/$count.stdin"
+if [ "\${1-}" = volume ] && [ "\${2-}" = create ]; then
+	shift 2
+	label=
+	name=
+	while [ "$#" -gt 0 ]; do
+		if [ "$1" = --label ]; then label=$2; shift 2; else name=$1; shift; fi
+	done
+	if [ "$FAKE_DOCKER_PREEXISTING_WRONG_LABEL" = 1 ]; then
+		printf '%s\n' foreign-owner >"$volume_state/$name"
+	elif [ ! -e "$volume_state/$name" ]; then
+		printf '%s\n' "\${label#*=}" >"$volume_state/$name"
+	fi
+	: >"$TEST_CAPTURE_DIR/create-recorded"
+	if [ "$FAKE_DOCKER_SLEEP_CALL" -eq "$count" ]; then exec sleep "$FAKE_DOCKER_SLEEP_SECONDS"; fi
+	if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
+	printf '%s\n' "$name"
+	exit 0
+fi
+if [ "\${1-}" = volume ] && [ "\${2-}" = inspect ]; then
+	name=
+	for arg in "$@"; do name=$arg; done
+	if [ "$FAKE_DOCKER_SLEEP_CALL" -eq "$count" ]; then exec sleep "$FAKE_DOCKER_SLEEP_SECONDS"; fi
+	if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
+	[ -e "$volume_state/$name" ] || exit 44
+	cat "$volume_state/$name"
+	exit 0
+fi
+if [ "\${1-}" = volume ] && [ "\${2-}" = rm ]; then
+	name=
+	for arg in "$@"; do name=$arg; done
+	if [ "$FAKE_DOCKER_SLEEP_CALL" -eq "$count" ]; then exec sleep "$FAKE_DOCKER_SLEEP_SECONDS"; fi
+	if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
+	[ -e "$volume_state/$name" ] || exit 44
+	rm "$volume_state/$name"
+	printf '%s\n' "$name"
+	exit 0
+fi
 if [ "$FAKE_DOCKER_SLEEP_CALL" -eq "$count" ]; then exec sleep "$FAKE_DOCKER_SLEEP_SECONDS"; fi
 if [ "$FAKE_DOCKER_FAIL_CALL" -eq "$count" ]; then exit "$FAKE_DOCKER_EXIT"; fi
-if [ "\${1-}" = volume ] && [ "\${2-}" = create ]; then printf '%s\n' "\${3-}"; fi
 `,
 	);
 	chmodSync(docker, 0o755);
@@ -80,6 +124,7 @@ if [ "\${1-}" = volume ] && [ "\${2-}" = create ]; then printf '%s\n' "\${3-}"; 
 			DOCKER_CONFIG: dockerConfig,
 			FAKE_DOCKER_EXIT: String(exitCode),
 			FAKE_DOCKER_FAIL_CALL: String(failCall),
+			FAKE_DOCKER_PREEXISTING_WRONG_LABEL: preexistingWrongLabel ? '1' : '0',
 			FAKE_DOCKER_SLEEP_CALL: String(sleepCall),
 			FAKE_DOCKER_SLEEP_SECONDS: String(sleepSeconds),
 			PATH: `${bin}${delimiter}${process.env.PATH ?? ''}`,
@@ -98,6 +143,14 @@ async function waitForDockerCall(capture: string, expected: number): Promise<voi
 	throw new Error(`fake Docker did not reach call ${expected}`);
 }
 
+async function waitForDockerCreate(capture: string): Promise<void> {
+	for (let attempt = 0; attempt < 200; attempt += 1) {
+		if (existsSync(join(capture, 'create-recorded'))) return;
+		await delay(10);
+	}
+	throw new Error('fake Docker did not record the created volume');
+}
+
 function dockerCalls(capture: string) {
 	const countPath = join(capture, 'count');
 	const count = Number(readFileSync(countPath, 'utf8'));
@@ -112,8 +165,15 @@ function dockerCalls(capture: string) {
 
 function createdVolume(calls: ReturnType<typeof dockerCalls>): string {
 	const create = calls.find(({ args }) => args[0] === 'volume' && args[1] === 'create');
-	expect(create?.args).toHaveLength(3);
-	return create!.args[2]!;
+	expect(create?.args.at(-1)).toMatch(/^yesid-browser-authority-[0-9a-f]{12}-[0-9a-f]{64}$/u);
+	return create!.args.at(-1)!;
+}
+
+function createdOwnership(calls: ReturnType<typeof dockerCalls>): string {
+	const create = calls.find(({ args }) => args[0] === 'volume' && args[1] === 'create')!;
+	const label = create.args[create.args.indexOf('--label') + 1]!;
+	expect(label).toMatch(/^dev\.yesid\.browser-authority\.owner=[0-9a-f]{64}$/u);
+	return label.split('=')[1]!;
 }
 
 function expectProxyCredentialsNeutralized(args: string[]) {
@@ -170,15 +230,23 @@ describe('browser accessibility authority', () => {
 			expect(result.status, result.stderr.toString()).toBe(0);
 			const calls = dockerCalls(fake.capture);
 			const volume = createdVolume(calls);
-			expect(calls).toHaveLength(4);
+			const owner = createdOwnership(calls);
+			expect(calls).toHaveLength(6);
 			expect(calls[0]!.args.slice(0, 2)).toEqual(['volume', 'create']);
-			expect(calls[3]!.args).toEqual(['volume', 'rm', '--force', volume]);
+			expect(calls[0]!.args).toContain(`dev.yesid.browser-authority.owner=${owner}`);
+			expect(calls[1]!.args.slice(0, 2)).toEqual(['volume', 'inspect']);
+			expect(calls[1]!.args).toContain(volume);
+			expect(calls[2]!.args[0]).toBe('run');
+			expect(calls[3]!.args[0]).toBe('run');
+			expect(calls[4]!.args.slice(0, 2)).toEqual(['volume', 'inspect']);
+			expect(calls[4]!.args).toContain(volume);
+			expect(calls[5]!.args).toEqual(['volume', 'rm', '--force', volume]);
 			const committedArchive = execFileSync('git', ['archive', '--format=tar', 'HEAD'], {
 				cwd: ROOT,
 				maxBuffer: 32 * 1024 * 1024,
 			});
-			expect(Buffer.compare(calls[1]!.stdin, committedArchive)).toBe(0);
-			expect(calls[2]!.stdin).toHaveLength(0);
+			expect(Buffer.compare(calls[2]!.stdin, committedArchive)).toBe(0);
+			expect(calls[3]!.stdin).toHaveLength(0);
 		} finally {
 			fake.remove();
 		}
@@ -211,8 +279,8 @@ describe('browser accessibility authority', () => {
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
 			const calls = dockerCalls(fake.capture);
-			expect(calls).toHaveLength(4);
-			const bootstrapCommand = calls[1]!.args.at(-1)!;
+			expect(calls).toHaveLength(6);
+			const bootstrapCommand = calls[2]!.args.at(-1)!;
 			expect(bootstrapCommand).toContain(
 				'8611ba935af886f05a6f38740a15160326c15e5d5d07adef966130b4493607ed  /tmp/bun-linux-x64.zip',
 			);
@@ -233,8 +301,8 @@ describe('browser accessibility authority', () => {
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
 			const calls = dockerCalls(fake.capture);
-			expect(calls).toHaveLength(4);
-			const offline = calls[2]!;
+			expect(calls).toHaveLength(6);
+			const offline = calls[3]!;
 			expect(offline.args).toContain('--network=none');
 			expect(offline.args).toContain('--pull=never');
 			expect(offline.args).toContain('--cap-drop=ALL');
@@ -297,8 +365,8 @@ describe('browser accessibility authority', () => {
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
 			const calls = dockerCalls(fake.capture);
-			expect(calls).toHaveLength(4);
-			const receivedArchive = calls[1]!.stdin;
+			expect(calls).toHaveLength(6);
+			const receivedArchive = calls[2]!.stdin;
 			const committedArchive = execFileSync('git', ['archive', '--format=tar', commit], {
 				cwd: fixture,
 				maxBuffer: 32 * 1024 * 1024,
@@ -334,8 +402,8 @@ describe('browser accessibility authority', () => {
 			});
 			expect(result.status, result.stderr.toString()).toBe(0);
 			const calls = dockerCalls(fake.capture);
-			expect(calls).toHaveLength(4);
-			const receivedArchive = calls[1]!.stdin;
+			expect(calls).toHaveLength(6);
+			const receivedArchive = calls[2]!.stdin;
 			const originalArchive = execFileSync(
 				'git',
 				['--no-replace-objects', 'archive', '--format=tar', original],
@@ -393,7 +461,7 @@ describe('browser accessibility authority', () => {
 	});
 
 	it('exposes the authority runner from the root and propagates Docker failure', () => {
-		const fake = fakeDocker({ failCall: 3, exitCode: 23 });
+		const fake = fakeDocker({ failCall: 4, exitCode: 23 });
 		try {
 			const result = spawnSync('bun', ['run', 'test:browser:noble'], {
 				cwd: ROOT,
@@ -402,16 +470,17 @@ describe('browser accessibility authority', () => {
 			expect(result.status).toBe(23);
 			const calls = dockerCalls(fake.capture);
 			const volume = createdVolume(calls);
-			expect(calls).toHaveLength(4);
-			expect(calls[2]!.args).toContain(AUTHORITY_IMAGE);
-			expect(calls[3]!.args).toEqual(['volume', 'rm', '--force', volume]);
+			expect(calls).toHaveLength(6);
+			expect(calls[3]!.args).toContain(AUTHORITY_IMAGE);
+			expect(calls[4]!.args.slice(0, 2)).toEqual(['volume', 'inspect']);
+			expect(calls[5]!.args).toEqual(['volume', 'rm', '--force', volume]);
 		} finally {
 			fake.remove();
 		}
 	});
 
 	it('cleans the volume and skips candidate execution when bootstrap fails', () => {
-		const fake = fakeDocker({ failCall: 2, exitCode: 24 });
+		const fake = fakeDocker({ failCall: 3, exitCode: 24 });
 		try {
 			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
 				cwd: ROOT,
@@ -420,16 +489,17 @@ describe('browser accessibility authority', () => {
 			expect(result.status).toBe(24);
 			const calls = dockerCalls(fake.capture);
 			const volume = createdVolume(calls);
-			expect(calls).toHaveLength(3);
-			expect(calls[1]!.args[0]).toBe('run');
-			expect(calls[2]!.args).toEqual(['volume', 'rm', '--force', volume]);
+			expect(calls).toHaveLength(5);
+			expect(calls[2]!.args[0]).toBe('run');
+			expect(calls[3]!.args.slice(0, 2)).toEqual(['volume', 'inspect']);
+			expect(calls[4]!.args).toEqual(['volume', 'rm', '--force', volume]);
 		} finally {
 			fake.remove();
 		}
 	});
 
 	it('fails when cleanup cannot remove an otherwise successful authority volume', () => {
-		const fake = fakeDocker({ failCall: 4, exitCode: 25 });
+		const fake = fakeDocker({ failCall: 6, exitCode: 25 });
 		try {
 			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
 				cwd: ROOT,
@@ -438,7 +508,8 @@ describe('browser accessibility authority', () => {
 			expect(result.status).toBe(25);
 			const calls = dockerCalls(fake.capture);
 			const volume = createdVolume(calls);
-			expect(calls[3]!.args).toEqual([
+			expect(calls[4]!.args.slice(0, 2)).toEqual(['volume', 'inspect']);
+			expect(calls[5]!.args).toEqual([
 				'volume',
 				'rm',
 				'--force',
@@ -450,8 +521,29 @@ describe('browser accessibility authority', () => {
 		}
 	});
 
+	it('refuses a same-name volume carrying another owner label', () => {
+		const fake = fakeDocker({ preexistingWrongLabel: true });
+		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: ROOT,
+				env: fake.env,
+			});
+			expect(result.status).toBe(2);
+			expect(result.stderr.toString()).toContain('volume ownership mismatch');
+			const calls = dockerCalls(fake.capture);
+			const volume = createdVolume(calls);
+			expect(calls).toHaveLength(2);
+			expect(calls[1]!.args.slice(0, 2)).toEqual(['volume', 'inspect']);
+			expect(calls[1]!.args).toContain(volume);
+			expect(calls.some(({ args }) => args[0] === 'run')).toBe(false);
+			expect(calls.some(({ args }) => args[0] === 'volume' && args[1] === 'rm')).toBe(false);
+		} finally {
+			fake.remove();
+		}
+	});
+
 	it('terminates an active Docker call before cleaning the volume', async () => {
-		const fake = fakeDocker({ sleepCall: 2 });
+		const fake = fakeDocker({ sleepCall: 3 });
 		const child = spawn('bash', ['tools/browser-authority-noble.sh'], {
 			cwd: ROOT,
 			env: fake.env,
@@ -468,7 +560,7 @@ describe('browser accessibility authority', () => {
 		}));
 
 		try {
-			await waitForDockerCall(fake.capture, 2);
+			await waitForDockerCall(fake.capture, 3);
 			child.kill('SIGTERM');
 			const promptExit = await Promise.race([
 				exited.then((result) => ({ result })),
@@ -484,6 +576,8 @@ describe('browser accessibility authority', () => {
 			expect(promptExit.result).toEqual({ code: 143, signal: null });
 			const calls = dockerCalls(fake.capture);
 			const volume = createdVolume(calls);
+			expect(calls.at(-2)!.args.slice(0, 2)).toEqual(['volume', 'inspect']);
+			expect(calls.at(-2)!.args).toContain(volume);
 			expect(calls.at(-1)!.args).toEqual(['volume', 'rm', '--force', volume]);
 			expect(calls.some(({ args }) => args[0] === 'rm' && args[1] === '--force')).toBe(true);
 		} finally {
@@ -510,7 +604,7 @@ describe('browser accessibility authority', () => {
 		}));
 
 		try {
-			await waitForDockerCall(fake.capture, 1);
+			await waitForDockerCreate(fake.capture);
 			child.kill('SIGTERM');
 			const promptExit = await Promise.race([
 				exited.then((result) => ({ result })),
@@ -526,7 +620,10 @@ describe('browser accessibility authority', () => {
 			expect(promptExit.result).toEqual({ code: 143, signal: null });
 			const calls = dockerCalls(fake.capture);
 			const volume = createdVolume(calls);
-			expect(calls.at(-1)!.args).toEqual(['volume', 'rm', '--force', volume]);
+			expect(calls).toHaveLength(3);
+			expect(calls[1]!.args.slice(0, 2)).toEqual(['volume', 'inspect']);
+			expect(calls[1]!.args).toContain(volume);
+			expect(calls[2]!.args).toEqual(['volume', 'rm', '--force', volume]);
 		} finally {
 			if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
 			fake.remove();

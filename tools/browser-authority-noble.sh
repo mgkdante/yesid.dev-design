@@ -5,6 +5,7 @@ ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")/.." rev-parse --show-toplevel)"
 IMAGE='mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48'
 BUN_VERSION='1.3.11'
 PLAYWRIGHT_VERSION='1.61.1'
+VOLUME_OWNER_LABEL='dev.yesid.browser-authority.owner'
 
 trusted_git() {
 	GIT_ATTR_NOSYSTEM=1 git \
@@ -98,6 +99,8 @@ proxy_env=(
 )
 
 volume=
+volume_state=unknown
+owner=
 scratch=
 archive=
 active_pid=
@@ -123,14 +126,22 @@ handle_signal() {
 cleanup() {
 	local status=$?
 	local cleanup_status
+	local verification_status
 	trap - EXIT
-	if [[ -n "$volume" ]]; then
-		if docker volume rm --force "$volume" >/dev/null; then
-			:
+	if [[ -n "$volume" && "$volume_state" != foreign ]]; then
+		if verify_volume_owner; then
+			if docker volume rm --force "$volume" >/dev/null; then
+				:
+			else
+				cleanup_status=$?
+				printf 'failed to remove browser authority volume %s\n' "$volume" >&2
+				if (( status == 0 )); then status=$cleanup_status; fi
+			fi
 		else
-			cleanup_status=$?
-			printf 'failed to remove browser authority volume %s\n' "$volume" >&2
-			if (( status == 0 )); then status=$cleanup_status; fi
+			verification_status=$?
+			printf 'refusing to remove browser authority volume %s: ownership could not be verified\n' \
+				"$volume" >&2
+			if (( status == 0 )); then status=$verification_status; fi
 		fi
 	fi
 	if [[ -n "$scratch" && -d "$scratch" ]]; then
@@ -141,10 +152,6 @@ cleanup() {
 	fi
 	exit "$status"
 }
-trap cleanup EXIT
-trap 'handle_signal 129' HUP
-trap 'handle_signal 130' INT
-trap 'handle_signal 143' TERM
 
 run_active() {
 	local status
@@ -169,16 +176,46 @@ run_container() {
 	return "$status"
 }
 
+verify_volume_owner() {
+	local output="$scratch/volume-owner"
+	local observed
+	: > "$output"
+	if ! run_active docker volume inspect \
+		--format "{{ index .Labels \"$VOLUME_OWNER_LABEL\" }}" \
+		"$volume" > "$output"; then
+		return 2
+	fi
+	observed=$(tr -d '\r\n' < "$output")
+	if [[ "$observed" != "$owner" ]]; then return 1; fi
+}
+
+trap cleanup EXIT
+trap 'handle_signal 129' HUP
+trap 'handle_signal 130' INT
+trap 'handle_signal 143' TERM
+
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/yesid-browser-authority.XXXXXXXX")
 archive="$scratch/source.tar"
 trusted_git archive --format=tar --output="$archive" "$commit"
-nonce=${scratch##*.}
-volume="yesid-browser-authority-${commit:0:12}-$nonce"
+owner=$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')
+if [[ ! "$owner" =~ ^[0-9a-f]{64}$ ]]; then
+	printf 'browser authority generated an invalid volume owner\n' >&2
+	exit 2
+fi
+volume="yesid-browser-authority-${commit:0:12}-$owner"
 if [[ ! "$volume" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]; then
 	printf 'browser authority generated an invalid Docker volume name\n' >&2
 	exit 2
 fi
-run_active docker volume create "$volume" >/dev/null
+run_active docker volume create --label "$VOLUME_OWNER_LABEL=$owner" "$volume" >/dev/null
+if verify_volume_owner; then
+	volume_state=owned
+else
+	verification_status=$?
+	if (( verification_status == 1 )); then volume_state=foreign; fi
+	printf 'browser authority volume ownership mismatch for %s\n' "$volume" >&2
+	exit 2
+fi
 mount="type=volume,source=$volume,target=/authority,volume-nocopy"
 bootstrap_container="yesid-browser-bootstrap-$volume"
 test_container="yesid-browser-test-$volume"
