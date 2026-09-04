@@ -56,7 +56,7 @@ function validateValue(
 
 export function parseVariableArray(parsed: unknown, source: string): FigmaVariable[] {
   if (!Array.isArray(parsed)) {
-    throw new Error(`${source}: expected a JSON array of variables`);
+    throw new Error(`${diagnosticText(source)}: expected a JSON array of variables`);
   }
 
   const names = new Set<string>();

@@ -19,7 +19,7 @@ function temporaryPath(name: string): string {
 }
 
 function run(snapshotPath: string) {
-  return spawnSync('bun', ['run', 'figma:verify', '--', snapshotPath], {
+  return spawnSync('bun', ['run', '--silent', 'figma:verify', '--', snapshotPath], {
     cwd: packageRoot,
     encoding: 'utf8',
   });
@@ -76,6 +76,17 @@ describe('verify-roundtrip CLI', () => {
     expect(result.stderr).toContain('After owner approval, import it using any compatible workflow.');
     expect(result.stderr).toContain('This verifier only reads exported state; it never writes remotely.');
     expect(result.stderr).not.toMatch(/Task 3\.5|orchestrator|MCP|use_figma/i);
+  });
+
+  it('terminal-encodes a non-array snapshot filename', () => {
+    const snapshotPath = temporaryPath('snapshot\u001b]2;path\u0007.json');
+    writeFileSync(snapshotPath, '{}\n');
+
+    const result = run(snapshotPath);
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).not.toMatch(terminalControls);
+    expect(result.stderr).toContain('snapshot\\u001b]2;path\\u0007.json');
   });
 
   it.each([

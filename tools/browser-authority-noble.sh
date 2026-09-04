@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")/.." rev-parse --show-toplevel)"
+HARNESS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+target_input=${BROWSER_AUTHORITY_TARGET_ROOT:-$HARNESS_ROOT}
+TARGET_ROOT="$(cd "$target_input" && pwd -P)"
+resolved_target="$(git -C "$TARGET_ROOT" rev-parse --show-toplevel)"
+resolved_target="$(cd "$resolved_target" && pwd -P)"
+if [[ "$resolved_target" != "$TARGET_ROOT" ]]; then
+	printf 'browser authority target must be a repository root: %s\n' "$TARGET_ROOT" >&2
+	exit 2
+fi
 IMAGE='mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48'
 BUN_VERSION='1.3.11'
 PLAYWRIGHT_VERSION='1.61.1'
@@ -26,7 +34,8 @@ trusted_git() {
 		-c core.fsmonitor=false \
 		-c core.hooksPath= \
 		-c core.attributesFile=/dev/null \
-		-C "$ROOT" \
+		-c tar.umask=0002 \
+		-C "$TARGET_ROOT" \
 		"$@"
 }
 
@@ -34,7 +43,7 @@ refuse_local_git_override() {
 	local relative=$1
 	local path
 	path=$(trusted_git rev-parse --git-path "$relative")
-	if [[ "$path" != /* ]]; then path="$ROOT/$path"; fi
+	if [[ "$path" != /* ]]; then path="$TARGET_ROOT/$path"; fi
 	if [[ -L "$path" || ( -e "$path" && ! -f "$path" ) || -s "$path" ]]; then
 		printf 'browser authority refuses local Git override %s at %s\n' "$relative" "$path" >&2
 		exit 2
@@ -79,7 +88,7 @@ require_pin '.bun-version' "$(trusted_git show "$commit:.bun-version")" "$BUN_VE
 require_pin '@playwright/test' \
 	"$(committed_json_value apps/gallery/package.json devDependencies '@playwright/test')" \
 	"$PLAYWRIGHT_VERSION"
-bun "$ROOT/tools/browser-authority-dependency-policy.ts" "$ROOT" "$commit" "$IMAGE"
+bun "$HARNESS_ROOT/tools/browser-authority-dependency-policy.ts" "$TARGET_ROOT" "$commit" "$IMAGE"
 
 printf 'browser authority: source=%s platform=linux/amd64 image=%s\n' "$commit" "$IMAGE" >&2
 

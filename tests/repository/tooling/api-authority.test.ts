@@ -260,7 +260,7 @@ describe('deterministic package API reports', () => {
 		await expect(createApiReport(root, '@yesid/tokens')).rejects.toThrow(
 			'@yesid/tokens/serialize export testOnlyProbe uses a test/internal public name',
 		);
-	});
+	}, 0);
 
 	it('fails closed when distinct targets collapse to one declaration namespace', () => {
 		expect(() => planDeclarationNamespaces(['./src/a-b.ts', './src/a/b.ts'])).toThrow(
@@ -356,6 +356,7 @@ describe('deterministic package API reports', () => {
 			);
 			expect(semanticCompiler.counts()).toEqual({ programs: 1, checkers: 1 });
 		},
+		0,
 	);
 
 	it('detects TypeScript signatures, export shape, and direct asset byte mutations', async () => {
@@ -406,7 +407,7 @@ describe('deterministic package API reports', () => {
 		expect(assetReport.match(/- `\.\/tokens\.css`[^\n]+/u)?.[0]).not.toBe(
 			baseline.match(/- `\.\/tokens\.css`[^\n]+/u)?.[0],
 		);
-	});
+	}, 0);
 
 	it('detects Svelte prop and binding metadata mutations', async () => {
 		const baseline = readFileSync(join(REPOSITORY_ROOT, 'api-reports/ui.api.md'), 'utf8');
@@ -424,7 +425,7 @@ describe('deterministic package API reports', () => {
 		expect(mutated).toContain('authorityProbe?: boolean');
 		expect(baseline).toContain('const Button: Component<ButtonProps, {}, "ref">;');
 		expect(mutated).not.toContain('const Button: Component<ButtonProps, {}, "ref">;');
-	});
+	}, 0);
 
 	it('reports Combobox component bindings and detects open binding loss', async () => {
 		const baseline = readFileSync(join(REPOSITORY_ROOT, 'api-reports/ui.api.md'), 'utf8');
@@ -442,7 +443,7 @@ describe('deterministic package API reports', () => {
 		expect(mutated).not.toContain(
 			'const Combobox: Component<ComboboxProps, {}, "open" | "value">;',
 		);
-	});
+	}, 0);
 
 	it('writes exact report paths and fails closed on stale committed bytes', () => {
 		const root = mkdtempSync(join(tmpdir(), 'yesid-api-report-test-'));

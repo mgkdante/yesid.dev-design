@@ -1,0 +1,26 @@
+name: Trusted Noble browser authority
+description: Run the immutable harness against a candidate repository treated as data.
+
+inputs:
+  target-root:
+    description: Absolute path to the checked-out candidate repository.
+    required: true
+  target-ref:
+    description: Exact candidate commit to verify.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup pinned Bun for the trusted policy
+      uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      with:
+        bun-version: 1.3.11
+    - name: Run trusted harness against candidate data
+      shell: bash
+      env:
+        BROWSER_AUTHORITY_TARGET_ROOT: ${{ inputs.target-root }}
+        BROWSER_AUTHORITY_TARGET_REF: ${{ inputs.target-ref }}
+      run: >-
+        bash "$GITHUB_ACTION_PATH/../../../tools/browser-authority-noble.sh"
+        "$BROWSER_AUTHORITY_TARGET_REF"

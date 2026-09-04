@@ -58,7 +58,7 @@ function loadSnapshot(snapshotPath: string): FigmaVariable[] {
         `1. Capture \`bun run --cwd packages/tokens figma:push\` stdout as the proposed variables.\n` +
         `2. After owner approval, import it using any compatible workflow.\n` +
         `3. Export or read back FigmaVariable[] JSON and save the snapshot at ${diagnosticText(snapshotPath)}.\n` +
-        `4. Run \`bun run --cwd packages/tokens figma:verify -- ${diagnosticText(snapshotPath)}\`.\n` +
+        `4. Run \`bun run --silent --cwd packages/tokens figma:verify -- ${diagnosticText(snapshotPath)}\`.\n` +
         `This verifier only reads exported state; it never writes remotely.`,
     );
   }

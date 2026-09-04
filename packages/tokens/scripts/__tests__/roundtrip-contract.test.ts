@@ -23,6 +23,20 @@ describe('roundtrip snapshot parsing', () => {
     expect(parseVariableArray(generated, 'canonical')).toHaveLength(161);
   });
 
+  it('terminal-encodes the source on a non-array schema error', () => {
+    const source = 'snapshot\u001b]2;schema\u0007';
+    let message = '';
+    try {
+      parseVariableArray({}, source);
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    expect(message).not.toContain('\u001b');
+    expect(message).not.toContain('\u0007');
+    expect(message).toContain('snapshot\\u001b]2;schema\\u0007');
+  });
+
   it('rejects duplicate variable names', () => {
     expect(() =>
       parseVariableArray([variable(), variable()], 'snapshot'),

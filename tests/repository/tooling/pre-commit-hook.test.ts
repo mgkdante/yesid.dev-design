@@ -17,6 +17,7 @@ const APP_CSS = `@import '@yesid/tokens/tokens.css';
 /* gallery-owned footer */
 `;
 const scratch: string[] = [];
+const terminalControls = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/u;
 
 function write(path: string, content: string): void {
 	mkdirSync(dirname(path), { recursive: true });
@@ -266,6 +267,21 @@ describe('generated token pre-commit guard', () => {
 		git(root, 'add', '--', 'apps/gallery/src/app.css');
 
 		expectLayoutRejected(root);
+	});
+
+	it('terminal-encodes PostCSS syntax errors', () => {
+		const root = repository();
+		write(
+			join(root, 'apps/gallery/src/app.css'),
+			`${APP_CSS}\n.invalid { color: red; } \u001b]2;css-error\u0007 ???\n`,
+		);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+
+		const result = runHook(root);
+
+		expect(result.status).toBe(1);
+		expect(result.stderr).not.toMatch(terminalControls);
+		expect(result.stderr).toContain('\\u001b');
 	});
 
 	it('rejects moving the sentinel across duplicate hand-maintained lines', () => {

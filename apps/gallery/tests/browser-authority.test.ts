@@ -19,6 +19,7 @@ import { blockingAxeViolations } from './browser/authority.js';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const DEPENDENCY_POLICY = join(ROOT, 'tools/browser-authority-dependency-policy.ts');
+const AUTHORITY_ACTION = join(ROOT, '.github/actions/browser-authority/action.yml');
 const AUTHORITY_IMAGE =
 	'mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48';
 const PROXY_VARIABLES = [
@@ -458,6 +459,54 @@ describe('browser accessibility authority', () => {
 		}
 	});
 
+	it('uses the trusted harness against a separate target repository', () => {
+		const target = authorityFixture({});
+		const fake = fakeDocker();
+		try {
+			const commit = execFileSync('git', ['rev-parse', 'HEAD^{commit}'], {
+				cwd: target,
+				encoding: 'utf8',
+			}).trim();
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh', commit], {
+				cwd: ROOT,
+				env: { ...fake.env, BROWSER_AUTHORITY_TARGET_ROOT: target },
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			const calls = dockerCalls(fake.capture);
+			const expected = execFileSync('git', ['archive', '--format=tar', commit], {
+				cwd: target,
+				maxBuffer: 32 * 1024 * 1024,
+			});
+			expect(Buffer.compare(calls[2]!.stdin, expected)).toBe(0);
+			expect(result.stderr.toString()).toContain(`source=${commit}`);
+		} finally {
+			fake.remove();
+			rmSync(target, { force: true, recursive: true });
+		}
+	});
+
+	it('pins archive modes against local tar.umask configuration', () => {
+		const fixture = authorityFixture({});
+		const fake = fakeDocker();
+		try {
+			execFileSync('git', ['config', 'tar.umask', '0777'], { cwd: fixture });
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: fixture,
+				env: fake.env,
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			const expected = execFileSync(
+				'git',
+				['-c', 'tar.umask=0002', 'archive', '--format=tar', 'HEAD'],
+				{ cwd: fixture, maxBuffer: 32 * 1024 * 1024 },
+			);
+			expect(Buffer.compare(dockerCalls(fake.capture)[2]!.stdin, expected)).toBe(0);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
 	it('ignores local Git replacement refs when archiving the requested commit', () => {
 		const fixture = authorityFixture({});
 		const fake = fakeDocker();
@@ -643,6 +692,33 @@ describe('browser accessibility authority', () => {
 		const fixture = authorityFixture({ dependencySource: 'npm:@scope/package@^1.2.3' });
 		const fake = fakeDocker();
 		try {
+			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
+				cwd: fixture,
+				env: fake.env,
+			});
+			expect(result.status, result.stderr.toString()).toBe(0);
+			expect(dockerCalls(fake.capture)).toHaveLength(6);
+		} finally {
+			fake.remove();
+			rmSync(fixture, { force: true, recursive: true });
+		}
+	});
+
+	it('allows install configuration examples outside the bootstrap root', () => {
+		const fixture = authorityFixture({});
+		const fake = fakeDocker();
+		const paths = [
+			'docs/examples/bunfig.toml',
+			'tests/fixtures/.env.production',
+			'packages/tokens/fixtures/.npmrc',
+		];
+		try {
+			for (const path of paths) {
+				mkdirSync(join(fixture, path, '..'), { recursive: true });
+				writeFileSync(join(fixture, path), 'registry=http://example.invalid\n');
+			}
+			execFileSync('git', ['add', '--', ...paths], { cwd: fixture });
+			execFileSync('git', ['commit', '--quiet', '--amend', '--no-edit'], { cwd: fixture });
 			const result = spawnSync('bash', ['tools/browser-authority-noble.sh'], {
 				cwd: fixture,
 				env: fake.env,
@@ -955,6 +1031,21 @@ describe('browser accessibility authority', () => {
 		expect(runnerJob!.indexOf('uses: oven-sh/setup-bun@')).toBeLessThan(
 			runnerJob!.indexOf('run: bun run test:browser:noble'),
 		);
+	});
+
+	it('ships a trusted composite launcher for candidate-as-data execution', () => {
+		expect(existsSync(AUTHORITY_ACTION)).toBe(true);
+		if (!existsSync(AUTHORITY_ACTION)) return;
+		const action = readFileSync(AUTHORITY_ACTION, 'utf8');
+		expect(action).toContain(
+			'uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6',
+		);
+		expect(action).toContain('bun-version: 1.3.11');
+		expect(action).toContain('BROWSER_AUTHORITY_TARGET_ROOT: ${{ inputs.target-root }}');
+		expect(action).toContain('BROWSER_AUTHORITY_TARGET_REF: ${{ inputs.target-ref }}');
+		expect(action).toContain('bash "$GITHUB_ACTION_PATH/../../../tools/browser-authority-noble.sh"');
+		expect(action).not.toContain('bun install');
+		expect(action).not.toContain('bun run');
 	});
 
 	it('emits full-page candidates without enabling snapshot updates', () => {

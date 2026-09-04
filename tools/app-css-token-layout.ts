@@ -5,6 +5,15 @@ const TOKEN_STYLESHEET = '@yesid/tokens/tokens.css';
 const SENTINEL_START = '===== TOKENS:START =====';
 const LAYOUT_ERROR =
 	'app.css must keep exactly one active top-level @yesid/tokens/tokens.css import before the generated token sentinel';
+const diagnosticControls =
+	/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/gu;
+
+function diagnosticMessage(value: string): string {
+	return value.replace(diagnosticControls, (character) => {
+		const codePoint = character.codePointAt(0)!;
+		return `\\u${codePoint.toString(16).padStart(4, '0')}`;
+	});
+}
 
 function decodeCssEscapes(value: string): string {
 	let decoded = '';
@@ -225,7 +234,7 @@ if (import.meta.main) {
 		assertAppCssTokenLayout(readFileSync(0, 'utf8'));
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
-		console.error(`✗ pre-commit: ${message}`);
+		console.error(`✗ pre-commit: ${diagnosticMessage(message)}`);
 		process.exitCode = 1;
 	}
 }

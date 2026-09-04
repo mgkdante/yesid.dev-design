@@ -13,6 +13,11 @@ const MAX_MANIFEST_BYTES = 1024 * 1024;
 const MAX_MANIFESTS = 128;
 const MAX_TREE_BYTES = 8 * 1024 * 1024;
 const MAX_LOCK_VALUES = 250_000;
+export const BROWSER_AUTHORITY_ARCHIVE_LIMITS = {
+	blobBytes: 16 * 1024 * 1024,
+	entries: 10_000,
+	totalBlobBytes: 128 * 1024 * 1024,
+} as const;
 const WORKSPACES = ['apps/*', 'packages/*'];
 const DEPENDENCY_FIELDS = [
 	'dependencies',
@@ -77,6 +82,49 @@ function gitBuffer(
 
 function gitText(root: string, args: string[], maxBuffer: number): string {
 	return gitBuffer(root, args, maxBuffer).toString('utf8');
+}
+
+export function inspectArchiveTree(source: string | Buffer): {
+	blobBytes: number;
+	entries: number;
+	paths: string[];
+} {
+	const records = source.toString().split('\0');
+	if (records.at(-1) === '') records.pop();
+	const paths: string[] = [];
+	let blobBytes = 0;
+	for (const record of records) {
+		const separator = record.indexOf('\t');
+		const metadata = separator === -1 ? [] : record.slice(0, separator).trim().split(/\s+/u);
+		const path = separator === -1 ? '' : record.slice(separator + 1);
+		if (metadata.length !== 4 || !path) throw new Error('git ls-tree returned malformed output');
+		const [mode, type, object, rawSize] = metadata;
+		if (!/^[0-9a-f]{40}$/u.test(object!)) throw new Error('git ls-tree returned an invalid object id');
+		if (mode === '040000' && type === 'tree' && rawSize === '-') {
+			paths.push(path);
+		} else if (
+			(mode === '100644' || mode === '100755') &&
+			type === 'blob' &&
+			/^(?:0|[1-9][0-9]*)$/u.test(rawSize!)
+		) {
+			const size = Number(rawSize);
+			if (!Number.isSafeInteger(size)) throw new Error('archive blob size is not a safe integer');
+			if (size > BROWSER_AUTHORITY_ARCHIVE_LIMITS.blobBytes) {
+				throw new Error(`${diagnosticText(path)} exceeds the archive per-file byte limit`);
+			}
+			blobBytes += size;
+			if (blobBytes > BROWSER_AUTHORITY_ARCHIVE_LIMITS.totalBlobBytes) {
+				throw new Error('candidate exceeds the archive aggregate byte limit');
+			}
+			paths.push(path);
+		} else {
+			throw new Error(`${diagnosticText(path)} has an unsupported archive entry mode`);
+		}
+		if (paths.length > BROWSER_AUTHORITY_ARCHIVE_LIMITS.entries) {
+			throw new Error('candidate exceeds the archive entry limit');
+		}
+	}
+	return { blobBytes, entries: paths.length, paths };
 }
 
 function assertRegularBlob(root: string, commit: string, path: string): void {
@@ -222,6 +270,7 @@ function assertLockfile(lockfile: unknown): void {
 }
 
 function isLoadedEnvironment(path: string): boolean {
+	if (path.includes('/')) return false;
 	const name = path.split('/').at(-1)!;
 	if (!name.startsWith('.env')) return false;
 	return !/^\.env\.(?:example|sample|template)$/u.test(name);
@@ -229,24 +278,16 @@ function isLoadedEnvironment(path: string): boolean {
 
 export function assertBrowserAuthorityDependencyPolicy(root: string, commit: string): void {
 	if (!/^[0-9a-f]{40}$/u.test(commit)) throw new Error('commit must be a lowercase 40-hex SHA');
-	const paths = gitBuffer(
+	const { paths } = inspectArchiveTree(gitBuffer(
 		root,
-		['ls-tree', '-r', '-t', '-z', '--name-only', commit],
+		['ls-tree', '-r', '-t', '-l', '-z', '--full-tree', commit],
 		MAX_TREE_BYTES,
-	)
-		.toString('utf8')
-		.split('\0')
-		.filter(Boolean);
-	if (paths.length > 100_000) throw new Error('repository tree exceeds the dependency policy limit');
+	));
 	assertArchiveAttributes(root, commit, paths);
 
 	for (const path of paths) {
-		const name = path.split('/').at(-1)!;
-		if (name === 'bunfig.toml' || isLoadedEnvironment(path)) {
+		if (path === 'bunfig.toml' || isLoadedEnvironment(path)) {
 			throw new Error(`${diagnosticText(path)} is not allowed in a browser authority candidate`);
-		}
-		if (name === '.npmrc' && path !== '.npmrc') {
-			throw new Error(`${diagnosticText(path)} is not an allowed npm configuration path`);
 		}
 	}
 

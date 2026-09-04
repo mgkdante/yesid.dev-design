@@ -46,7 +46,7 @@ Never strip variable path prefixes during the handoff.
 bun run --cwd packages/tokens test
 bun run --cwd packages/tokens check
 bun run --cwd packages/tokens figma:push
-bun run --cwd packages/tokens figma:verify -- /path/to/variable-snapshot.json
+bun run --silent --cwd packages/tokens figma:verify -- /path/to/variable-snapshot.json
 bun run tokens:build
 bun run ci:tokens
 ```

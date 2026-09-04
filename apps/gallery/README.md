@@ -47,8 +47,10 @@ that install, the host-side policy rejects archive rewriting, install-loaded con
 dependency sources outside the npm registry or this workspace. Registry and cache locations are
 explicit. A second container prepares and tests the candidate with no network or Linux capabilities;
 cleanup removes the volume on success or failure. Docker and bootstrap network access are required.
-The hosted Noble job installs the pinned Bun 1.3.11 helper runtime without installing candidate
-dependencies before the policy runs.
+The hosted Noble job invokes this harness from an immutable action revision, treats its pull-request
+checkout as target data, and installs the pinned Bun 1.3.11 helper runtime without installing
+candidate dependencies before the policy runs. The policy accepts only regular files within fixed
+per-file, aggregate-byte, and entry-count bounds before creating the archive.
 Working-tree changes, including ignored and untracked files, are intentionally excluded; commit
 the exact candidate you want to verify first.
 
