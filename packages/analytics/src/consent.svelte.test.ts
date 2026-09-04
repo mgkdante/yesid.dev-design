@@ -6,6 +6,7 @@ import {
 	createAnalyticsConsentStore,
 	probeDurableAnalyticsStorage,
 	type AnalyticsConsentChoice,
+	type AnalyticsConsentState,
 } from './consent.svelte';
 
 const PRESET = defineAnalyticsPreset({
@@ -25,6 +26,7 @@ const ANALYTICS_STORAGE_PROBE_KEY = PRESET.storageKeys.storageProbe;
 
 interface HarnessOptions {
 	hostname?: string;
+	hostnameThrows?: boolean;
 	stored?: string | null;
 	marker?: string | null;
 	safetyMarker?: string | null;
@@ -41,10 +43,13 @@ interface HarnessOptions {
 	safetyRemoveThrows?: boolean;
 	reloadThrows?: boolean;
 	listenThrows?: boolean;
+	listenerTeardownThrows?: boolean;
+	listenerTeardownEmits?: string | null;
 }
 
 function createHarness({
 	hostname = 'metrics.example',
+	hostnameThrows = false,
 	stored = null,
 	marker = null,
 	safetyMarker = null,
@@ -61,6 +66,8 @@ function createHarness({
 	safetyRemoveThrows = false,
 	reloadThrows = false,
 	listenThrows = false,
+	listenerTeardownThrows = false,
+	listenerTeardownEmits,
 }: HarnessOptions = {}) {
 	let value = stored;
 	let markerValue = marker;
@@ -71,7 +78,13 @@ function createHarness({
 	let activeRemoveThrows = removeThrows;
 	let activeMarkerWriteThrows = markerWriteThrows;
 	let activeSafetyWriteThrows = safetyWriteThrows;
+	let activeListenerTeardownThrows = listenerTeardownThrows;
 	const listeners = new Set<(next: string | null) => void>();
+	const listenerStops: Array<ReturnType<typeof vi.fn<() => void>>> = [];
+	const hostnameValue = vi.fn(() => {
+		if (hostnameThrows) throw new Error('hostname blocked');
+		return hostname;
+	});
 	const probeDurableStorage = vi.fn(() => {
 		if (activeProbeThrows) throw new Error('durable storage probe blocked');
 	});
@@ -120,10 +133,16 @@ function createHarness({
 	const listen = vi.fn((listener: (next: string | null) => void) => {
 		if (listenThrows) throw new Error('storage listener blocked');
 		listeners.add(listener);
-		return () => listeners.delete(listener);
+		const stop = vi.fn(() => {
+			if (listenerTeardownEmits !== undefined) listener(listenerTeardownEmits);
+			if (activeListenerTeardownThrows) throw new Error('storage listener teardown blocked');
+			listeners.delete(listener);
+		});
+		listenerStops.push(stop);
+		return stop;
 	});
 	const dependencies = {
-		hostname: () => hostname,
+		hostname: hostnameValue,
 		probeDurableStorage,
 		read,
 		write,
@@ -141,6 +160,8 @@ function createHarness({
 
 	return {
 		store,
+		hostname: hostnameValue,
+		listenerStops,
 		probeDurableStorage,
 		read,
 		write,
@@ -153,6 +174,7 @@ function createHarness({
 		removeSafetyMarker,
 		reload,
 		listen,
+		listenerCount: () => listeners.size,
 		stored: () => value,
 		marker: () => markerValue,
 		safetyMarker: () => safetyMarkerValue,
@@ -166,18 +188,21 @@ function createHarness({
 			remove,
 			markerWrite,
 			safetyWrite,
+			listenerTeardown,
 		}: Partial<{
 			probe: boolean;
 			write: boolean;
 			remove: boolean;
 			markerWrite: boolean;
 			safetyWrite: boolean;
+			listenerTeardown: boolean;
 		}>) => {
 			if (probe !== undefined) activeProbeThrows = probe;
 			if (write !== undefined) activeWriteThrows = write;
 			if (remove !== undefined) activeRemoveThrows = remove;
 			if (markerWrite !== undefined) activeMarkerWriteThrows = markerWrite;
 			if (safetyWrite !== undefined) activeSafetyWriteThrows = safetyWrite;
+			if (listenerTeardown !== undefined) activeListenerTeardownThrows = listenerTeardown;
 		},
 		freshStore: () => createAnalyticsConsentStore(PRESET, dependencies),
 	};
@@ -217,6 +242,146 @@ describe('analytics consent state', () => {
 			available: false,
 			preferencesOpen: false,
 		});
+	});
+
+	it('fails unavailable without probing storage when hostname lookup throws', () => {
+		const harness = createHarness({ hostnameThrows: true, stored: 'granted', marker: '1' });
+
+		expect(() => harness.store.init()).not.toThrow();
+
+		expect(get(harness.store)).toEqual({
+			choice: 'unknown',
+			ready: true,
+			available: false,
+			preferencesOpen: false,
+		});
+		expect(harness.probeDurableStorage).not.toHaveBeenCalled();
+		expect(harness.read).not.toHaveBeenCalled();
+		expect(harness.listen).not.toHaveBeenCalled();
+	});
+
+	it.each(['granted', 'denied'] as const)(
+		'preserves a %s choice but fails unavailable when re-init listener teardown throws',
+		(choice) => {
+			const harness = createHarness({ stored: choice, listenerTeardownThrows: true });
+			harness.store.init();
+			harness.hostname.mockClear();
+			harness.probeDurableStorage.mockClear();
+
+			expect(() => harness.store.init()).not.toThrow();
+
+			expect(get(harness.store)).toEqual({
+				choice,
+				ready: true,
+				available: false,
+				preferencesOpen: false,
+			});
+			expect(harness.hostname).not.toHaveBeenCalled();
+			expect(harness.probeDurableStorage).not.toHaveBeenCalled();
+			expect(harness.listen).toHaveBeenCalledOnce();
+			expect(harness.listenerStops[0]).toHaveBeenCalledOnce();
+		},
+	);
+
+	it('retries a failed listener teardown before installing a replacement listener', () => {
+		const harness = createHarness({ stored: 'granted', listenerTeardownThrows: true });
+		harness.store.init();
+		harness.store.init();
+		harness.setFailures({ listenerTeardown: false });
+
+		harness.store.init();
+
+		expect(harness.listenerStops[0]).toHaveBeenCalledTimes(2);
+		expect(harness.listen).toHaveBeenCalledTimes(2);
+		expect(harness.listenerCount()).toBe(1);
+		expect(get(harness.store)).toEqual({
+			choice: 'granted',
+			ready: true,
+			available: true,
+			preferencesOpen: false,
+		});
+	});
+
+	it('contains a returned listener-disposer failure and ignores the surviving listener', () => {
+		const harness = createHarness({ stored: 'granted', listenerTeardownThrows: true });
+		const dispose = harness.store.init();
+
+		expect(() => dispose()).not.toThrow();
+		expect(get(harness.store)).toEqual({
+			choice: 'granted',
+			ready: true,
+			available: false,
+			preferencesOpen: false,
+		});
+
+		harness.emitStoredChange('denied');
+		expect(get(harness.store)).toEqual({
+			choice: 'granted',
+			ready: true,
+			available: false,
+			preferencesOpen: false,
+		});
+
+		harness.setFailures({ listenerTeardown: false });
+		expect(() => dispose()).not.toThrow();
+		expect(harness.listenerStops[0]).toHaveBeenCalledTimes(2);
+		expect(harness.listenerCount()).toBe(0);
+	});
+
+	it('never accepts a re-entrant consent change while listener teardown is in progress', () => {
+		const harness = createHarness({
+			stored: 'denied',
+			listenerTeardownThrows: true,
+			listenerTeardownEmits: 'granted',
+		});
+		const observed: AnalyticsConsentState[] = [];
+		const stopObserving = harness.store.subscribe((state) => observed.push(state));
+		harness.store.init();
+		observed.length = 0;
+
+		harness.store.init();
+
+		expect(observed).not.toContainEqual(
+			expect.objectContaining({ choice: 'granted', available: true }),
+		);
+		expect(get(harness.store)).toEqual({
+			choice: 'denied',
+			ready: true,
+			available: false,
+			preferencesOpen: false,
+		});
+		stopObserving();
+	});
+
+	it('returns cleanup authority when re-init cannot stop the current listener', () => {
+		const harness = createHarness({ stored: 'granted', listenerTeardownThrows: true });
+		harness.store.init();
+		const retryCleanup = harness.store.init();
+		harness.setFailures({ listenerTeardown: false });
+
+		retryCleanup();
+
+		expect(harness.listenerStops[0]).toHaveBeenCalledTimes(2);
+		expect(harness.listenerCount()).toBe(0);
+	});
+
+	it('keeps tracking unavailable after listener teardown failure across preference actions', () => {
+		const harness = createHarness({
+			stored: 'granted',
+			listenerTeardownThrows: true,
+			markerWriteThrows: true,
+			writeThrows: true,
+		});
+		harness.store.init();
+		harness.store.init();
+
+		harness.store.openPreferences();
+		harness.setFailures({ write: false, markerWrite: false, safetyWrite: false });
+		harness.store.grant();
+
+		const state = get(harness.store);
+		expect(state).toMatchObject({ choice: 'granted', available: false });
+		expect(getAnalyticsPolicy({ enabled: true, showBanner: false }, state).canTrack).toBe(false);
 	});
 
 	it('clears a pending preferences marker when storage failure makes the rail unrenderable', () => {

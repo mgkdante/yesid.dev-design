@@ -72,4 +72,42 @@ describe('motion/utils/ticker', () => {
 
 		expect(callback).not.toHaveBeenCalled();
 	});
+
+	it('does not let an old disposer remove a same-id replacement', () => {
+		const first = vi.fn();
+		const replacement = vi.fn();
+		const disposeFirst = ticker.subscribe('replaceable', first);
+		ticker.subscribe('replaceable', replacement);
+
+		disposeFirst();
+		internalCallback?.(4, 16.67, 4, 16.67);
+
+		expect(first).not.toHaveBeenCalled();
+		expect(replacement).toHaveBeenCalledWith(4, 16.67);
+	});
+
+	it('does not let an old disposer remove a registration created after explicit unsubscribe', () => {
+		const first = vi.fn();
+		const replacement = vi.fn();
+		const disposeFirst = ticker.subscribe('reused', first);
+		ticker.unsubscribe('reused');
+		ticker.subscribe('reused', replacement);
+
+		disposeFirst();
+		internalCallback?.(5, 16.67, 5, 16.67);
+
+		expect(replacement).toHaveBeenCalledWith(5, 16.67);
+	});
+
+	it('binds a disposer to registration identity when the callback object is reused', () => {
+		const callback = vi.fn();
+		const disposeFirst = ticker.subscribe('same-callback', callback);
+		ticker.subscribe('same-callback', callback);
+
+		disposeFirst();
+		internalCallback?.(6, 16.67, 6, 16.67);
+
+		expect(callback).toHaveBeenCalledOnce();
+		expect(callback).toHaveBeenCalledWith(6, 16.67);
+	});
 });
