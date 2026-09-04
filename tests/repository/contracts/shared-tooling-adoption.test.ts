@@ -76,7 +76,7 @@ const REQUIRED_CONTEXTS = [
 	'token-outputs-windows',
 	'token-byte-parity',
 ] as const;
-const WORK_JOBS = REQUIRED_CONTEXTS.map((context) => `${context}-work`);
+const WORK_JOBS = [...REQUIRED_CONTEXTS.map((context) => `${context}-work`), 'noble-runner-work'];
 
 function text(path: string): string {
 	return readFileSync(path, 'utf8');
@@ -176,7 +176,7 @@ describe('ST4 Design shared-tooling adoption', () => {
 		expect(jobs.get('ci-work')).toMatch(
 			/^ {8}with:\s*\n {10}cache-turbo:\s*['"]true['"]\s*\n {10}cache-vitest:\s*['"]true['"]\s*$/mu,
 		);
-		for (const id of ['browser-authority-work', 'token-outputs-windows-work']) {
+		for (const id of ['browser-authority-work', 'noble-runner-work', 'token-outputs-windows-work']) {
 			expect(jobs.get(id), id).not.toContain('cache-turbo:');
 			expect(jobs.get(id), id).not.toContain('cache-vitest:');
 		}
@@ -273,6 +273,7 @@ describe('ST4 Design shared-tooling adoption', () => {
 				relevant: {
 					'ci-work': true,
 					'browser-authority-work': true,
+					'noble-runner-work': false,
 					'token-outputs-windows-work': true,
 					'token-byte-parity-work': false,
 				},
@@ -283,6 +284,7 @@ describe('ST4 Design shared-tooling adoption', () => {
 				relevant: {
 					'ci-work': true,
 					'browser-authority-work': false,
+					'noble-runner-work': false,
 					'token-outputs-windows-work': true,
 					'token-byte-parity-work': false,
 				},
@@ -293,14 +295,32 @@ describe('ST4 Design shared-tooling adoption', () => {
 				relevant: {
 					'ci-work': true,
 					'browser-authority-work': false,
+					'noble-runner-work': false,
 					'token-outputs-windows-work': true,
+					'token-byte-parity-work': false,
+				},
+			},
+			{
+				paths: ['tools/browser-authority-noble.sh'],
+				reason: 'matched',
+				relevant: {
+					'ci-work': true,
+					'browser-authority-work': false,
+					'noble-runner-work': true,
+					'token-outputs-windows-work': false,
 					'token-byte-parity-work': false,
 				},
 			},
 			{
 				paths: ['packages/tokens/src/build.ts'],
 				reason: 'matched',
-				relevant: Object.fromEntries(WORK_JOBS.map((job) => [job, true])),
+				relevant: {
+					'ci-work': true,
+					'browser-authority-work': true,
+					'noble-runner-work': false,
+					'token-outputs-windows-work': true,
+					'token-byte-parity-work': true,
+				},
 			},
 			{
 				paths: ['.github/workflows/ci.yml'],

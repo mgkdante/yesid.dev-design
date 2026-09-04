@@ -465,6 +465,22 @@ describe('browser accessibility authority', () => {
 		);
 	});
 
+	it('runs the local Noble command on a Docker-capable hosted runner', () => {
+		const workflow = readFileSync(new URL('../../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+		const runnerJob = workflow.match(
+			/^  noble-runner-work:\n[\s\S]*?^  token-outputs-windows-work:\n/m,
+		)?.[0];
+
+		expect(runnerJob).toBeDefined();
+		expect(runnerJob).toContain('runs-on: ubuntu-24.04');
+		expect(runnerJob).not.toMatch(/^    container:/mu);
+		expect(runnerJob).toContain('uses: ./.github/actions/setup');
+		expect(runnerJob).toContain('run: bun run test:browser:noble');
+		expect(runnerJob!.indexOf('uses: ./.github/actions/setup')).toBeLessThan(
+			runnerJob!.indexOf('run: bun run test:browser:noble'),
+		);
+	});
+
 	it('emits full-page candidates without enabling snapshot updates', () => {
 		const config = readFileSync(new URL('../playwright.config.ts', import.meta.url), 'utf8');
 		const visualSpec = readFileSync(
