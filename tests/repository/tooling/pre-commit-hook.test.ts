@@ -61,6 +61,14 @@ function expectRejected(root: string): void {
 	expect(result.stderr).toContain('generated token output staged without a token source change');
 }
 
+function expectLayoutRejected(root: string): void {
+	const result = runHook(root);
+	expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(1);
+	expect(result.stderr).toContain(
+		'app.css must keep exactly one active top-level @yesid/tokens/tokens.css import before the generated token sentinel',
+	);
+}
+
 afterEach(() => {
 	for (const path of scratch.splice(0)) rmSync(path, { recursive: true, force: true });
 });
@@ -138,6 +146,72 @@ describe('generated token pre-commit guard', () => {
 		expectRejected(root);
 	});
 
+	it('does not let a token source change authorize invalid import ordering', () => {
+		const root = repository();
+		const appCss = join(root, 'apps/gallery/src/app.css');
+		const withoutImport = APP_CSS.replace("@import '@yesid/tokens/tokens.css';\n", '');
+		write(appCss, `${withoutImport}@import '@yesid/tokens/tokens.css';\n`);
+		write(join(root, 'packages/tokens/tokens.json'), '{"brand":"green"}\n');
+		git(
+			root,
+			'add',
+			'--',
+			'apps/gallery/src/app.css',
+			'packages/tokens/tokens.json',
+		);
+
+		expectLayoutRejected(root);
+	});
+
+	it.each([
+		'@import "@yesid/tokens/tokens.css";',
+		'@import url("@yesid/tokens/tokens.css");',
+		'@import url(@yesid/tokens/tokens.css);',
+	])('accepts the exact top-level token stylesheet import %s', (tokenImport) => {
+		const root = repository();
+		write(
+			join(root, 'apps/gallery/src/app.css'),
+			APP_CSS.replace("@import '@yesid/tokens/tokens.css';", tokenImport),
+		);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+
+		expectAccepted(root);
+	});
+
+	it.each([
+		[
+			'commented-out import',
+			APP_CSS.replace(
+				"@import '@yesid/tokens/tokens.css';",
+				"/*\n@import '@yesid/tokens/tokens.css';\n*/",
+			),
+		],
+		[
+			'substring-decoy import',
+			APP_CSS.replace('@yesid/tokens/tokens.css', '@yesid/tokens/tokens.css-disabled'),
+		],
+		[
+			'nested import',
+			APP_CSS.replace(
+				"@import '@yesid/tokens/tokens.css';",
+				"@media screen {\n\t@import '@yesid/tokens/tokens.css';\n}",
+			),
+		],
+		[
+			'duplicate import',
+			APP_CSS.replace(
+				"@import '@yesid/tokens/tokens.css';",
+				"@import '@yesid/tokens/tokens.css';\n@import '@yesid/tokens/tokens.css';",
+			),
+		],
+	] as const)('rejects a %s as the token stylesheet authority', (_case, source) => {
+		const root = repository();
+		write(join(root, 'apps/gallery/src/app.css'), source);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+
+		expectLayoutRejected(root);
+	});
+
 	it('rejects moving the sentinel across duplicate hand-maintained lines', () => {
 		const root = repository();
 		const startMarker = '/* ===== TOKENS:START ===== */';
@@ -146,13 +220,16 @@ describe('generated token pre-commit guard', () => {
 		const end = APP_CSS.indexOf(endMarker) + endMarker.length;
 		const region = APP_CSS.slice(start, end);
 		const repeated = '.gallery-owned { color: currentColor; }';
-		const baseline = `${repeated}\n${region}\n${repeated}\n`;
+		const baseline = `@import '@yesid/tokens/tokens.css';\n${repeated}\n${region}\n${repeated}\n`;
 		const appCss = join(root, 'apps/gallery/src/app.css');
 		write(appCss, baseline);
 		git(root, 'add', '--', 'apps/gallery/src/app.css');
 		git(root, 'commit', '--amend', '-qm', 'duplicate boundary baseline');
 
-		write(appCss, `${repeated}\n${repeated}\n${region}\n`);
+		write(
+			appCss,
+			`@import '@yesid/tokens/tokens.css';\n${repeated}\n${repeated}\n${region}\n`,
+		);
 		git(root, 'add', '--', 'apps/gallery/src/app.css');
 
 		expectRejected(root);
@@ -173,7 +250,7 @@ describe('generated token pre-commit guard', () => {
 		write(appCss, `${region}\n@import "@yesid/tokens/tokens.css";\n/* footer */\n`);
 		git(root, 'add', '--', 'apps/gallery/src/app.css');
 
-		expectRejected(root);
+		expectLayoutRejected(root);
 	});
 
 	it('rejects moving the required token import after the sentinel when its text also changes', () => {
@@ -194,7 +271,7 @@ describe('generated token pre-commit guard', () => {
 		);
 		git(root, 'add', '--', 'apps/gallery/src/app.css');
 
-		expectRejected(root);
+		expectLayoutRejected(root);
 	});
 
 	it('does not collapse semantically different CSS while detecting crossings', () => {

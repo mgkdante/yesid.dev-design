@@ -10,6 +10,7 @@
         "@types/node": "^22.0.0",
         "@yesid/config": "workspace:0.2.1",
         "@yesid/motion": "workspace:*",
+        "postcss": "8.5.26",
         "svelte2tsx": "0.7.58",
         "turbo": "^2.5.0",
         "typescript": "^5.9.3",

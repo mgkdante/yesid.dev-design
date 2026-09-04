@@ -9,6 +9,7 @@
 
 set -euo pipefail
 
+HOOK_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 FULLY_GENERATED_RE='^(packages/tokens/tokens\.css|packages/motion/src/tokens\.ts|DESIGN\.md)$'
 SOURCE_RE='^(packages/tokens/(tokens\.json|src/.*\.ts)|packages/ui/(package\.json|src/brand/index\.ts)|tools/build-tokens\.ts)$'
 APP_CSS='apps/gallery/src/app.css'
@@ -74,24 +75,6 @@ sentinel_sides() {
 	'
 }
 
-token_import_layout_invalid() {
-	git show ":$APP_CSS" | awk -v start="$START" '
-		$0 == start { saw_start = 1 }
-		{
-			line = $0
-			sub(/^[[:space:]]+/, "", line)
-			if (line ~ /^@import[[:space:]]/ && index(line, "@yesid/tokens/tokens.css") > 0) {
-				imports += 1
-				if (saw_start) late = 1
-			}
-		}
-		END {
-			if (imports != 1 || late || !saw_start) exit 0
-			exit 1
-		}
-	'
-}
-
 app_content_crossed_sentinel() {
 	{
 		sentinel_sides "HEAD:$APP_CSS" H
@@ -134,10 +117,16 @@ app_sentinel_markers_changed() {
 staged_paths=$(git diff --cached --name-only --no-renames --)
 generated_change=false
 
+if grep -qxF "$APP_CSS" <<< "$staged_paths" && git cat-file -e ":$APP_CSS" 2>/dev/null; then
+	if ! git show ":$APP_CSS" | bun "$HOOK_ROOT/tools/app-css-token-layout.ts"; then
+		exit 1
+	fi
+fi
+
 if grep -qE "$FULLY_GENERATED_RE" <<< "$staged_paths"; then
 	generated_change=true
 elif grep -qxF "$APP_CSS" <<< "$staged_paths"; then
-	if app_sentinel_changed || app_sentinel_markers_changed || token_import_layout_invalid || app_content_crossed_sentinel; then
+	if app_sentinel_changed || app_sentinel_markers_changed || app_content_crossed_sentinel; then
 		generated_change=true
 	fi
 fi
