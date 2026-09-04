@@ -1,19 +1,19 @@
 #!/usr/bin/env bun
-// Verify round-trip parity between tokens.json (via push-to-figma.ts) and the
-// Figma-side Variables exported by the orchestrator into .tmp.figma-export.json.
-// Compares names, types, and mode keys only — value serialization deltas are
-// acceptable per spec § 3.5 (Figma may reformat numbers / hex casing).
-//
-// Output convention: stderr only. Stdout stays empty so the script composes
-// cleanly in CI pipelines that may capture stdout for other purposes.
+// Compare generated variables with a JSON snapshot exported by an operator's
+// chosen read workflow. This verifier is read-only and never writes remotely.
+// Output convention: stderr only. Exit 0 means parity, 1 drift, and 2 invalid
+// input or expected-variable generation failure.
 
 import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  diffVariables,
+  formatFinding,
+  parseVariableArray,
+  type FigmaVariable,
+} from './roundtrip-contract.ts';
 
-// Minimal ambient for Bun.spawn — `bun-types` isn't hoisted into this package's
-// node_modules and adding it just to type one call would balloon devDependencies.
-// Surface-area: only what we actually call below.
 declare const Bun: {
   spawn(cmd: string[], options: { stdout: 'pipe'; stderr: 'pipe' }): {
     stdout: ReadableStream<Uint8Array>;
@@ -22,197 +22,88 @@ declare const Bun: {
   };
 };
 
-interface FigmaVariable {
-  name: string;
-  type: 'COLOR' | 'FLOAT' | 'STRING';
-  values: Record<string, string | number>;
-  description?: string;
-}
-
-type Finding =
-  | { kind: 'MISSING'; name: string }
-  | { kind: 'UNEXPECTED'; name: string }
-  | { kind: 'TYPE_DRIFT'; name: string; expected: string; actual: string }
-  | { kind: 'MODE_DRIFT'; name: string; expected: string[]; actual: string[] };
-
 const here = dirname(fileURLToPath(import.meta.url));
-const EXPORT_FILE = resolve(here, '../.tmp.figma-export.json');
-const PUSH_SCRIPT = resolve(here, 'push-to-figma.ts');
-// Names of the orchestration step (referenced in error messages) so a human
-// landing on this script knows where the missing file is supposed to come from.
-const ORCHESTRATOR_HINT =
-  'Task 3.5 / orchestrator: call the figma-remote MCP `use_figma` tool and write the variables to packages/tokens/.tmp.figma-export.json before running this script.';
+const defaultSnapshotPath = resolve(here, '../.tmp.figma-export.json');
+const generatorPath = resolve(here, 'push-to-figma.ts');
 
-function formatType(value: FigmaVariable['type']): string {
-  return value;
+function snapshotPathFromArgs(args: string[]): string {
+  if (args.length > 1) {
+    throw new Error('expected zero or one snapshot path argument');
+  }
+  return resolve(args[0] ?? defaultSnapshotPath);
 }
 
-function isFigmaVariable(value: unknown): value is FigmaVariable {
-  if (typeof value !== 'object' || value === null) return false;
-  const v = value as Record<string, unknown>;
-  if (typeof v.name !== 'string') return false;
-  if (v.type !== 'COLOR' && v.type !== 'FLOAT' && v.type !== 'STRING') return false;
-  if (typeof v.values !== 'object' || v.values === null) return false;
-  if (v.description !== undefined && typeof v.description !== 'string') return false;
-  return true;
+function parseJson(raw: string, source: string): unknown {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${source}: invalid JSON: ${message}`);
+  }
 }
 
-function parseFigmaVariableArray(parsed: unknown, source: string): FigmaVariable[] {
-  if (!Array.isArray(parsed)) {
-    throw new Error(`${source}: expected a JSON array of FigmaVariable, got ${typeof parsed}`);
+function loadSnapshot(snapshotPath: string): FigmaVariable[] {
+  let raw: string;
+  try {
+    raw = readFileSync(snapshotPath, 'utf8');
+  } catch {
+    throw new Error(
+      `cannot read snapshot ${snapshotPath}.\n` +
+        `Operator contract:\n` +
+        `1. Capture \`bun run --cwd packages/tokens figma:push\` stdout as the proposed variables.\n` +
+        `2. After owner approval, import it using any compatible workflow.\n` +
+        `3. Export or read back FigmaVariable[] JSON and save the snapshot at ${snapshotPath}.\n` +
+        `4. Run \`bun run --cwd packages/tokens figma:verify -- ${snapshotPath}\`.\n` +
+        `This verifier only reads exported state; it never writes remotely.`,
+    );
   }
-  for (const [i, item] of parsed.entries()) {
-    if (!isFigmaVariable(item)) {
-      throw new Error(`${source}: item at index ${i} is not a valid FigmaVariable`);
-    }
-  }
-  // Loop above validated every item; cast is safe but TS can't infer it.
-  return parsed as FigmaVariable[];
-}
-
-// Pure diff. Sort order: MISSING, then UNEXPECTED, then TYPE_DRIFT, then
-// MODE_DRIFT — alphabetical within each bucket. Stable order makes the
-// output diffable across CI runs.
-function diff(expected: FigmaVariable[], actual: FigmaVariable[]): Finding[] {
-  const expectedByName = new Map(expected.map((v) => [v.name, v]));
-  const actualByName = new Map(actual.map((v) => [v.name, v]));
-
-  const findings: Finding[] = [];
-
-  for (const name of expectedByName.keys()) {
-    if (!actualByName.has(name)) {
-      findings.push({ kind: 'MISSING', name });
-    }
-  }
-  for (const name of actualByName.keys()) {
-    if (!expectedByName.has(name)) {
-      findings.push({ kind: 'UNEXPECTED', name });
-    }
-  }
-
-  // Per-name comparisons only on names that exist in both.
-  for (const [name, exp] of expectedByName) {
-    const act = actualByName.get(name);
-    if (!act) continue;
-    if (exp.type !== act.type) {
-      findings.push({
-        kind: 'TYPE_DRIFT',
-        name,
-        expected: formatType(exp.type),
-        actual: formatType(act.type),
-      });
-    }
-    const expModes = Object.keys(exp.values).sort();
-    const actModes = Object.keys(act.values).sort();
-    if (expModes.length !== actModes.length || expModes.some((m, i) => m !== actModes[i])) {
-      findings.push({
-        kind: 'MODE_DRIFT',
-        name,
-        expected: expModes,
-        actual: actModes,
-      });
-    }
-  }
-
-  return sortFindings(findings);
-}
-
-function sortFindings(findings: Finding[]): Finding[] {
-  const order: Record<Finding['kind'], number> = {
-    MISSING: 0,
-    UNEXPECTED: 1,
-    TYPE_DRIFT: 2,
-    MODE_DRIFT: 3,
-  };
-  return [...findings].sort((a, b) => {
-    if (order[a.kind] !== order[b.kind]) return order[a.kind] - order[b.kind];
-    return a.name.localeCompare(b.name);
-  });
-}
-
-function formatFinding(f: Finding): string {
-  switch (f.kind) {
-    case 'MISSING':
-      return `MISSING ${f.name}`;
-    case 'UNEXPECTED':
-      return `UNEXPECTED ${f.name}`;
-    case 'TYPE_DRIFT':
-      return `TYPE_DRIFT ${f.name} expected=${f.expected} actual=${f.actual}`;
-    case 'MODE_DRIFT':
-      return `MODE_DRIFT ${f.name} expected=[${f.expected.join(',')}] actual=[${f.actual.join(',')}]`;
-  }
+  return parseVariableArray(parseJson(raw, snapshotPath), snapshotPath);
 }
 
 async function loadExpected(): Promise<FigmaVariable[]> {
-  // Re-use push-to-figma.ts as the source of truth rather than reimplementing
-  // its flatten/bucket logic — single point of drift.
-  const proc = Bun.spawn(['bun', 'run', PUSH_SCRIPT], {
+  const child = Bun.spawn([process.execPath, generatorPath], {
     stdout: 'pipe',
     stderr: 'pipe',
   });
-  // Drain stdout + stderr concurrently — sequential drains can deadlock if the
-  // child fills one pipe's buffer while we're waiting on the other.
-  const [stdoutText, stderrText] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
+  const [stdout, stderr] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
   ]);
-  const exitCode = await proc.exited;
+  const exitCode = await child.exited;
   if (exitCode !== 0) {
     throw new Error(
-      `push-to-figma.ts exited with code ${exitCode}.\nstderr:\n${stderrText.trim() || '(empty)'}`,
+      `expected-variable generation exited with code ${exitCode}: ${stderr.trim() || '(no diagnostic)'}`,
     );
   }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(stdoutText);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`push-to-figma.ts stdout is not valid JSON: ${msg}`);
-  }
-  return parseFigmaVariableArray(parsed, 'push-to-figma.ts stdout');
+  return parseVariableArray(
+    parseJson(stdout, 'expected-variable generator'),
+    'expected-variable generator',
+  );
 }
 
-function loadActual(): FigmaVariable[] {
-  let raw: string;
-  try {
-    raw = readFileSync(EXPORT_FILE, 'utf-8');
-  } catch {
-    // ENOENT or any other read error — treat as missing-file case.
-    throw new Error(
-      `verify-roundtrip: cannot read ${EXPORT_FILE}.\n${ORCHESTRATOR_HINT}`,
-    );
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`${EXPORT_FILE} is not valid JSON: ${msg}`);
-  }
-  return parseFigmaVariableArray(parsed, EXPORT_FILE);
-}
-
-async function main(): Promise<void> {
-  const actual = loadActual();
+async function run(args: string[]): Promise<number> {
+  const actual = loadSnapshot(snapshotPathFromArgs(args));
   const expected = await loadExpected();
+  const findings = diffVariables(expected, actual);
 
   console.error(`roundtrip: expected=${expected.length} actual=${actual.length}`);
-  const findings = diff(expected, actual);
-  for (const f of findings) {
-    console.error(formatFinding(f));
-  }
+  for (const finding of findings) console.error(formatFinding(finding));
+
   if (findings.length === 0) {
     console.error(`OK: ${expected.length} variables in parity`);
-    process.exit(0);
+    return 0;
   }
   console.error(`DRIFT: ${findings.length} issues — review above`);
-  process.exit(1);
+  return 1;
 }
 
-try {
-  await main();
-} catch (err) {
-  const msg = err instanceof Error ? err.message : String(err);
-  console.error(msg);
-  process.exit(1);
+const isMain = process.argv[1] ? resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
+if (isMain) {
+  try {
+    process.exitCode = await run(process.argv.slice(2));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`verify-roundtrip: ${message}`);
+    process.exitCode = 2;
+  }
 }

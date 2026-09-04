@@ -29,10 +29,16 @@ Consumers opt into `tokens.css`; no stylesheet is injected automatically. Consum
 overrides and physical output paths stay downstream. Exact consumer receipts live only in
 [`CONSUMERS.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.13.3/CONSUMERS.md).
 
-The Figma round-trip remains manual. `figma:push` emits a `FigmaVariable[]` JSON document on
-stdout. A separate operator step writes those variables through Figma tooling, exports the result
-to `.tmp.figma-export.json`, and then runs `verify-roundtrip.ts`. Never strip variable path
-prefixes during that handoff.
+The variable round-trip remains manual and owner-gated. `figma:push` emits a `FigmaVariable[]`
+JSON document on stdout. After an operator applies it with their chosen write workflow, export a
+JSON snapshot with a read workflow and pass that file to `figma:verify`. With no path argument,
+the verifier reads `.tmp.figma-export.json`. No command in this package writes to Figma.
+
+Verification is value-aware. Names, types, and modes must match exactly. `COLOR` values must be
+six-hex strings and normalize ASCII hex casing only; `FLOAT` values must be finite numbers and
+match exactly; `STRING` values match exactly. Descriptions are explicitly outside round-trip
+parity. Snapshot parsing rejects duplicate variables and empty names, mode names, or value maps.
+Never strip variable path prefixes during the handoff.
 
 ## Commands
 
@@ -40,6 +46,7 @@ prefixes during that handoff.
 bun run --cwd packages/tokens test
 bun run --cwd packages/tokens check
 bun run --cwd packages/tokens figma:push
+bun run --cwd packages/tokens figma:verify -- /path/to/variable-snapshot.json
 bun run tokens:build
 bun run ci:tokens
 ```

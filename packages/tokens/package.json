@@ -55,6 +55,7 @@
   },
   "scripts": {
     "figma:push": "bun scripts/push-to-figma.ts",
+    "figma:verify": "bun scripts/verify-roundtrip.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "tsc --noEmit"
