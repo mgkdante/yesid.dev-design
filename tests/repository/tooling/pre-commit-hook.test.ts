@@ -65,6 +65,17 @@ afterEach(() => {
 });
 
 describe('generated token pre-commit guard', () => {
+	it('allows a staged edit in the hand-maintained region before the sentinel', () => {
+		const root = repository();
+		write(
+			join(root, 'apps/gallery/src/app.css'),
+			APP_CSS.replace('/* gallery-owned header */', '/* revised gallery-owned header */'),
+		);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+
+		expectAccepted(root);
+	});
+
 	it('allows a staged edit outside the app.css token sentinel region', () => {
 		const root = repository();
 		write(
@@ -107,6 +118,44 @@ describe('generated token pre-commit guard', () => {
 		const region = APP_CSS.slice(start, end);
 		const handMaintained = `${APP_CSS.slice(0, start)}${APP_CSS.slice(end)}`;
 		write(join(root, 'apps/gallery/src/app.css'), `${handMaintained.trimEnd()}\n${region}\n`);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+
+		expectRejected(root);
+	});
+
+	it('rejects moving the sentinel across duplicate hand-maintained lines', () => {
+		const root = repository();
+		const startMarker = '/* ===== TOKENS:START ===== */';
+		const endMarker = '/* ===== TOKENS:END ===== */';
+		const start = APP_CSS.indexOf(startMarker);
+		const end = APP_CSS.indexOf(endMarker) + endMarker.length;
+		const region = APP_CSS.slice(start, end);
+		const repeated = '.gallery-owned { color: currentColor; }';
+		const baseline = `${repeated}\n${region}\n${repeated}\n`;
+		const appCss = join(root, 'apps/gallery/src/app.css');
+		write(appCss, baseline);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+		git(root, 'commit', '--amend', '-qm', 'duplicate boundary baseline');
+
+		write(appCss, `${repeated}\n${repeated}\n${region}\n`);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+
+		expectRejected(root);
+	});
+
+	it('rejects a sentinel crossing disguised by editing the moved hand line', () => {
+		const root = repository();
+		const startMarker = '/* ===== TOKENS:START ===== */';
+		const endMarker = '/* ===== TOKENS:END ===== */';
+		const start = APP_CSS.indexOf(startMarker);
+		const end = APP_CSS.indexOf(endMarker) + endMarker.length;
+		const region = APP_CSS.slice(start, end);
+		const appCss = join(root, 'apps/gallery/src/app.css');
+		write(appCss, `@import 'tokens.css';\n${region}\n/* footer */\n`);
+		git(root, 'add', '--', 'apps/gallery/src/app.css');
+		git(root, 'commit', '--amend', '-qm', 'crossing baseline');
+
+		write(appCss, `${region}\n@import "tokens.css";\n/* footer */\n`);
 		git(root, 'add', '--', 'apps/gallery/src/app.css');
 
 		expectRejected(root);

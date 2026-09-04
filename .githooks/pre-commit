@@ -57,39 +57,30 @@ app_sentinel_changed() {
 	[[ "$head_hash" != "$index_hash" ]]
 }
 
-sentinel_sides() {
+hand_region_hash() {
 	local object=$1
-	local scope=$2
+	local wanted=$2
 
-	git show "$object" | awk -v start="$START" -v end="$END" -v scope="$scope" '
+	git show "$object" | awk -v start="$START" -v end="$END" -v wanted="$wanted" '
 		BEGIN { side = "B"; inside = 0 }
 		$0 == start { inside = 1; next }
 		$0 == end { inside = 0; side = "A"; next }
-		!inside { print scope "|" side "|" $0 }
-	'
+		!inside && side == wanted { print }
+	' | git hash-object --stdin
 }
 
-app_content_crossed_sentinel() {
-	{
-		sentinel_sides "HEAD:$APP_CSS" H
-		sentinel_sides ":$APP_CSS" I
-	} | awk '
-		{
-			scope = substr($0, 1, 1)
-			side = substr($0, 3, 1)
-			line = substr($0, 5)
-			if (line ~ /^[[:space:]]*$/) next
-			seen[scope side, line] = 1
-			lines[line] = 1
-		}
-		END {
-			for (line in lines) {
-				if (seen["HA", line] && !seen["HB", line] && seen["IB", line] && !seen["IA", line]) exit 0
-				if (seen["HB", line] && !seen["HA", line] && seen["IA", line] && !seen["IB", line]) exit 0
-			}
-			exit 1
-		}
-	'
+both_hand_regions_changed() {
+	local head_before
+	local head_after
+	local index_before
+	local index_after
+
+	if ! head_before=$(hand_region_hash "HEAD:$APP_CSS" B); then return 0; fi
+	if ! head_after=$(hand_region_hash "HEAD:$APP_CSS" A); then return 0; fi
+	if ! index_before=$(hand_region_hash ":$APP_CSS" B); then return 0; fi
+	if ! index_after=$(hand_region_hash ":$APP_CSS" A); then return 0; fi
+
+	[[ "$head_before" != "$index_before" && "$head_after" != "$index_after" ]]
 }
 
 app_sentinel_markers_changed() {
@@ -113,7 +104,9 @@ generated_change=false
 if grep -qE "$FULLY_GENERATED_RE" <<< "$staged_paths"; then
 	generated_change=true
 elif grep -qxF "$APP_CSS" <<< "$staged_paths"; then
-	if app_sentinel_changed || app_sentinel_markers_changed || app_content_crossed_sentinel; then
+	# An unchanged sentinel can be relocated while crossed hand content is edited.
+	# Single-side hand edits remain independent; touching both sides requires pairing.
+	if app_sentinel_changed || app_sentinel_markers_changed || both_hand_regions_changed; then
 		generated_change=true
 	fi
 fi
