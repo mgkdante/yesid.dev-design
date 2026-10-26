@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.1
+
+<!-- release-fragment: lenis-registers-scrolltrigger -->
+- `@yesid/motion` (patch): `initLenis` now registers ScrollTrigger before it reads `ScrollTrigger.isTouch`. Before, Lenis started on touch devices whenever the app had not yet called `initScrollTriggerConfig()`, which is the case when `SiteRoot` mounts before the app's own `onMount`. Apps that already call `initScrollTriggerConfig()` first are unaffected.
+
+<!-- release-fragment: rune-modules-prebundle -->
+- `@yesid/ui` (patch), `@yesid/analytics` (patch): Fix consumer Vite dev servers. vite-plugin-svelte pre-bundles vendored `.svelte.ts` modules without stripping TypeScript, so the `@yesid/ui/state` stores failed with `Unexpected token` under `vite dev`. Production builds were unaffected. The two rune modules now ship as `.svelte.js` with `.d.ts` declarations beside them, and `@yesid/analytics/consent`, which uses no runes, moves to a plain `consent.ts`. Public subpaths and types are unchanged.
+
 ## 0.14.0
 
 <!-- release-fragment: adoption-release-safety -->
