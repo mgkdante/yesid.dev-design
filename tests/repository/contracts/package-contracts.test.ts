@@ -319,7 +319,7 @@ describe('browser authority script contract', () => {
 			const output = `${result.stdout}\n${result.stderr}`;
 
 			expect(result.status, output).toBe(0);
-			expect(output).toMatch(/Total: 16 tests in 4 files/);
+			expect(output).toMatch(/Total: 18 tests in 4 files/);
 			expect(output).not.toContain('vite v');
 			expect(output).not.toContain('Wrote site to "build"');
 		},

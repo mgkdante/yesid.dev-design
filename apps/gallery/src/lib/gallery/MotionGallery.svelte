@@ -71,11 +71,20 @@
 			class="rounded-lg border border-border-subtle bg-card p-4"
 		>
 			<p class="mb-3 font-mono text-caption text-muted-foreground">scrollChain</p>
-			<ol class="h-24 overflow-y-auto rounded-md border border-border px-4 py-2 text-small" use:scrollChain>
-				{#each Array.from({ length: 12 }, (_, index) => index + 1) as stop (stop)}
-					<li>Stop {stop}</li>
-				{/each}
-			</ol>
+			<!-- svelte-ignore a11y_no_noninteractive_tabindex: a scrollable region must be keyboard reachable -->
+			<div
+				class="h-24 overflow-y-auto rounded-md border border-border px-4 py-2 text-small"
+				role="region"
+				aria-label="Scroll chain stops"
+				tabindex="0"
+				use:scrollChain
+			>
+				<ol>
+					{#each Array.from({ length: 12 }, (_, index) => index + 1) as stop (stop)}
+						<li>Stop {stop}</li>
+					{/each}
+				</ol>
+			</div>
 		</div>
 
 		<div
