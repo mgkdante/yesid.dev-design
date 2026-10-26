@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import QuietModeButton, { type QuietModeButtonCopy } from './QuietModeButton.svelte';
+import { quietMode } from '../state/quiet-mode.svelte.js';
 
 const copy: QuietModeButtonCopy = {
 	collapse: 'Collapse all',
@@ -121,6 +122,21 @@ describe('QuietModeButton', () => {
 		await fireEvent.click(screen.getByRole('button', { name: copy.remember }));
 		expect(onToggle).toHaveBeenCalledOnce();
 		expect(onRememberToggle).toHaveBeenCalledOnce();
+	});
+
+	it('drives the shared quiet-mode store when no state is passed', async () => {
+		quietMode.resetForTest();
+		render(QuietModeButton, { props: { copy } });
+
+		await fireEvent.click(screen.getByRole('button', { name: copy.collapse }));
+		expect(quietMode.enabled).toBe(true);
+		expect(screen.getByRole('button', { name: copy.expand })).toBeTruthy();
+
+		await fireEvent.click(screen.getByRole('button', { name: copy.remember }));
+		expect(quietMode.remembered).toBe(true);
+		await fireEvent.click(screen.getByRole('button', { name: copy.forget }));
+		expect(quietMode.remembered).toBe(false);
+		quietMode.resetForTest();
 	});
 
 	it('keeps the glow policy explicit and forwards a consumer class', () => {

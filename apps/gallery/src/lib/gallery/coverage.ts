@@ -24,6 +24,7 @@ export const GALLERY_COVERAGE = {
 		'StickyPanel',
 		'StopLabel',
 		'TerminalCursor',
+		'ThemeToggle',
 		'TocBadge',
 	],
 	motion: [
@@ -34,6 +35,7 @@ export const GALLERY_COVERAGE = {
 		'cardParallax',
 		'wordmarkHover',
 		'pressBounce',
+		'scrollChain',
 	],
 	states: ['disabled', 'error', 'loading', 'overflow', 'localized-copy'],
 	environments: ['dark', 'light', 'reduced-motion', 'desktop', 'mobile'],

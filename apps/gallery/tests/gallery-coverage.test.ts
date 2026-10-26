@@ -42,8 +42,8 @@ describe('Gallery coverage authority', () => {
 		expect([...GALLERY_COVERAGE.motion].sort()).toEqual(
 			exportedActions('../../../packages/motion/src/actions/index.ts'),
 		);
-		expect(GALLERY_COVERAGE.brand).toHaveLength(9);
-		expect(GALLERY_COVERAGE.motion).toHaveLength(7);
+		expect(GALLERY_COVERAGE.brand).toHaveLength(10);
+		expect(GALLERY_COVERAGE.motion).toHaveLength(8);
 	});
 
 	it('makes the required state and environment matrix explicit', () => {

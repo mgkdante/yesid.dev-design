@@ -57,6 +57,17 @@ describe('motion/utils/lenis', () => {
 		expect(ScrollTrigger.normalizeScroll).not.toHaveBeenCalled();
 	});
 
+	it('desktop: initLenis scrolls an element when given a wrapper and content', () => {
+		const wrapper = document.createElement('div');
+		const content = document.createElement('div');
+		wrapper.append(content);
+		document.body.append(wrapper);
+		initLenis({ wrapper, content });
+		expect(getLenis()?.options.wrapper).toBe(wrapper);
+		expect(getLenis()?.options.content).toBe(content);
+		wrapper.remove();
+	});
+
 	it('desktop: initLenis is idempotent — second call keeps the same instance', () => {
 		setTouch(0);
 		initLenis();

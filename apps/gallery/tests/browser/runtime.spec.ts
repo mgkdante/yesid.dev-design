@@ -27,3 +27,17 @@ test('runs the fixed Chromium and self-hosted Gallery fonts', async ({ browser, 
 	expect(fonts.heading).toContain('Inter Variable');
 	expect(fonts.mono).toContain('JetBrains Mono Variable');
 });
+
+test('keeps the header control and ThemeToggle on one shared theme', async ({ page }) => {
+	await openGallery(page);
+	const html = page.locator('html');
+	const lamp = page.getByRole('switch', { name: 'Dark theme' });
+
+	await page.getByRole('button', { name: 'toggle theme' }).click();
+	await expect(html).toHaveAttribute('data-theme', 'light');
+	await expect(lamp).toHaveAttribute('aria-checked', 'false');
+
+	await lamp.click();
+	await expect(html).toHaveAttribute('data-theme', 'dark');
+	await expect(lamp).toHaveAttribute('aria-checked', 'true');
+});

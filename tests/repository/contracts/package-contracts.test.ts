@@ -72,6 +72,8 @@ const EXISTING_UI_EXPORTS = {
 	'./tabs': './src/primitives/tabs/index.ts',
 	'./toggle': './src/primitives/toggle/index.ts',
 	'./toggle-group': './src/primitives/toggle-group/index.ts',
+	'./layout': './src/layout/index.ts',
+	'./state': './src/state/index.ts',
 } as const;
 
 const EXISTING_MOTION_EXPORTS = {
@@ -317,7 +319,7 @@ describe('browser authority script contract', () => {
 			const output = `${result.stdout}\n${result.stderr}`;
 
 			expect(result.status, output).toBe(0);
-			expect(output).toMatch(/Total: 16 tests in 4 files/);
+			expect(output).toMatch(/Total: 18 tests in 4 files/);
 			expect(output).not.toContain('vite v');
 			expect(output).not.toContain('Wrote site to "build"');
 		},
@@ -349,6 +351,7 @@ describe('conditioned package export contract', () => {
 	it('exposes only the approved package keys', () => {
 		expect(new Set(Object.keys(readExports(manifests['@yesid/ui'])))).toEqual(new Set([
 			...Object.keys(EXISTING_UI_EXPORTS),
+			'./base.css',
 		]));
 		expect(new Set(Object.keys(readExports(manifests['@yesid/motion'])))).toEqual(new Set([
 			...Object.keys(EXISTING_MOTION_EXPORTS),
