@@ -10,6 +10,7 @@
 		StickyPanel,
 		StopLabel,
 		TerminalCursor,
+		ThemeToggle,
 		TocBadge,
 	} from '@yesid/ui/brand';
 
@@ -171,6 +172,16 @@
 					<SectionLabel text="CONFIGURED SURFACE" variant="metric" />
 					<p class="mt-2 text-small">A caller class changes presentation without changing behavior.</p>
 				</StickyPanel>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:ThemeToggle">
+			<Card.Header>
+				<Card.Title>ThemeToggle</Card.Title>
+				<Card.Description>Signal-lamp switch bound to the shared theme; the caller supplies the label.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<ThemeToggle label="Dark theme" />
 			</Card.Content>
 		</Card.Root>
 

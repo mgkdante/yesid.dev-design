@@ -104,8 +104,25 @@
 - `svelte` → `./src/primitives/toggle-group/index.ts`
 - `default` → `./src/primitives/toggle-group/index.ts`
 
+### `./layout`
+
+- `types` → `./src/layout/index.ts`
+- `svelte` → `./src/layout/index.ts`
+- `default` → `./src/layout/index.ts`
+
+### `./state`
+
+- `types` → `./src/state/index.ts`
+- `svelte` → `./src/state/index.ts`
+- `default` → `./src/state/index.ts`
+
+### `./base.css`
+
+- `default` → `./base.css`
+
 ## Direct public assets
 
+- `./base.css` — direct asset `./base.css` (`default`), sha256 `6118c815ba35310c9b58bebe8a900f19184bb41fe3bddac1d10fcd652d30d638`
 
 ## Declaration namespaces
 
@@ -126,6 +143,8 @@
 - `PrimitivesTabs` → `./src/primitives/tabs/index.ts` (`./tabs`)
 - `PrimitivesToggle` → `./src/primitives/toggle/index.ts` (`./toggle`)
 - `PrimitivesToggleGroup` → `./src/primitives/toggle-group/index.ts` (`./toggle-group`)
+- `Layout` → `./src/layout/index.ts` (`./layout`)
+- `State` → `./src/state/index.ts` (`./state`)
 
 ## API Report File for "@yesid/ui"
 
@@ -142,6 +161,7 @@ import { Dialog } from 'bits-ui';
 import type { HTMLAnchorAttributes } from 'svelte/elements';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { HTMLButtonAttributes } from 'svelte/elements';
+import { MediaQuery } from 'svelte/reactivity';
 import { Pane } from 'paneforge';
 import { PortalProps } from 'bits-ui';
 import * as ResizablePrimitive from 'paneforge';
@@ -322,6 +342,8 @@ declare namespace Brand {
         StopLabelProps,
         TerminalCursor,
         TerminalCursorProps,
+        ThemeToggle,
+        ThemeToggleProps,
         TocBadge,
         TocBadgeSpec
     }
@@ -592,6 +614,12 @@ type CustomSeparatorElementProps = WithElementRef<Omit<HTMLAttributes<HTMLDivEle
     decorative?: never;
 };
 
+// @public
+const desktop: MediaQuery;
+
+// @public
+const DESKTOP_MIN_WIDTH = "1024px";
+
 // @public (undocumented)
 const FooterGroup: Component<FooterGroupProps, {}, "ref">;
 
@@ -670,8 +698,18 @@ declare namespace Index {
         StopLabelProps,
         TerminalCursor,
         TerminalCursorProps,
+        ThemeToggle,
+        ThemeToggleProps,
         TocBadge,
         TocBadgeSpec
+    }
+}
+
+declare namespace Layout {
+    export {
+        SiteRoot,
+        SiteRootProps,
+        SiteRootScroller
     }
 }
 
@@ -877,6 +915,20 @@ declare namespace PrimitivesToggleGroup {
     }
 }
 
+// @public
+const quietMode: {
+    readonly enabled: boolean;
+    readonly remembered: boolean;
+    readonly closeSignal: number;
+    readonly openSignal: number;
+    set(next: boolean): void;
+    toggle(): void;
+    rememberCurrent(): void;
+    forgetDefault(): void;
+    init(options?: QuietModeInit): void;
+    resetForTest(): void;
+};
+
 // @public (undocumented)
 type QuietModeActiveEffect = 'none' | 'glow';
 
@@ -902,7 +954,7 @@ interface QuietModeButtonCopy {
     readonly remember: string;
 }
 
-// @public (undocumented)
+// @public
 interface QuietModeButtonProps {
     // (undocumented)
     activeEffect?: QuietModeActiveEffect;
@@ -911,13 +963,19 @@ interface QuietModeButtonProps {
     // (undocumented)
     copy: QuietModeButtonCopy;
     // (undocumented)
-    enabled: boolean;
+    enabled?: boolean;
     // (undocumented)
-    onRememberToggle: () => void;
+    onRememberToggle?: () => void;
     // (undocumented)
-    onToggle: () => void;
+    onToggle?: () => void;
     // (undocumented)
-    remembered: boolean;
+    remembered?: boolean;
+}
+
+// @public (undocumented)
+interface QuietModeInit {
+    // (undocumented)
+    readonly storageKey?: string;
 }
 
 // @public (undocumented)
@@ -1100,10 +1158,47 @@ bottom: string;
 }, undefined, "bg-popover text-popover-foreground shadow-sheet fixed flex flex-col gap-4 transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out", unknown, unknown, undefined>>;
 
 // @public (undocumented)
+const SiteRoot: Component<SiteRootProps, {}, "">;
+
+// @public (undocumented)
+type SiteRoot = ReturnType<typeof SiteRoot>;
+
+// @public (undocumented)
+interface SiteRootProps {
+    // (undocumented)
+    children: Snippet;
+    // (undocumented)
+    quietModeKey?: string;
+    // (undocumented)
+    scroller?: SiteRootScroller;
+    // (undocumented)
+    smoothScroll?: boolean;
+}
+
+// @public
+interface SiteRootScroller {
+    // (undocumented)
+    readonly content: string;
+    // (undocumented)
+    readonly wrapper: string;
+}
+
+// @public (undocumented)
 const Skeleton: Component<WithElementRef<HTMLAttributes<HTMLDivElement>>, {}, "ref">;
 
 // @public (undocumented)
 type Skeleton = ReturnType<typeof Skeleton>;
+
+declare namespace State {
+    export {
+        theme,
+        Theme,
+        quietMode,
+        QuietModeInit,
+        desktop,
+        DESKTOP_MIN_WIDTH
+    }
+}
 
 // @public (undocumented)
 const StickyPanel: Component<StickyPanelProps, {}, "ref">;
@@ -1194,6 +1289,32 @@ type TerminalCursor = ReturnType<typeof TerminalCursor>;
 type TerminalCursorProps = Omit<HTMLAttributes<HTMLSpanElement>, 'children' | 'class'> & {
     class?: string;
 };
+
+// @public (undocumented)
+type Theme = 'dark' | 'light';
+
+// @public
+const theme: {
+    readonly current: Theme;
+    readonly isDark: boolean;
+    set(next: Theme): void;
+    toggle(): void;
+    init(): void;
+};
+
+// @public (undocumented)
+const ThemeToggle: Component<ThemeToggleProps, {}, "">;
+
+// @public (undocumented)
+type ThemeToggle = ReturnType<typeof ThemeToggle>;
+
+// @public (undocumented)
+interface ThemeToggleProps {
+    // (undocumented)
+    class?: string;
+    // (undocumented)
+    label: string;
+}
 
 // @public (undocumented)
 const TocBadge: Component<$$ComponentProps, {}, "">;

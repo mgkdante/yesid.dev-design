@@ -5,6 +5,7 @@
 		cursorGlow,
 		magnetic,
 		pressBounce,
+		scrollChain,
 		sectionGlow,
 		wordmarkHover,
 	} from '@yesid/motion/actions';
@@ -63,6 +64,18 @@
 			>
 				Touch response
 			</button>
+		</div>
+
+		<div
+			data-gallery-family="motion:scrollChain"
+			class="rounded-lg border border-border-subtle bg-card p-4"
+		>
+			<p class="mb-3 font-mono text-caption text-muted-foreground">scrollChain</p>
+			<ol class="h-24 overflow-y-auto rounded-md border border-border px-4 py-2 text-small" use:scrollChain>
+				{#each Array.from({ length: 12 }, (_, index) => index + 1) as stop (stop)}
+					<li>Stop {stop}</li>
+				{/each}
+			</ol>
 		</div>
 
 		<div

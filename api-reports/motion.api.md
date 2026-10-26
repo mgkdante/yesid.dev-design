@@ -114,6 +114,7 @@ declare namespace Actions {
         cardParallax,
         wordmarkHover,
         WordmarkHoverParams,
+        scrollChain,
         pressBounce
     }
 }
@@ -230,7 +231,7 @@ function initGlobalRipple(options?: {
 }): () => void;
 
 // @public (undocumented)
-function initLenis(): void;
+function initLenis(scroller?: LenisScroller): void;
 
 // @public
 function initScrollTriggerConfig(): void;
@@ -246,6 +247,14 @@ function isTouchDevice(): boolean;
 
 // @public
 function isViewportAtMost(maxWidthPx: number): boolean;
+
+// @public
+interface LenisScroller {
+    // (undocumented)
+    readonly content: HTMLElement;
+    // (undocumented)
+    readonly wrapper: HTMLElement;
+}
 
 // @public (undocumented)
 function magnetic(node: HTMLElement, params?: MagneticParams): {
@@ -281,6 +290,11 @@ const prefersReducedMotion: Readable<boolean>;
 
 // @public (undocumented)
 function pressBounce(node: HTMLElement): ActionReturn;
+
+// @public (undocumented)
+function scrollChain(node: HTMLElement): {
+    destroy(): void;
+};
 
 // @public
 function sectionGlow(node: HTMLElement): {
@@ -361,7 +375,8 @@ declare namespace UtilsLenis {
     export {
         initLenis,
         destroyLenis,
-        getLenis
+        getLenis,
+        LenisScroller
     }
 }
 
