@@ -915,19 +915,8 @@ declare namespace PrimitivesToggleGroup {
     }
 }
 
-// @public
-const quietMode: {
-    readonly enabled: boolean;
-    readonly remembered: boolean;
-    readonly closeSignal: number;
-    readonly openSignal: number;
-    set(next: boolean): void;
-    toggle(): void;
-    rememberCurrent(): void;
-    forgetDefault(): void;
-    init(options?: QuietModeInit): void;
-    resetForTest(): void;
-};
+// @public (undocumented)
+const quietMode: QuietModeStore;
 
 // @public (undocumented)
 type QuietModeActiveEffect = 'none' | 'glow';
@@ -976,6 +965,30 @@ interface QuietModeButtonProps {
 interface QuietModeInit {
     // (undocumented)
     readonly storageKey?: string;
+}
+
+// @public
+interface QuietModeStore {
+    // (undocumented)
+    readonly closeSignal: number;
+    // (undocumented)
+    readonly enabled: boolean;
+    // (undocumented)
+    forgetDefault(): void;
+    // (undocumented)
+    init(options?: QuietModeInit): void;
+    // (undocumented)
+    readonly openSignal: number;
+    // (undocumented)
+    rememberCurrent(): void;
+    // (undocumented)
+    readonly remembered: boolean;
+    // (undocumented)
+    resetForTest(): void;
+    // (undocumented)
+    set(next: boolean): void;
+    // (undocumented)
+    toggle(): void;
 }
 
 // @public (undocumented)
@@ -1191,10 +1204,12 @@ type Skeleton = ReturnType<typeof Skeleton>;
 
 declare namespace State {
     export {
-        theme,
         Theme,
-        quietMode,
+        ThemeStore,
         QuietModeInit,
+        QuietModeStore,
+        theme,
+        quietMode,
         desktop,
         DESKTOP_MIN_WIDTH
     }
@@ -1293,14 +1308,22 @@ type TerminalCursorProps = Omit<HTMLAttributes<HTMLSpanElement>, 'children' | 'c
 // @public (undocumented)
 type Theme = 'dark' | 'light';
 
+// @public (undocumented)
+const theme: ThemeStore;
+
 // @public
-const theme: {
+interface ThemeStore {
+    // (undocumented)
     readonly current: Theme;
-    readonly isDark: boolean;
-    set(next: Theme): void;
-    toggle(): void;
+    // (undocumented)
     init(): void;
-};
+    // (undocumented)
+    readonly isDark: boolean;
+    // (undocumented)
+    set(next: Theme): void;
+    // (undocumented)
+    toggle(): void;
+}
 
 // @public (undocumented)
 const ThemeToggle: Component<ThemeToggleProps, {}, "">;

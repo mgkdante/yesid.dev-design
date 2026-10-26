@@ -105,7 +105,7 @@ const ANALYTICS_EXPORTS = {
 	'.': './src/index.ts',
 	'./client': './src/client.ts',
 	'./config': './src/config.ts',
-	'./consent': './src/consent.svelte.ts',
+	'./consent': './src/consent.ts',
 	'./plausible': './src/plausible.ts',
 	'./policy': './src/policy.ts',
 } as const;

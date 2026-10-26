@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getAnalyticsPolicy, normalizeAnalyticsControls } from './policy';
-import type { AnalyticsConsentChoice, AnalyticsConsentState } from './consent.svelte';
+import type { AnalyticsConsentChoice, AnalyticsConsentState } from './consent';
 
 describe('analytics control normalization', () => {
 	it.each([
