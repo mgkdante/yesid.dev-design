@@ -89,7 +89,7 @@ deterministic targets without pretending that clamp is a native DTCG dimension.
 seams. `BOUNDARIES.md` owns the cross-product placement decision, and each product owns the tests
 for its local policy and appearance. Product conflicts never become app checks in the package:
 yesid.dev's Button conversion and Card bevel/shadow stay local, Transit's flat Card contract stays
-local, and composed `CollapsibleSection` behavior stays local until the rule of three is met.
+local, and composed `CollapsibleSection` behavior stays local until a merged package contract ships.
 
 Shared controlled views own only their rendered mechanics. Consumers continue to own copy,
 locale selection, state, persistence, actions, and adapters such as StopLabel prefixes,
@@ -117,3 +117,11 @@ different authority and release boundary.
 Architecture and efficiency changes require a reproducible baseline and one observed failure or
 cost. Line counts are physical `wc -l` counts over tracked path sets, not semantic estimates.
 Generated and vendor material are reported separately. Raw churn is not net maintained change.
+
+## D14: Two consumers are enough to promote a component
+
+The owner decided on 2026-10-26 that a component or composed pattern promotes once two
+independent products need the same contract. The rule of three left every frame and composed
+component duplicated in Transit and yesid.dev while they waited for a third product. The copies
+drifted, and each carried fixes the other lacked. Law 1 still holds: a difference that cannot be a
+prop with a default stays in the app.

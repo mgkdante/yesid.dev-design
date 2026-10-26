@@ -11,7 +11,7 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 | Path | What it is |
 |---|---|
 | [`packages/tokens`](packages/tokens/README.md) | `@yesid/tokens` — canonical DTCG source, deterministic generators, package CSS, and manual Figma round-trip contract. |
-| [`packages/motion`](packages/motion/README.md) | `@yesid/motion` — Tier-1 actions, policy, reduced-motion state, helpers, generated tokens, and opt-in CSS. |
+| [`packages/motion`](packages/motion/README.md) | `@yesid/motion` — pure motion actions, policy, reduced-motion state, helpers, generated tokens, and opt-in CSS. |
 | [`packages/gates`](packages/gates/README.md) | `@yesid/gates` — pure parameterized quality engines; consumers own policy and pass/fail doctrine. |
 | [`packages/seo-kit`](packages/seo-kit/README.md) | `@yesid/seo-kit` — framework-neutral JSON-LD, sitemap, and injected-rasterizer mechanics. |
 | [`packages/ui`](packages/ui/README.md) | `@yesid/ui` — source-shipped Svelte primitives and promoted brand components. |
@@ -49,10 +49,9 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
    upstreams it here first, then takes the bump.
 3. **Consumers pin exact versions; cascade = deliberate bump-PRs.** No `^`/`~`
    floats, no auto-sync. Every version move in a consumer is a reviewed PR.
-4. **Components promote only by rule of three.** A component/composed pattern
-   (TocNav, TocPill, CollapsibleSection, persisted …) stays vendored per-app
-   until THREE independent consumers need the same contract — only then may it
-   promote into a package, as its own deliberate release.
+4. **Components promote at two consumers.** A component or composed pattern
+   stays in the app until two independent products need the same contract, then
+   moves into a package as its own release.
 
 The standing cross-product ownership map is [`BOUNDARIES.md`](BOUNDARIES.md).
 It records what remains consumer-owned, why, and the receipt for each boundary.
@@ -63,8 +62,8 @@ receipt live in [`docs/ARCHITECTURE-MAP.md`](docs/ARCHITECTURE-MAP.md).
 
 - **MOTION-1** — `packages/motion/src/utils/gsap.ts` (+ its test): eager
   `MorphSVGPlugin` import and the `loadDrawSVG/loadMorphSVG/loadFlip/loadCustomEase`
-  lazy loaders dropped; their only consumers are Tier-2 actions
-  (morphHover/scrollChain) that stay app-side. Kept code is byte-equivalent.
+  lazy loaders dropped; their only consumers were the `morphHover` and
+  `scrollChain` actions, which stayed app-side. Kept code is byte-equivalent.
 - **Import rewrites** — `wordmarkHover.ts`, `pressBounce.ts`, `cardParallax.ts`:
   `$lib/motion/...` → relative specifiers (the package has no SvelteKit alias).
   Tests keep their `$lib` mock specifiers via a vitest alias.
@@ -72,20 +71,13 @@ receipt live in [`docs/ARCHITECTURE-MAP.md`](docs/ARCHITECTURE-MAP.md).
   app paths from inside `packages/tokens`. The current pure engine returns a
   logical output map; the root repository adapter owns filesystem paths.
 - **actions/index.ts** — `morphHover` + `scrollChain` export lines pruned
-  (Tier 2, out of scope).
+  (both stayed app-side).
 - **packages/gates** — new package by design: engines refactored from the four
   source gate files with byte-equivalent detection; `tvOnlyInUi` is MINTED
   (no test existed anywhere; codifies the observed convention).
 - **packages/motion/tsconfig.json** — no `noUncheckedIndexedAccess` (the
   extracted sources were written against yesid.dev's app tsconfig, which does
   not set it).
-
-## Tier model
-
-- **Tier 1 (this repo):** tokens · pure motion actions · brand gates · promoted UI primitives. Extracted at parity or promoted in a documented wave.
-- **Tier 2 (stays app-side):** composed patterns (TocNav/TocPill/
-  CollapsibleSection/persisted), morphHover/scrollChain, app art-direction
-  pinning tests. Promote only by rule of three (Law 4).
 
 ## Commands
 
@@ -137,13 +129,9 @@ use [`RELEASING.md`](RELEASING.md); compatibility follows
 
 ## Consumers
 
-The current evidence-backed Release registry lives only in
-[`CONSUMERS.md`](CONSUMERS.md). This repository owns immutable release
-provenance and adoption mechanics; each external consumer owns its reviewed
-version bump, generated outputs, tests, build, and product/browser verification.
-Gallery remains the private workspace dogfood consumer. Upstream release
-evidence, external adoption, and product verification are separate gates; none
-is inferred from another.
+[`CONSUMERS.md`](CONSUMERS.md) lists who uses these packages and where each
+exact pin lives. Each consumer owns its bump PR, generated outputs, tests, build,
+and browser checks.
 
 ## AI-accelerated, human-owned
 
