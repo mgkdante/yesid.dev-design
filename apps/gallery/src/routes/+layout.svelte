@@ -1,6 +1,8 @@
 <script lang="ts">
 	import '@yesid/motion/ripple.css';
 	import { initGlobalRipple } from '@yesid/motion/utils/globalRipple';
+	import { SiteRoot } from '@yesid/ui/layout';
+	import { theme } from '@yesid/ui/state';
 	import { onMount } from 'svelte';
 	import '../fonts.css';
 	import '../gallery.css';
@@ -8,19 +10,9 @@
 	let { children } = $props();
 
 	onMount(() => initGlobalRipple());
-
-	function toggleTheme() {
-		const root = document.documentElement;
-		const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-		root.dataset.theme = next;
-		try {
-			localStorage.setItem('theme', next);
-		} catch {
-			/* private mode */
-		}
-	}
 </script>
 
+<SiteRoot smoothScroll={false}>
 <div class="min-h-screen bg-background text-foreground font-body">
 	<header
 		class="sticky top-0 z-50 flex items-center justify-between border-b border-border-subtle bg-background/90 px-6 py-3 backdrop-blur"
@@ -31,7 +23,7 @@
 		<button
 			type="button"
 			class="tap-press rounded-md border border-border px-3 py-1 text-small text-muted-foreground hover:text-foreground"
-			onclick={toggleTheme}
+			onclick={() => theme.toggle()}
 		>
 			toggle theme
 		</button>
@@ -40,3 +32,4 @@
 		{@render children()}
 	</main>
 </div>
+</SiteRoot>
