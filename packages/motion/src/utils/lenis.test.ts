@@ -39,6 +39,16 @@ describe('motion/utils/lenis', () => {
 		expect(getLenis()).not.toBeNull();
 	});
 
+	it('registers ScrollTrigger before reading its touch detection', async () => {
+		vi.resetModules();
+		const fresh = await import('./lenis.js');
+		const { gsap: freshGsap } = await import('gsap');
+		const { ScrollTrigger: freshScrollTrigger } = await import('gsap/ScrollTrigger');
+		fresh.initLenis();
+		expect(freshGsap.registerPlugin).toHaveBeenCalledWith(freshScrollTrigger);
+		fresh.destroyLenis();
+	});
+
 	it('touch: initLenis does NOT create a Lenis instance', () => {
 		setTouch(1);
 		initLenis();
