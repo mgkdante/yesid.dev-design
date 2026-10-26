@@ -19,8 +19,8 @@
 			"default": "./src/config.ts"
 		},
 		"./consent": {
-			"types": "./src/consent.svelte.ts",
-			"default": "./src/consent.svelte.ts"
+			"types": "./src/consent.ts",
+			"default": "./src/consent.ts"
 		},
 		"./plausible": {
 			"types": "./src/plausible.ts",

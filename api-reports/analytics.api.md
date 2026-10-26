@@ -20,8 +20,8 @@
 
 ### `./consent`
 
-- `types` → `./src/consent.svelte.ts`
-- `default` → `./src/consent.svelte.ts`
+- `types` → `./src/consent.ts`
+- `default` → `./src/consent.ts`
 
 ### `./plausible`
 
@@ -41,7 +41,7 @@
 - `Index` → `./src/index.ts` (`.`)
 - `Client` → `./src/client.ts` (`./client`)
 - `Config` → `./src/config.ts` (`./config`)
-- `ConsentSvelte` → `./src/consent.svelte.ts` (`./consent`)
+- `Consent` → `./src/consent.ts` (`./consent`)
 - `Plausible` → `./src/plausible.ts` (`./plausible`)
 - `Policy` → `./src/policy.ts` (`./policy`)
 
@@ -193,7 +193,7 @@ declare namespace Config {
     }
 }
 
-declare namespace ConsentSvelte {
+declare namespace Consent {
     export {
         probeDurableAnalyticsStorage,
         createAnalyticsConsentStore,

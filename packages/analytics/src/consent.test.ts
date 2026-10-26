@@ -7,7 +7,7 @@ import {
 	probeDurableAnalyticsStorage,
 	type AnalyticsConsentChoice,
 	type AnalyticsConsentState,
-} from './consent.svelte';
+} from './consent';
 
 const PRESET = defineAnalyticsPreset({
 	domain: 'metrics.example',
