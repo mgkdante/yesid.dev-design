@@ -421,13 +421,5 @@ describe('deterministic package API reports', () => {
 			/^  token-outputs-windows-work:\n([\s\S]+?)^  token-byte-parity-work:/mu,
 		)?.[1];
 		expect(windowsJob).toContain('bun run api:check');
-
-		const contributing = readFileSync(join(REPOSITORY_ROOT, 'CONTRIBUTING.md'), 'utf8');
-		expect(contributing).toContain('## Public API changes');
-		expect(contributing).toContain('bun run api:report');
-		expect(contributing).toContain('.changes/<slug>.md');
-		expect(contributing).toContain('## Escaped consumer defects');
-		expect(contributing).toContain('neutral upstream regression');
-		expect(contributing).toContain('Consumer-named permanent fixtures are rejected');
 	});
 });

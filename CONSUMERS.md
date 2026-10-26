@@ -1,33 +1,12 @@
 # Consumers
 
-This registry records Release-adoption facts observed at each repository's
-canonical `origin/main` on 2026-09-02. It does not infer product verification;
-that remains consumer-owned.
+| Consumer | Repository | Pin |
+|---|---|---|
+| Transit | [mgkdante/transit](https://github.com/mgkdante/transit) | `apps/web/vendor/design/manifest.json` |
+| yesid.dev | [mgkdante/yesid.dev](https://github.com/mgkdante/yesid.dev) | `apps/web/vendor/design/manifest.json` |
+| Gallery | `apps/gallery` in this repository | `workspace:*`; private dogfood app, not a Release consumer |
 
-| Consumer | Observed ref | Release-adoption state | Required next transition |
-|---|---|---|---|
-| Transit | `9fee5aba71cc70c7d120bd6ea384d16131e02a3e` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.13.2`, containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core` and the authority below. | Future changes use a reviewed exact-tag adoption PR, followed by Transit's own vendor, generated-output, test, build, and product/browser verification. |
-| yesid.dev | `eba0ac23d66c7c7027dce013a120e8d1938e03e6` | `apps/web/vendor/design/manifest.json` is a schema-2 Release receipt for `v0.13.2`, containing `tokens,motion,gates,seo-kit,ui,analytics,i18n-core` and the authority below. The former embedded package copies are no longer present. | Future changes use a reviewed exact-tag adoption PR, followed by yesid.dev's own vendor, generated-output, test, build, and product/browser verification. |
-| Gallery | yesid.dev-design `bcc628763245387c23eeeb7d81af7c0f75176421` | `apps/gallery` is the private workspace dogfood consumer. It resolves packages through `workspace:*`; it is not an external Release consumer and its app version remains outside package lockstep. | Continue exercising package integration and browser authority here. Do not treat Gallery success as proof of an external consumer's product verification. |
-
-## Release authority
-
-Both external receipts bind annotated tag object
-`2809b5a33ed08cf0c2e470cbc56d2a8ac68836cb`, peeled commit
-`bcc628763245387c23eeeb7d81af7c0f75176421`, and the sole immutable asset
-`yesid.dev-design-v0.13.2.tar` (798720 bytes,
-`sha256:1376c630f0c5288c13ca671bc78073ca70e1f5d7d16287d4bc731c05847565e9`).
-
-## State vocabulary
-
-- **Embedded** means a consumer owns a duplicate package source tree.
-- **Legacy vendored** means it pins copied package files but lacks the schema-2
-  trust record and self-vendored verification tool.
-- **Release adopted** means production mode installed one exact immutable
-  Release asset and `tools/adopt.ts --check` validates the resulting schema-2
-  manifest and complete payload offline.
-- **Product verified** is consumer-owned: its generated artifacts, package
-  tests, typecheck, build, gates, and relevant browser checks pass for the bump.
-
-Release adoption and product verification are separate gates. Neither is
-inferred from an upstream tag or from another consumer's result.
+Each external consumer pins one exact Release tag. Its `manifest.json` records the tag, asset
+digest, and tree hash, and `bun vendor/design/tools/adopt.ts --check --dest vendor/design`
+verifies the installed snapshot offline. Each consumer's tests, build, and browser checks are its
+own; a passing release or Gallery run does not stand in for them.

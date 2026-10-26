@@ -27,9 +27,8 @@ portable upstream defect. Brand direction and identity values are owner
 decisions, not support requests. General application development and bespoke
 integration work are also outside repository support.
 
-Feature requests must describe the reusable contract and evidence from actual
-consumers. Composed components remain consumer-side until the rule of three is
-met.
+Feature requests must describe the reusable contract and the consumers that
+need it.
 
 ## Security reports
 

@@ -23,14 +23,7 @@ You can report a mechanical problem in a brand value, such as broken contrast, a
 
 ## Architecture rules
 
-Four rules govern every contribution:
-
-1. No app conditionals. A package never checks which product imported it.
-2. Flow changes upstream. Consumers never patch vendored package code.
-3. Consumers pin exact tags and move pins in deliberate bump pull requests.
-4. A composed component promotes only after three independent consumers need the same contract.
-
-If a change serves one product only, keep it in that product. If a consumer needs a shared fix, make the fix here, verify it here, tag it, then update the consumer pin.
+The [governance laws](README.md#governance-laws) apply to every change. If a change serves one product only, keep it in that product. If a consumer needs a shared fix, make the fix here, verify it here, tag it, then update the consumer pin.
 
 ## Run the suite
 
