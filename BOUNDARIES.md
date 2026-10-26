@@ -2,7 +2,7 @@
 
 yesid.dev-design shares reusable mechanics, not product decisions. Each product keeps policy, copy, runtime authority, data contracts, and behavior that cannot satisfy the [governance laws](README.md#governance-laws) without an app check. Similar code is evidence to inspect, not permission to promote it.
 
-This is an ownership index, not a replacement for the owning decisions and tests. Current consumer source and Release-adoption receipts live only in [`CONSUMERS.md`](CONSUMERS.md). Root placement is a deliberate trade: full CI on a docs PR versus `docs/` docs-only classification.
+This is an ownership index, not a replacement for the owning decisions and tests. [`CONSUMERS.md`](CONSUMERS.md) lists the consumers; each one's `apps/web/vendor/design/manifest.json` is its pin record. Root placement is a deliberate trade: full CI on a docs PR versus `docs/` docs-only classification.
 
 ## Reference card
 
@@ -25,6 +25,6 @@ This is an ownership index, not a replacement for the owning decisions and tests
 
 ## Changing a boundary
 
-A boundary moves only through a deliberate change that updates this card and the owning receipt. Shared code must remain app-neutral; a composed component additionally needs two independent consumers with the same contract. Package tests or Gallery success never substitute for each consumer's generated-output, test, build, and relevant browser proof.
+A boundary moves only through a deliberate change that updates this card and the owning receipt. Shared code must satisfy the [governance laws](README.md#governance-laws). Package tests or Gallery success never substitute for each consumer's generated-output, test, build, and relevant browser proof.
 
-`DECISIONS.md` records current public architecture contracts, [`CONSUMERS.md`](CONSUMERS.md) the observed adoption registry, and `packages/ui/README.md` the durable UI package and compatibility contract. This file maps current ownership across those receipts; it does not supersede them.
+`DECISIONS.md` records current public architecture contracts, [`CONSUMERS.md`](CONSUMERS.md) the used-by index, and `packages/ui/README.md` the durable UI package and compatibility contract. This file maps current ownership across those receipts; it does not supersede them.

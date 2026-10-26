@@ -120,8 +120,8 @@ Generated and vendor material are reported separately. Raw churn is not net main
 
 ## D14: Two consumers are enough to promote a component
 
-The owner decided on 2026-10-26 that a component or composed pattern promotes once two
-independent products need the same contract. The rule of three left every frame and composed
+The owner changed [Law 4](README.md#governance-laws) on 2026-10-26: a component or composed
+pattern promotes once two independent products need the same contract. The rule of three left every frame and composed
 component duplicated in Transit and yesid.dev while they waited for a third product. The copies
 drifted, and each carried fixes the other lacked. Law 1 still holds: a difference that cannot be a
 prop with a default stays in the app.
