@@ -3,8 +3,8 @@
   blueprint header; the hazard rule; a filter column (search plus a filter panel that collapses
   below 1024px) and the results.
 
-  The panel never depends on JavaScript to be usable: CSS shows it from 1024px in every state, and
-  below 1024px a closed panel is `visibility: hidden`, so prerendered HTML is correct at any width.
+  CSS shows the panel from 1024px in every state, so desktop filters work before hydration and
+  without JavaScript. Below 1024px a closed panel is `visibility: hidden`, never `inert`.
 -->
 <script lang="ts" module>
 	import type { Snippet } from 'svelte';

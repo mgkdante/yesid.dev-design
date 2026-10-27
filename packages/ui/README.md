@@ -321,9 +321,10 @@ its cleanup.
 The filter column holds the `search` snippet and a panel with the `filters` snippet. From 1024px
 the panel is always shown and the column is sticky. Below 1024px a button labelled `filterLabel`
 opens it, and `filterPersistKey` keeps that state under `persisted:<filterPersistKey>`. The panel
-never relies on JavaScript or `inert`: a closed panel is `visibility: hidden` below 1024px only,
-so prerendered pages are usable at any width. Wheel scrolling in the sticky column chains to the
-page through `scrollChain`.
+never uses `inert`; a closed panel is `visibility: hidden` below 1024px only. So from 1024px the
+filters are visible and reachable by keyboard before hydration and without JavaScript, and below
+1024px opening them needs JavaScript. Wheel scrolling in the sticky column chains to the page
+through `scrollChain`.
 
 The frame reads `--chrome-offset`, the height of the fixed site chrome, to pull the header under
 it and to park the sticky column below it. It falls back to `0px`.

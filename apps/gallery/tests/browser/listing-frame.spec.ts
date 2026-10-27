@@ -53,8 +53,22 @@ test('filter panel is usable at this width', async ({ page, browser, baseURL }) 
 	await toggle.click();
 	await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 	await expect(firstButton).toBeVisible();
-	await firstButton.focus();
-	await expect(firstButton).toBeFocused();
+	await expectTabTo(page, firstButton);
+
+	// With motion on, the panel leaves the tab order once its close transition ends.
+	await page.emulateMedia({ reducedMotion: 'no-preference' });
+	await toggle.click();
+	await expect(firstButton).toBeHidden();
+	await toggle.focus();
+	await expectTabTo(page, clear);
+
+	// The stored open state survives a reload, and an open panel stays shown at desktop width.
+	await toggle.click();
+	await page.reload();
+	await expect(listing(page).toggle).toHaveAttribute('aria-expanded', 'true');
+	await expect(listing(page).firstButton).toBeVisible();
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await expect(listing(page).firstButton).toBeVisible();
 });
 
 test('edge title fits and the page passes axe', async ({ page }, testInfo) => {
