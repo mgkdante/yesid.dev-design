@@ -64,7 +64,8 @@
 	// overwriting that choice, so Collapse all here and Expand all elsewhere leave no stale close.
 	const stored = untrack(() => (sectionKey ? persisted(sectionKey, open) : null));
 	let quietOverride = $state<boolean | null>(null);
-	const isOpen = $derived(quietOverride ?? (stored ? stored.value : open));
+	// A static card always shows its body; the stored choice waits for it to become collapsible.
+	const isOpen = $derived(!collapsible || (quietOverride ?? (stored ? stored.value : open)));
 
 	function choose(next: boolean): void {
 		quietOverride = null;
@@ -82,20 +83,13 @@
 		if (quietMode.enabled) applyQuiet(false);
 	});
 
-	let lastCloseSignal = untrack(() => quietMode.closeSignal);
+	// One effect for both counters: several toggles in one tick must land on the final mode.
+	let lastQuietSignals = untrack(() => `${quietMode.closeSignal}:${quietMode.openSignal}`);
 	$effect(() => {
-		const signal = quietMode.closeSignal;
-		if (signal === lastCloseSignal) return;
-		lastCloseSignal = signal;
-		applyQuiet(false);
-	});
-
-	let lastQuietOpenSignal = untrack(() => quietMode.openSignal);
-	$effect(() => {
-		const signal = quietMode.openSignal;
-		if (signal === lastQuietOpenSignal) return;
-		lastQuietOpenSignal = signal;
-		applyQuiet(true);
+		const signals = `${quietMode.closeSignal}:${quietMode.openSignal}`;
+		if (signals === lastQuietSignals) return;
+		lastQuietSignals = signals;
+		applyQuiet(!untrack(() => quietMode.enabled));
 	});
 
 	let lastOpenSignal = untrack(() => openSignal);

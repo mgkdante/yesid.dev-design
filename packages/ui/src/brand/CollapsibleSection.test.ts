@@ -80,6 +80,18 @@ describe('disclosure', () => {
 		await click(view.getByTestId('prose'));
 		expect(content(view).getAttribute('data-state')).toBe('open');
 	});
+
+	it('shows a static body over a stored close, and keeps that choice for later', async () => {
+		sessionStorage.setItem('persisted:reader', 'false');
+		const view = keyed({ collapsible: false });
+		expect(content(view).hasAttribute('inert')).toBe(false);
+
+		const runtime = keyed();
+		expect(content(runtime).getAttribute('data-state')).toBe('closed');
+		await runtime.rerender({ collapsible: false });
+		expect(content(runtime).getAttribute('data-state')).toBe('open');
+		expect(stored()).toBe('false');
+	});
 });
 
 describe('whole-card toggling', () => {
@@ -195,6 +207,18 @@ describe('keyed section', () => {
 		expect(stored()).toBe(kept);
 		first.unmount();
 		expect(isOpen(keyed())).toBe(reopens);
+	});
+
+	it.each([
+		['off then on', [false, true], false],
+		['on then off', [true, false], true],
+	] as const)('lands on the final mode when quiet mode toggles %s in one tick', async (_case, modes, open) => {
+		if (!modes[0]) quietMode.set(true);
+		const view = keyed();
+		const bound = render(Bound);
+		for (const mode of modes) quietMode.set(mode);
+		await tick();
+		expect([isOpen(view), boundText(bound), stored()]).toEqual([open, String(open), null]);
 	});
 
 	it('lets a reader click replace a quiet override', async () => {

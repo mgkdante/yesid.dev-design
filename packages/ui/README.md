@@ -277,7 +277,8 @@ A card with a toggle header, an optional index badge, `icon` and `headerActions`
 default; pass `quiet={false}` when another owner already applies it. `sectionKey` stores the
 reader's open/closed choice for the tab under `persisted:<sectionKey>`. Quiet mode changes what a
 keyed section shows without overwriting that choice. `openSignal` is a product counter: each
-change opens the section like a reader click.
+change opens the section like a reader click and is stored, so never feed it
+`quietMode.openSignal`.
 
 ### TocNav, TocPill, and toc helpers
 

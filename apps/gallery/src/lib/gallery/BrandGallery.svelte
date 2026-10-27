@@ -31,7 +31,13 @@
 	const blueprintLabels: [string, string, string] = ['GRID 02', 'AXIS 17', 'REV 04'];
 	const tocEntries: TocEntry[] = [
 		{ id: 'overview', title: 'Overview', level: 2, badge: { kind: 'number', value: 1 }, children: [] },
-		{ id: 'method', title: 'Method', level: 2, badge: { kind: 'number', value: 2 }, children: [] },
+		{
+			id: 'method',
+			title: 'Method',
+			level: 2,
+			badge: { kind: 'number', value: 2 },
+			children: [{ id: 'sampling', title: 'Sampling', level: 3, children: [] }],
+		},
 		{ id: 'results', title: 'Results', level: 2, badge: { kind: 'number', value: 3 }, children: [] },
 	];
 	const statusColors = 'orange green caution stop lunar early on_time late severe unknown'.split(

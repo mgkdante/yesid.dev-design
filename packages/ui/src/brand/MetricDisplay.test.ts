@@ -44,7 +44,7 @@ describe('MetricDisplay', () => {
 	});
 
 	it.each([
-		['sm', 'text-body'],
+		['sm', 'text-subheading'],
 		['md', 'text-heading'],
 		['lg', 'text-title'],
 	] as const)('sizes the %s value with %s', (size, expected) => {

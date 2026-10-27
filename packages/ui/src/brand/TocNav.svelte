@@ -137,18 +137,10 @@
 		flex: 1;
 	}
 
+	/* Sub-items keep the item colors: a fainter tint fails 4.5:1 at caption size. */
 	.toc-sub-item {
 		font-size: var(--text-caption);
 		min-height: 36px;
-		color: color-mix(in srgb, var(--foreground) 20%, transparent);
-	}
-
-	.toc-sub-item:hover {
-		color: color-mix(in srgb, var(--foreground) 50%, transparent);
-	}
-
-	.toc-sub-item.active {
-		color: var(--primary);
 	}
 
 	.toc-counter-dot {
