@@ -15,8 +15,27 @@ describe('Button element contract', () => {
 		const { container } = render(Button, { props: { variant } });
 		const element = container.querySelector('[data-slot="button"]');
 
-		expect(element?.classList.contains('text-control')).toBe(true);
+		expect(element?.classList.contains('text-sm')).toBe(true);
 		expect(element?.classList.contains(foreground)).toBe(true);
+	});
+
+	it.each([{}, { href: '/next' }])('preserves a caller data-slot for %j', (props) => {
+		const { container } = render(Button, { props: { ...props, 'data-slot': 'custom-button' } });
+		expect(container.querySelector('[data-slot="custom-button"]')).not.toBeNull();
+		expect(container.querySelector('[data-slot="button"]')).toBeNull();
+	});
+
+	it('renders the conversion CTA classes', () => {
+		const { container } = render(Button, { props: { variant: 'conversion', size: 'cta' } });
+		const element = container.querySelector('[data-slot="button"]');
+		expect(element?.classList.contains('bg-accent')).toBe(true);
+		expect(element?.classList.contains('text-signage-bg')).toBe(true);
+		expect(element?.classList.contains('hover:-translate-y-px')).toBe(true);
+	});
+
+	it('renders the icon-tap size', () => {
+		const { container } = render(Button, { props: { size: 'icon-tap' } });
+		expect(container.querySelector('[data-slot="button"]')?.classList.contains('size-11')).toBe(true);
 	});
 
 	it('preserves a CTA size beside its foreground class', () => {

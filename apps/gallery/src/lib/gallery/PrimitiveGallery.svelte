@@ -78,7 +78,8 @@
 			<Card.Content class="grid gap-4">
 				<div class="flex flex-wrap items-center gap-3" data-gallery-state="disabled">
 					<div data-gallery-family="primitive:button">
-						<Button size="cta-sm">Run check</Button>
+						<Button variant="conversion" size="cta-sm">Run check</Button>
+						<Button class="ml-2" size="icon-tap" aria-label="Add check">+</Button>
 						<Button class="ml-2" variant="outline" disabled>Unavailable</Button>
 					</div>
 					<div data-gallery-family="primitive:badge">

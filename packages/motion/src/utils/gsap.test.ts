@@ -2,11 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // gsap and its plugins are mocked globally in src/__tests__/setup.ts.
 // This test file validates our registration wrappers, not GSAP itself.
-//
-// DEVIATION MOTION-1 (2026-07-02): the yesid.dev source test also covered the
-// MorphSVGPlugin re-export and the lazy loaders (loadDrawSVG/loadMorphSVG/
-// loadFlip/loadCustomEase) — those were pruned together with the code they
-// tested (see utils/gsap.ts header). Everything kept is byte-equivalent.
 
 describe('initScrollTriggerConfig', () => {
 	beforeEach(() => {
@@ -59,6 +54,26 @@ describe('ensureSplitTextRegistered', () => {
 		ensureSplitTextRegistered();
 		ensureSplitTextRegistered();
 
+		expect(gsap.registerPlugin).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('lazy plugin loaders', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.resetModules();
+	});
+
+	it.each([
+		['loadDrawSVG', () => import('gsap/DrawSVGPlugin').then((m) => m.DrawSVGPlugin)],
+		['loadMorphSVG', () => import('gsap/MorphSVGPlugin').then((m) => m.MorphSVGPlugin)],
+		['loadCustomEase', () => import('gsap/CustomEase').then((m) => m.CustomEase)],
+	] as const)('%s registers its plugin only on the first call', async (name, plugin) => {
+		const { gsap } = await import('gsap');
+		const loaders = await import('./gsap.js');
+		await loaders[name]();
+		expect(gsap.registerPlugin).toHaveBeenCalledExactlyOnceWith(await plugin());
+		await loaders[name]();
 		expect(gsap.registerPlugin).toHaveBeenCalledTimes(1);
 	});
 });
