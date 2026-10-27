@@ -159,7 +159,8 @@
 		box-shadow: 0 0 8px color-mix(in srgb, var(--glow) 40%, transparent);
 	}
 
+	/* Muted foreground, not a primary tint: small mono text needs 4.5:1. */
 	.toc-counter-text {
-		color: color-mix(in srgb, var(--primary) 30%, transparent);
+		color: var(--muted-foreground);
 	}
 </style>
