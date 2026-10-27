@@ -1,5 +1,0 @@
----
-"@yesid/ui": minor
----
-
-Add the shared listing frame. `@yesid/ui/layout` now exports `ListingFrame`: edge title, accent rail, blueprint header, hazard rule, a filter column and the results. From 1024px its filter panel is always shown, so desktop filters work before hydration and without JavaScript. Below 1024px a toggle opens it, with the open state kept under `persisted:<filterPersistKey>`. `onHeaderMount(header, frame)` starts header motion such as a scroll scrub and returns its cleanup. The frame offsets itself by `--chrome-offset`. `@yesid/ui/brand` adds `FilterGroup`, `FilterSection`, `FilterSummary` and `SearchInput` with their prop types; they hold no product wording, so `FilterGroup` takes `allLabel`, `FilterSummary` takes `countLabel`, `locale` and `clearLabel`, and `SearchInput` takes `label`. To migrate, render `ListingFrame` from the listing page, pass the search field and filters as snippets, define `--chrome-offset` if the app names its chrome height differently, and delete the local shell, filter components and listing CSS. `FilterGroup` has no `joined-grid` variant; render a segmented control directly instead.
