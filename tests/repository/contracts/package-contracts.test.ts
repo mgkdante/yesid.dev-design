@@ -117,13 +117,17 @@ const I18N_CORE_EXPORTS = {
 const TOKEN_DIRECT_EXPORTS = {
 	'./tokens.json': './tokens.json',
 	'./tokens.css': './tokens.css',
+	'./theme.css': './theme.css',
+	'./fonts.css': './fonts.css',
 } as const;
 
 const TOKEN_TYPESCRIPT_EXPORTS = {
 	'./parse': './src/parse.ts',
 	'./serialize': './src/serialize.ts',
 	'./types': './src/types.ts',
+	'./fonts': './src/fonts.ts',
 	'./generators/tokens-css': './src/generators/tokens-css.ts',
+	'./generators/theme-css': './src/generators/theme-css.ts',
 	'./generators/theme-block': './src/generators/theme-block.ts',
 	'./generators/motion-ts': './src/generators/motion-ts.ts',
 	'./generators/design-md': './src/generators/design-md.ts',
@@ -319,7 +323,7 @@ describe('browser authority script contract', () => {
 			const output = `${result.stdout}\n${result.stderr}`;
 
 			expect(result.status, output).toBe(0);
-			expect(output).toMatch(/Total: 28 tests in 6 files/);
+			expect(output).toMatch(/Total: 32 tests in 7 files/);
 			expect(output).not.toContain('vite v');
 			expect(output).not.toContain('Wrote site to "build"');
 		},

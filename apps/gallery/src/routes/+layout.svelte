@@ -4,7 +4,7 @@
 	import { SiteRoot } from '@yesid/ui/layout';
 	import { theme } from '@yesid/ui/state';
 	import { onMount } from 'svelte';
-	import '../fonts.css';
+	import '@yesid/tokens/fonts.css';
 	import '../gallery.css';
 
 	let { children } = $props();

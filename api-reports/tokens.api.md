@@ -11,6 +11,19 @@
 
 - `default` → `./tokens.css`
 
+### `./theme.css`
+
+- `default` → `./theme.css`
+
+### `./fonts.css`
+
+- `default` → `./fonts.css`
+
+### `./fonts`
+
+- `types` → `./src/fonts.ts`
+- `default` → `./src/fonts.ts`
+
 ### `./parse`
 
 - `types` → `./src/parse.ts`
@@ -30,6 +43,11 @@
 
 - `types` → `./src/generators/tokens-css.ts`
 - `default` → `./src/generators/tokens-css.ts`
+
+### `./generators/theme-css`
+
+- `types` → `./src/generators/theme-css.ts`
+- `default` → `./src/generators/theme-css.ts`
 
 ### `./generators/theme-block`
 
@@ -68,15 +86,19 @@
 
 ## Direct public assets
 
-- `./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `7f410ee48fda7ba6dcb49e6703b1de3e41c59176b7b88688da363c9599baf1e3`
-- `./tokens.css` — direct asset `./tokens.css` (`default`), sha256 `785774c45f48f7b2e0c9aaad766364a69bc22d019ed23c5bf174a4f8368e1a9b`
+- `./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `e6999a9177e29e8def5eb9fbc112eb817713ce906cc06ea26db2124e184d607e`
+- `./tokens.css` — direct asset `./tokens.css` (`default`), sha256 `81ea7111eeea3a4d505c5f10890885bcba0cca523e73036a5fec269b0eb1e6a1`
+- `./theme.css` — direct asset `./theme.css` (`default`), sha256 `1aec29a2d9b5a396bd9f207266553c1ba2650a8a7ed7236edaa456e3d69d2fa6`
+- `./fonts.css` — direct asset `./fonts.css` (`default`), sha256 `86b24f9e84418fa584e8cb8ac4ecdefb0869376eb6ecc07054c5f4412d30a362`
 
 ## Declaration namespaces
 
+- `Fonts` → `./src/fonts.ts` (`./fonts`)
 - `Parse` → `./src/parse.ts` (`./parse`, `./src/parse.ts`)
 - `Serialize` → `./src/serialize.ts` (`./serialize`)
 - `Types` → `./src/types.ts` (`./types`)
 - `GeneratorsTokensCss` → `./src/generators/tokens-css.ts` (`./generators/tokens-css`, `./src/generators/tokens-css.ts`)
+- `GeneratorsThemeCss` → `./src/generators/theme-css.ts` (`./generators/theme-css`)
 - `GeneratorsThemeBlock` → `./src/generators/theme-block.ts` (`./generators/theme-block`, `./src/generators/theme-block.ts`)
 - `GeneratorsMotionTs` → `./src/generators/motion-ts.ts` (`./generators/motion-ts`, `./src/generators/motion-ts.ts`)
 - `GeneratorsDesignMd` → `./src/generators/design-md.ts` (`./generators/design-md`)
@@ -107,14 +129,23 @@ interface DtcgPrimitive {
     $value: string | number;
 }
 
+declare namespace Fonts {
+    export {
+        preloadFont
+    }
+}
+
 // @public (undocumented)
 function generateDesignMd(tree: TokenTree, opts?: DesignMdOptions): string;
 
 // @public (undocumented)
 function generateMotionTs(tree: TokenTree): string;
 
-// @public (undocumented)
+// @public @deprecated (undocumented)
 function generateThemeBlock(tree: TokenTree): string;
+
+// @public
+function generateThemeCss(tree: TokenTree): string;
 
 // @public (undocumented)
 function generateTokensCss(tree: TokenTree): string;
@@ -136,6 +167,12 @@ declare namespace GeneratorsThemeBlock {
     export {
         generateThemeBlock,
         replaceThemeRegion
+    }
+}
+
+declare namespace GeneratorsThemeCss {
+    export {
+        generateThemeCss
     }
 }
 
@@ -166,7 +203,10 @@ declare namespace Parse {
 // @public (undocumented)
 function parseTokens(input: unknown): TokenTree;
 
-// @public (undocumented)
+// @public
+function preloadFont(path: string): boolean;
+
+// @public @deprecated (undocumented)
 function replaceThemeRegion(fileContent: string, freshRegion: string): string;
 
 declare namespace Serialize {

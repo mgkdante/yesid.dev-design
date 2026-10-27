@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { buildAll } from '../build.ts';
 import { generateDesignMd } from '../generators/design-md.ts';
 import { generateMotionTs } from '../generators/motion-ts.ts';
-import { generateThemeBlock } from '../generators/theme-block.ts';
+import { generateThemeCss } from '../generators/theme-css.ts';
 import { generateTokensCss } from '../generators/tokens-css.ts';
 import { parseTokens } from '../parse.ts';
 
@@ -18,7 +18,7 @@ describe('buildAll', () => {
     expect(outputs).toEqual({
       designMd: generateDesignMd(tree),
       motionTs: generateMotionTs(tree),
-      themeBlock: generateThemeBlock(tree),
+      themeCss: generateThemeCss(tree),
       tokensCss: generateTokensCss(tree),
     });
   });

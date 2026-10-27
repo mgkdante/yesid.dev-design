@@ -400,10 +400,11 @@ text. During SSR it returns the seed.
 
 ## Base stylesheet
 
-`@yesid/ui/base.css` is the base layer both products share: resets, the dark variant, the
-semantic color utilities (`bg-primary`, `text-muted-foreground` and the rest), selection, focus
-ring, scrollbar, circuit grid, shared keyframes, and label styles. It uses Tailwind v4
-directives, so import it from the app stylesheet after Tailwind:
+`@yesid/ui/base.css` is the base layer both products share: resets, the dark variant, selection,
+focus ring, scrollbar, circuit grid, shared keyframes, label styles and `.glass-chrome`. It imports
+`@yesid/tokens/theme.css`, which provides the Tailwind theme and the semantic color utilities
+(`bg-primary`, `text-muted-foreground` and the rest). It uses Tailwind v4 directives, so import it
+from the app stylesheet after Tailwind:
 
 ```css
 @import 'tailwindcss';

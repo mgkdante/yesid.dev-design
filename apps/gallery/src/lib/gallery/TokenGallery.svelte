@@ -93,6 +93,25 @@
 	</ul>
 </section>
 
+<section class="mt-10" aria-labelledby="gallery-density">
+	<h2 id="gallery-density" class="font-heading text-title font-semibold">Density</h2>
+	<p class="mt-1 text-small text-muted-foreground">
+		Setting data-density="compact" on any subtree tightens the type scale.
+	</p>
+	<div class="mt-3 grid gap-4 sm:grid-cols-2">
+		{#each ['default', 'compact'] as density (density)}
+			<div
+				class="rounded-lg border border-border-subtle bg-card p-3"
+				data-density={density === 'compact' ? 'compact' : undefined}
+			>
+				<p class="font-mono text-caption text-muted-foreground">{density}</p>
+				<p class="mt-1 text-body">Body copy at the {density} scale.</p>
+				<p class="mt-1 text-micro text-muted-foreground">Micro label</p>
+			</div>
+		{/each}
+	</div>
+</section>
+
 <section class="mt-10 grid gap-8 md:grid-cols-2" aria-label="Shape and spacing tokens">
 	<div>
 		<h2 class="font-heading text-heading font-semibold">Radii</h2>

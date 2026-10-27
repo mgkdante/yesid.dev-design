@@ -3,13 +3,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildAll } from '../packages/tokens/src/build.ts';
-import { replaceThemeRegion } from '../packages/tokens/src/generators/theme-block.ts';
 import { parseTokens } from '../packages/tokens/src/parse.ts';
 
 export const artifactPaths = [
   'DESIGN.md',
-  'apps/gallery/src/app.css',
   'packages/motion/src/tokens.ts',
+  'packages/tokens/theme.css',
   'packages/tokens/tokens.css',
 ] as const;
 
@@ -56,15 +55,11 @@ export function createRepositoryBuild(root = defaultRoot): RepositoryBuild {
   const tree = parseTokens(JSON.parse(read(root, 'packages/tokens/tokens.json')));
   const inventory = readUiInventory(root);
   const outputs = buildAll({ tree, design: inventory });
-  const appCss = replaceThemeRegion(
-    read(root, 'apps/gallery/src/app.css'),
-    outputs.themeBlock,
-  );
 
   return {
     'DESIGN.md': outputs.designMd,
-    'apps/gallery/src/app.css': appCss,
     'packages/motion/src/tokens.ts': outputs.motionTs,
+    'packages/tokens/theme.css': outputs.themeCss,
     'packages/tokens/tokens.css': outputs.tokensCss,
   };
 }

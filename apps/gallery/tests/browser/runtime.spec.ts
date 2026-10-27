@@ -9,6 +9,13 @@ test('runs the fixed Chromium and self-hosted Gallery fonts', async ({ browser, 
 	expect(browser.version()).toBe(CHROMIUM_VERSION);
 
 	await openGallery(page);
+	const preloads = await page
+		.locator('link[rel="preload"][as="font"]')
+		.evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
+	expect(preloads).toHaveLength(2);
+	expect(preloads.some((href) => href.includes('inter-latin-wght-normal'))).toBe(true);
+	expect(preloads.some((href) => href.includes('jetbrains-mono-latin-wght-normal'))).toBe(true);
+
 	const fonts = await page.evaluate(async () => {
 		const [inter, jetBrainsMono] = await Promise.all([
 			document.fonts.load('400 16px "Inter Variable"', 'Brand gallery'),
