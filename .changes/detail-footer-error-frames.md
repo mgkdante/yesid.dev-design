@@ -1,5 +1,0 @@
----
-"@yesid/ui": minor
----
-
-Add the shared detail, footer and error frames. `@yesid/ui/layout` now exports `DetailFrame` (header, hazard rule, toolbar, left rail or a caller-owned `rail`, center, right rail, `after`, TOC tracking and `TocPill`), `ArticleHeader` (no tag pills; `highlight` accents one title keyword; `canvas`, `decorations`, `actions` and `controls` snippets; about 25% shorter; decorative text at `--article-deco-opacity`, 0.25), `SiteFooter` and `ErrorPage`, with their prop types. `@yesid/ui/brand` adds `ErrorIllustration`, whose sign text comes from `code` and `signLabel`. `@yesid/ui/base.css` now carries the semantic `@theme inline` color utilities and the small-screen metric-value size. To migrate, render `DetailFrame` and `ArticleHeader` from detail pages (pass the app's background canvas through `canvas` and its quiet-mode button through `controls`), `SiteFooter` from the root layout and `ErrorPage` from `+error.svelte`, pad full-bleed detail pages' tops by `--chrome-offset`, keep `afterNavigate(onTocNavigate)` in the app, delete the local shells, headers, footer and error illustration, and drop the color map from the app stylesheet.
