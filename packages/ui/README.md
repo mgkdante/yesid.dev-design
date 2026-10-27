@@ -72,10 +72,8 @@ wrapper-owned divs, accept native div attributes, and reject delegated-only prop
 variants consume `orientation` instead of leaking it to the DOM, apply `maxWidth`, forward the
 outer ref, and preserve or default `data-slot` on that outer element.
 
-The package gradient default uses `var(--width-content)` and its labels use the shared station
-label vocabulary. A product preserving `var(--container-content)` or its own mono label
-typography passes the width or keeps that typography locally. Consumer hazard-color and band-
-thickness guards remain product acceptance tests.
+The hazard tape is full width by default; the gradient rule defaults to `var(--width-content)`.
+Labels use the shared station label vocabulary.
 
 ### Sheet
 

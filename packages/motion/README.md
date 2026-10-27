@@ -54,8 +54,8 @@ grant. See [`NOTICE`](https://github.com/mgkdante/yesid.dev-design/blob/v0.18.0/
 ## Consumers and compatibility
 
 Gallery exercises shared motion and optional global ripple behavior. `@yesid/ui` consumes
-`pressBounce`. External products pin immutable releases and retain product-specific motion policy
-in local adapters. Current receipts live in [`CONSUMERS.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.18.0/CONSUMERS.md).
+`pressBounce`. External products pin immutable releases and keep page choreography local. Current
+receipts live in [`CONSUMERS.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.18.0/CONSUMERS.md).
 
 ## Commands
 
