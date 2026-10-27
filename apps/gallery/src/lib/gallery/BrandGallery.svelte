@@ -6,9 +6,13 @@
 		ChevronToggle,
 		CollapsibleSection,
 		CornerMarks,
+		FilterGroup,
+		FilterSection,
+		FilterSummary,
 		MetricDisplay,
 		MetroStation,
 		QuietModeButton,
+		SearchInput,
 		SectionHeading,
 		SectionIcon,
 		SectionLabel,
@@ -28,6 +32,13 @@
 	let chevronOpen = $state(false);
 	let quietModeEnabled = $state(false);
 	let quietModeRemembered = $state(false);
+	let filterMode = $state<string | null>('tram');
+	let searchText = $state('');
+	const modeItems = [
+		{ key: 'bus', label: 'Bus' },
+		{ key: 'tram', label: 'Tram' },
+		{ key: 'metro', label: 'Metro' },
+	];
 	const blueprintLabels: [string, string, string] = ['GRID 02', 'AXIS 17', 'REV 04'];
 	const tocEntries: TocEntry[] = [
 		{ id: 'overview', title: 'Overview', level: 2, badge: { kind: 'number', value: 1 }, children: [] },
@@ -371,6 +382,60 @@
 						{name}
 					</span>
 				{/each}
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:FilterGroup">
+			<Card.Header>
+				<Card.Title>FilterGroup</Card.Title>
+				<Card.Description>Single-choice filter with an All reset; collapsible.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<FilterGroup
+					label="Mode"
+					items={modeItems}
+					activeKey={filterMode}
+					allLabel="All modes"
+					collapsible
+					onSelect={(key) => (filterMode = key)}
+				/>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:FilterSection">
+			<Card.Header>
+				<Card.Title>FilterSection</Card.Title>
+				<Card.Description>One block of a filter panel, set off by a dashed rule.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<FilterSection><p class="text-small">Mode</p></FilterSection>
+				<FilterSection><p class="text-small">Line</p></FilterSection>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:FilterSummary">
+			<Card.Header>
+				<Card.Title>FilterSummary</Card.Title>
+				<Card.Description>Result count with caller-supplied plural templates and a clear control.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<FilterSummary
+					count={3}
+					countLabel={{ singular: '{count} route', plural: '{count} routes' }}
+					locale="en"
+					clearLabel="Clear filters"
+					onClear={() => (filterMode = null)}
+				/>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:SearchInput">
+			<Card.Header>
+				<Card.Title>SearchInput</Card.Title>
+				<Card.Description>Bindable text field named by its label, not its placeholder.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<SearchInput bind:value={searchText} label="Search routes" placeholder="Search routes" />
 			</Card.Content>
 		</Card.Root>
 	</div>
