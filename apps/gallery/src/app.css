@@ -3,49 +3,7 @@
 
 /* Tailwind CSS v4 (CSS-first config, no tailwind.config.js needed) */
 @import 'tailwindcss';
-
-/* Gallery-owned cross-browser mobile resets. */
-*,
-*::before,
-*::after {
-	-webkit-tap-highlight-color: transparent;
-}
-html {
-	-webkit-text-size-adjust: 100%;
-	text-size-adjust: 100%;
-}
-
-/* Tap-feedback primitive layer (Layer 1) pairs with @yesid/motion's
-   pressBounce action (Layer 2). */
-@utility tap-press {
-	transition:
-		scale 120ms cubic-bezier(0.2, 0, 0, 1),
-		opacity 120ms cubic-bezier(0.2, 0, 0, 1);
-
-	&:active {
-		scale: 0.97;
-		opacity: 0.92;
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		transition: none;
-	}
-}
-
-@utility tap-feedback {
-	transition: opacity 120ms ease-out;
-
-	&:active {
-		opacity: 0.7;
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		transition: none;
-	}
-}
-
-/* Map the dark variant to attribute-based theme switching. */
-@custom-variant dark (&:is([data-theme="dark"] *, .theme-dark *));
+@import '@yesid/ui/base.css';
 
 /*
   Brand design tokens in Tailwind v4's CSS-first @theme format.
@@ -108,41 +66,3 @@ html {
   --spacing-card-gap: var(--space-card-gap);
 }
 /* ===== TOKENS:END ===== */
-
-/* Hand-maintained @theme inline color map — every semantic var exposed as a
-   Tailwind color utility (shadcn convention + brand extensions). This region
-   is owned by Gallery, not generated. */
-@theme inline {
-	/* Core semantic — shadcn convention */
-	--color-background: var(--background);
-	--color-foreground: var(--foreground);
-	--color-card: var(--card);
-	--color-card-foreground: var(--card-foreground);
-	--color-popover: var(--popover);
-	--color-popover-foreground: var(--popover-foreground);
-	--color-primary: var(--primary);
-	--color-primary-foreground: var(--primary-foreground);
-	--color-accent: var(--accent);
-	--color-accent-foreground: var(--accent-foreground);
-	--color-secondary: var(--secondary);
-	--color-secondary-foreground: var(--secondary-foreground);
-	--color-muted: var(--muted);
-	--color-muted-foreground: var(--muted-foreground);
-	--color-border: var(--border);
-	--color-ring: var(--ring);
-	--color-input: var(--input);
-	--color-destructive: var(--destructive);
-	--color-destructive-foreground: var(--destructive-foreground);
-
-	/* Brand extensions — same convention */
-	--color-terminal: var(--terminal);
-	--color-manifesto: var(--manifesto);
-	--color-accent-text: var(--accent-text);
-	--color-border-subtle: var(--border-subtle);
-	--color-border-strong: var(--border-strong);
-	--color-success: var(--success);
-	--color-primary-hover: var(--primary-hover);
-	--color-accent-hover: var(--accent-hover);
-	--color-signage-bg: var(--signage-bg);
-	--color-signage-text: var(--signage-text);
-}
