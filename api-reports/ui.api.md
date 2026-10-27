@@ -338,6 +338,13 @@ declare namespace Brand {
         CollapsibleSectionProps,
         CornerMarks,
         CornerMarksProps,
+        FilterGroup,
+        FilterGroupItem,
+        FilterGroupProps,
+        FilterSection,
+        FilterSectionProps,
+        FilterSummary,
+        FilterSummaryProps,
         MetricDisplay,
         MetricDisplayProps,
         MetroStation,
@@ -346,6 +353,8 @@ declare namespace Brand {
         QuietModeActiveEffect,
         QuietModeButtonCopy,
         QuietModeButtonProps,
+        SearchInput,
+        SearchInputProps,
         SectionHeading,
         SectionHeadingProps,
         SectionIcon,
@@ -705,6 +714,76 @@ const desktop: MediaQuery;
 const DESKTOP_MIN_WIDTH = "1024px";
 
 // @public (undocumented)
+const FilterGroup: Component<FilterGroupProps, {}, "">;
+
+// @public (undocumented)
+type FilterGroup = ReturnType<typeof FilterGroup>;
+
+// @public (undocumented)
+interface FilterGroupItem {
+    // (undocumented)
+    key: string;
+    // (undocumented)
+    label: string;
+}
+
+// @public (undocumented)
+interface FilterGroupProps {
+    activeKey?: string | null;
+    // (undocumented)
+    allLabel: string;
+    allowDeselect?: boolean;
+    // (undocumented)
+    collapsible?: boolean;
+    // (undocumented)
+    density?: 'compact' | 'spacious';
+    // (undocumented)
+    items: readonly FilterGroupItem[];
+    // (undocumented)
+    label: string;
+    // (undocumented)
+    onSelect: (key: string | null) => void;
+    // (undocumented)
+    persistKey?: string;
+    // (undocumented)
+    startOpen?: boolean;
+    testIdPrefix?: string;
+}
+
+// @public (undocumented)
+const FilterSection: Component<FilterSectionProps, {}, "">;
+
+// @public (undocumented)
+type FilterSection = ReturnType<typeof FilterSection>;
+
+// @public (undocumented)
+interface FilterSectionProps {
+    // (undocumented)
+    children: Snippet;
+}
+
+// @public (undocumented)
+const FilterSummary: Component<FilterSummaryProps, {}, "">;
+
+// @public (undocumented)
+type FilterSummary = ReturnType<typeof FilterSummary>;
+
+// @public (undocumented)
+interface FilterSummaryProps {
+    // (undocumented)
+    clearLabel: string;
+    // (undocumented)
+    count: number;
+    countLabel: {
+        singular: string;
+        plural: string;
+    };
+    locale: string;
+    // (undocumented)
+    onClear: () => void;
+}
+
+// @public (undocumented)
 function flattenToc(entries: TocEntry[]): TocEntry[];
 
 // @public (undocumented)
@@ -775,6 +854,13 @@ declare namespace Index {
         CollapsibleSectionProps,
         CornerMarks,
         CornerMarksProps,
+        FilterGroup,
+        FilterGroupItem,
+        FilterGroupProps,
+        FilterSection,
+        FilterSectionProps,
+        FilterSummary,
+        FilterSummaryProps,
         MetricDisplay,
         MetricDisplayProps,
         MetroStation,
@@ -783,6 +869,8 @@ declare namespace Index {
         QuietModeActiveEffect,
         QuietModeButtonCopy,
         QuietModeButtonProps,
+        SearchInput,
+        SearchInputProps,
         SectionHeading,
         SectionHeadingProps,
         SectionIcon,
@@ -828,10 +916,39 @@ function landTocFragments(root?: Element | Document): () => void;
 
 declare namespace Layout {
     export {
+        ListingFrame,
+        ListingFrameProps,
         SiteRoot,
         SiteRootProps,
         SiteRootScroller
     }
+}
+
+// @public (undocumented)
+const ListingFrame: Component<ListingFrameProps, {}, "">;
+
+// @public (undocumented)
+type ListingFrame = ReturnType<typeof ListingFrame>;
+
+// @public (undocumented)
+interface ListingFrameProps {
+    aside?: Snippet;
+    blueprint: Snippet;
+    // (undocumented)
+    children: Snippet;
+    // (undocumented)
+    description?: string;
+    edgeTitle?: string;
+    filterLabel: string;
+    filterPersistKey?: string;
+    // (undocumented)
+    filters: Snippet;
+    heading: string;
+    onHeaderMount?: (header: HTMLElement, frame: HTMLElement) => (() => void) | void;
+    // (undocumented)
+    search?: Snippet;
+    // (undocumented)
+    subtitle: string;
 }
 
 // @public
@@ -1215,6 +1332,25 @@ const ScrollAreaScrollbar: Component<Omit<ScrollArea_2.ScrollbarProps, "child">,
 
 // @public (undocumented)
 type ScrollAreaScrollbar = ReturnType<typeof ScrollAreaScrollbar>;
+
+// @public (undocumented)
+const SearchInput: Component<SearchInputProps, {}, "value">;
+
+// @public (undocumented)
+type SearchInput = ReturnType<typeof SearchInput>;
+
+// @public (undocumented)
+interface SearchInputProps {
+    // (undocumented)
+    label: string;
+    name?: string;
+    // (undocumented)
+    placeholder: string;
+    // (undocumented)
+    testId?: string;
+    // (undocumented)
+    value?: string;
+}
 
 // @public (undocumented)
 const SectionHeading: Component<SectionHeadingProps, {}, "">;

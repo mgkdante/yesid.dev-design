@@ -37,8 +37,12 @@ import {
 	ChevronToggle,
 	CollapsibleSection,
 	CornerMarks,
+	FilterGroup,
+	FilterSection,
+	FilterSummary,
 	MetricDisplay,
 	QuietModeButton,
+	SearchInput,
 	SectionHeading,
 	SectionIcon,
 	SectionLabel,
@@ -48,14 +52,19 @@ import {
 	TocNav,
 	TocPill,
 	type CollapsibleSectionProps,
+	type FilterGroupProps,
+	type FilterSectionProps,
+	type FilterSummaryProps,
 	type MetricDisplayProps,
 	type QuietModeButtonProps,
+	type SearchInputProps,
 	type StopLabelProps,
 	type TerminalCursorProps,
 	type TocEntry,
 	type TocNavProps,
 	type TocPillProps,
 } from '@yesid/ui/brand';
+import { ListingFrame, type ListingFrameProps } from '@yesid/ui/layout';
 
 type BindingsOf<T> = T extends Component<any, any, infer Bindings> ? Bindings : never;
 
@@ -190,6 +199,56 @@ const invalidStatusDotColor: StatusDotComponentProps = { color: 'purple' };
 // @ts-expect-error icon names are a closed set
 const invalidSectionIcon: SectionIconComponentProps = { name: 'star' };
 
+const filterGroupProps: FilterGroupProps = {
+	label: 'Mode',
+	items: [{ key: 'bus', label: 'Bus' }],
+	activeKey: 'bus',
+	allLabel: 'All',
+	collapsible: true,
+	density: 'spacious',
+	onSelect: (key) => expectTypeOf(key).toEqualTypeOf<string | null>(),
+};
+// @ts-expect-error the reset button copy is the caller's
+const invalidFilterGroupAll: FilterGroupProps = { label: 'Mode', items: [], onSelect: () => undefined };
+// @ts-expect-error density is a closed set
+const invalidFilterDensity: FilterGroupProps = { ...filterGroupProps, density: 'roomy' };
+const filterSectionProps: FilterSectionProps = { children: ignoredChildren };
+const filterSummaryProps: FilterSummaryProps = {
+	count: 2,
+	countLabel: { singular: '{count} result', plural: '{count} results' },
+	locale: 'en',
+	clearLabel: 'Clear',
+	onClear: () => undefined,
+};
+// @ts-expect-error the plural rule needs the caller's locale
+const invalidFilterSummary: FilterSummaryProps = { ...filterSummaryProps, locale: undefined };
+const searchInputProps: SearchInputProps = { value: '', label: 'Search', placeholder: 'Search' };
+// @ts-expect-error the accessible name is the caller's
+const invalidSearchLabel: SearchInputProps = { placeholder: 'Search' };
+
+const listingFrameProps: ListingFrameProps = {
+	heading: 'Projects',
+	subtitle: 'Everything shipped',
+	blueprint: ignoredChildren,
+	filterLabel: 'Filters',
+	filterPersistKey: 'listing-filters',
+	filters: ignoredChildren,
+	children: ignoredChildren,
+	onHeaderMount: (header, frame) => {
+		expectTypeOf(header).toEqualTypeOf<HTMLElement>();
+		expectTypeOf(frame).toEqualTypeOf<HTMLElement>();
+		return () => undefined;
+	},
+};
+// @ts-expect-error the filter toggle copy is the caller's
+const invalidListingFrame: ListingFrameProps = {
+	heading: 'Projects',
+	subtitle: 'Everything shipped',
+	blueprint: ignoredChildren,
+	filters: ignoredChildren,
+	children: ignoredChildren,
+};
+
 const comboboxProps: ComboboxProps = {
 	options: [],
 	label: 'Choose',
@@ -263,6 +322,11 @@ describe('public UI prop contracts', () => {
 	it('keeps component bindings and named exports explicit', () => {
 		expectTypeOf<BindingsOf<typeof Button>>().toEqualTypeOf<'ref'>();
 		expectTypeOf<BindingsOf<typeof Badge>>().toEqualTypeOf<'ref'>();
+		expectTypeOf<BindingsOf<typeof SearchInput>>().toEqualTypeOf<'value'>();
+		expectTypeOf<BindingsOf<typeof FilterGroup>>().toEqualTypeOf<''>();
+		expectTypeOf<BindingsOf<typeof FilterSection>>().toEqualTypeOf<''>();
+		expectTypeOf<BindingsOf<typeof FilterSummary>>().toEqualTypeOf<''>();
+		expectTypeOf<BindingsOf<typeof ListingFrame>>().toEqualTypeOf<''>();
 		expectTypeOf<BindingsOf<typeof Combobox>>().toEqualTypeOf<'value' | 'open'>();
 		expectTypeOf<BindingsOf<typeof Separator>>().toEqualTypeOf<'ref'>();
 		expectTypeOf<BindingsOf<typeof ToggleGroup>>().toEqualTypeOf<'value' | 'ref'>();
@@ -281,6 +345,11 @@ describe('public UI prop contracts', () => {
 		expect(badgeLinkProps.href).toBe('');
 		expect(divStopLabel.stop).toBe('01');
 		expect(headingStopLabel.as).toBe('h1');
+		expect(filterGroupProps.collapsible).toBe(true);
+		expect(filterSectionProps.children).toBe(ignoredChildren);
+		expect(filterSummaryProps.locale).toBe('en');
+		expect(searchInputProps.value).toBe('');
+		expect(listingFrameProps.filterPersistKey).toBe('listing-filters');
 		expect(comboboxProps.open).toBe(false);
 		expect(separatorDefault.variant).toBe('default');
 		expect(separatorHazard.maxWidth).toBe('100%');
