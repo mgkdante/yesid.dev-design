@@ -7,13 +7,12 @@ Use this checklist in the new product:
 - [ ] Bootstrap the complete adoption tool bundle from that tag and vendor `tokens,motion,gates,seo-kit,ui,analytics,i18n-core`.
 - [ ] Verify the schema-2 receipt before changing product code.
 - [ ] Add the seven vendored packages to `package.json` and run `bun install`.
-- [ ] Add the thin token build script, generate `tokens.css`, and wire the `@theme` sentinel.
-- [ ] Load Inter Variable and JetBrains Mono Variable.
+- [ ] Load the package token styles and bundled fonts.
 - [ ] Import one shared UI initializer from both SvelteKit client and server init hooks.
 - [ ] Apply the motion tiers and expose reduced-motion state where the product needs it.
 - [ ] Add one consumer-owned gate policy module and its contract test to Vitest and CI.
-- [ ] Run the app tests, typecheck, vendor check, token drift check, and production build.
-- [ ] Commit the vendored snapshot, manifest, and generated token outputs together.
+- [ ] Run the app tests, typecheck, vendor check, and production build.
+- [ ] Commit the vendored snapshot, manifest, and product styles together.
 - [ ] Record one previously accepted exact tag as the rollback target.
 
 ## 1. Prerequisites
@@ -84,103 +83,30 @@ self-vendored `tools/adopt.ts` bundle. For `v0.13.4` and later, this also includ
 `NOTICE`, and `TRADEMARK.md`; for an older immutable tag, commit the legal-file set that tag's
 historical archive installs. Do not add the vendor directory to `.gitignore`.
 
-## 3. Generate the product token outputs
+## 3. Load the tokens and fonts
 
-The token package ships the source tree, generators, and a package-owned `tokens.css` generated from its canonical `tokens.json`. For an unchanged base, opt in directly:
+Import the styles in this order in the app stylesheet. `@yesid/ui/base.css` brings `@yesid/tokens/theme.css`: the Tailwind theme and semantic color utilities.
 
 ```css
 @import '@yesid/tokens/tokens.css';
+@import 'tailwindcss';
+@import '@yesid/ui/base.css';
+@source '../vendor/design/ui/src';
 ```
 
-Keep the thin product build below when the product owns generated output paths, token overrides, or an `app.css` `@theme` sentinel. Package CSS is never imported automatically.
-
-Create `tools/build-design-tokens.ts`:
+Import `@yesid/tokens/fonts.css` from the root layout. Preload only the latin faces in `hooks.server.ts`:
 
 ```ts
-#!/usr/bin/env bun
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { parseTokens } from '@yesid/tokens/parse';
-import { generateTokensCss } from '@yesid/tokens/generators/tokens-css';
-import {
-  generateThemeBlock,
-  replaceThemeRegion,
-} from '@yesid/tokens/generators/theme-block';
+import { preloadFont } from '@yesid/tokens/fonts';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const tokenSource = resolve(root, 'vendor/design/tokens/tokens.json');
-const tokensCss = resolve(root, 'src/lib/styles/tokens.css');
-const appCss = resolve(root, 'src/app.css');
-
-function writeIfChanged(path: string, content: string): void {
-  if (existsSync(path) && readFileSync(path, 'utf-8') === content) return;
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, content, 'utf-8');
-}
-
-const tree = parseTokens(JSON.parse(readFileSync(tokenSource, 'utf-8')));
-writeIfChanged(tokensCss, generateTokensCss(tree));
-writeIfChanged(
-  appCss,
-  replaceThemeRegion(readFileSync(appCss, 'utf-8'), generateThemeBlock(tree)),
-);
+resolve(event, { preload: ({ type, path }) => type !== 'font' || preloadFont(path) });
 ```
 
-Add the initial ownership seams to `src/app.css`. Keep the `@theme inline` map outside the generated sentinel:
+Dense products opt into the compact type scale with `data-density="compact"` on `<html>`.
 
-```css
-@import '$lib/styles/tokens.css';
-@import 'tailwindcss';
-@source '../vendor/design/ui/src';
+To use `@custom-media` breakpoints (`--tablet-min`, `--tablet-max`, `--desktop-min`, `--desktop-max`) inside Svelte styles, add `@csstools/postcss-global-data` and `postcss-custom-media` to `css.postcss.plugins` in `vite.config`, pointing global-data at `vendor/design/tokens/tokens.css`.
 
-@custom-variant dark (&:is([data-theme='dark'] *, .theme-dark *));
-
-/* ===== TOKENS:START ===== */
-@theme {}
-/* ===== TOKENS:END ===== */
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-terminal: var(--terminal);
-  --color-manifesto: var(--manifesto);
-  --color-accent-text: var(--accent-text);
-  --color-border-subtle: var(--border-subtle);
-  --color-border-strong: var(--border-strong);
-  --color-success: var(--success);
-  --color-primary-hover: var(--primary-hover);
-  --color-accent-hover: var(--accent-hover);
-  --color-signage-bg: var(--signage-bg);
-  --color-signage-text: var(--signage-text);
-}
-
-:root {
-  /* Required by the byte-faithful Combobox tap-target contract. */
-  --size-tap-min: 44px;
-}
-```
-
-Run `bun tools/build-design-tokens.ts`. Load `src/app.css` from the root layout as usual. Add this script before the app build and run it in CI. Commit `src/lib/styles/tokens.css` and the generated sentinel region so drift is reviewable.
-
-The font tokens name `Inter Variable` for headings and body and `JetBrains Mono Variable` for mono text. Self-host those variable fonts and load them before the app paints. The fallback stacks work, but using them changes metrics and breaks visual parity.
+Product token overrides live in the product stylesheet after these imports. The product never pastes or regenerates the theme.
 
 ## 4. Configure UI once per module graph at boot
 
@@ -312,7 +238,6 @@ import { describe, expect, it } from 'vitest';
 const srcRoot = fileURLToPath(new URL('.', import.meta.url));
 const generated = new Set([
   join(srcRoot, 'app.css'),
-  join(srcRoot, 'lib/styles/tokens.css'),
   join(srcRoot, 'gates/policy.ts'),
 ]);
 
@@ -351,8 +276,6 @@ Run these commands in CI:
 
 ```sh
 bun vendor/design/tools/adopt.ts --check --dest vendor/design
-bun tools/build-design-tokens.ts
-git diff --exit-code src/lib/styles/tokens.css src/app.css
 bun x vitest run
 bun run check
 bun run build
@@ -373,9 +296,8 @@ A brand change follows one direction:
 3. Follow [`RELEASING.md`](../RELEASING.md) to publish a new immutable annotated
    `vX.Y.Z` tag and its canonical Release asset.
 4. Bootstrap the complete tool bundle from the reviewed next tag and rerun it against the same destination. Do not execute the entrypoint from inside the destination while replacing that destination.
-5. Run `tools/build-design-tokens.ts` in the consumer.
-6. Review the vendored and generated changes together.
-7. Run the newly vendored `tools/adopt.ts --check`, tests, typecheck, gates, and the production build.
+5. Review the vendored changes and product overrides together.
+6. Run the newly vendored `tools/adopt.ts --check`, tests, typecheck, gates, and the production build.
 
 Never use `^`, `~`, a branch, or a floating tag. Never hand-edit `vendor/design`. Upstream the change, tag it, and let each consumer choose when to take the bump. npm publication may be added later, but it does not change this pin and cascade rule.
 
@@ -418,8 +340,7 @@ remove `"@yesid/analytics": "file:./vendor/design/analytics"` and
 would point Bun at a package the rollback removed. The committed dependency set
 must match the installed `manifest.json` package closure.
 
-Then run `bun install`, regenerate consumer-owned token outputs, review the
-vendor/generated diff, and run the consumer's gates, tests, typecheck, build,
+Then run `bun install`, review the vendor diff and product overrides, and run the consumer's gates, tests, typecheck, build,
 and relevant browser checks. Commit the downgrade in its own pull request. If
 adoption exits non-zero, stop: the transaction either restored the last accepted
 tree or preserved explicit recovery evidence. Do not delete its lock, backup,
@@ -429,6 +350,6 @@ has been investigated.
 ### Re-upgrade
 
 Re-upgrade with the same procedure using the reviewed newer exact tag. Verify
-the schema-2 receipt again, regenerate outputs, and repeat the full product
+the schema-2 receipt again and repeat the full product
 checks. A previous successful upgrade does not waive verification after a
 rollback or on a different consumer revision.
