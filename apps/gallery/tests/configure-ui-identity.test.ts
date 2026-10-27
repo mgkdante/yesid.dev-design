@@ -2,6 +2,7 @@ import type { Component } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('@yesid/ui configuration identity', () => {
+	// A cold import of the package root compiles every brand component.
 	it('shares neutral consumer class merging across export conditions and primitive imports', async () => {
 		vi.resetModules();
 		const root = await import('@yesid/ui');
@@ -71,5 +72,5 @@ describe('@yesid/ui configuration identity', () => {
 				'text-product-label text-product-value text-status-muted text-status-critical bg-status-muted bg-status-critical border-status-muted border-status-critical',
 			),
 		).toBe('text-product-value text-status-critical bg-status-critical border-status-critical');
-	});
+	}, 20_000);
 });

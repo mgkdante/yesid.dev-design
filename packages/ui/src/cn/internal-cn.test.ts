@@ -161,6 +161,7 @@ describe('configureUi', () => {
 		expect(cn('text-caption text-consumer-value')).toBe('text-consumer-value');
 	});
 
+	// A cold import of the package root compiles every brand component.
 	it('shares one active configuration across root, cn, and primitive imports', async () => {
 		vi.resetModules();
 		const root = await import('../index.js');
@@ -185,7 +186,7 @@ describe('configureUi', () => {
 			`${CONFLICT_PREFIX}vocab.text${CONFLICT_SUFFIX}`,
 		);
 		expect(root.cn('text-caption text-consumer-value')).toBe('text-consumer-value');
-	});
+	}, 20_000);
 
 	it('keeps separately loaded module graphs independent', async () => {
 		const first = await freshCnModule();
