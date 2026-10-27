@@ -16,7 +16,7 @@ const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
 const scratch: string[] = [];
 const artifactPaths = [
 	'DESIGN.md',
-	'apps/gallery/src/app.css',
+	'packages/tokens/theme.css',
 	'packages/motion/src/tokens.ts',
 	'packages/tokens/tokens.css',
 ] as const;
@@ -60,7 +60,7 @@ describe('brand cascade', () => {
 		expect(first.status, first.stderr).toBe(0);
 		expect(first.stdout).toContain('wrote packages/motion/src/tokens.ts');
 		expect(first.stdout).toContain('wrote packages/tokens/tokens.css');
-		expect(first.stdout).not.toContain('wrote apps/gallery/src/app.css');
+		expect(first.stdout).not.toContain('wrote packages/tokens/theme.css');
 		expect(readFileSync(join(root, 'packages/tokens/tokens.css'), 'utf8')).toContain(
 			'--duration-fast: 151ms;',
 		);

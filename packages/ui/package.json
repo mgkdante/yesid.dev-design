@@ -111,6 +111,7 @@
   "dependencies": {
     "@lucide/svelte": "^1.18.0",
     "@yesid/motion": "workspace:*",
+    "@yesid/tokens": "workspace:*",
     "bits-ui": "^2.16.3",
     "clsx": "^2.1.1",
     "paneforge": "^1.0.2",

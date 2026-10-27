@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 const repositoryRoot = fileURLToPath(new URL('../../..', import.meta.url));
 const artifactPaths = [
 	'DESIGN.md',
-	'apps/gallery/src/app.css',
+	'packages/tokens/theme.css',
 	'packages/motion/src/tokens.ts',
 	'packages/tokens/tokens.css',
 ] as const;

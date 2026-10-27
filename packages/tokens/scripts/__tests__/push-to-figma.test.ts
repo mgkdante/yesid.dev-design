@@ -71,8 +71,10 @@ describe('push-to-figma', () => {
     // Four canonical breakpoint dimensions cover tablet min/max and
     // desktop min/max.
     // One semantic strip composite dimension is size/stripH.
+    // ds1 adds 20: tracking 3, measure 4, glass 2, size/tap-min, z/footer and
+    // the 9 density/compact/text overrides.
     const vars = runScript();
-    expect(vars.length).toBe(161);
+    expect(vars.length).toBe(181);
   });
 
   it('preserves the semantic strip height name, value, and description', () => {
