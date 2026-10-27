@@ -58,6 +58,11 @@
 - `types` → `./src/utils/ticker.ts`
 - `default` → `./src/utils/ticker.ts`
 
+### `./utils/viewTransition`
+
+- `types` → `./src/utils/viewTransition.ts`
+- `default` → `./src/utils/viewTransition.ts`
+
 ### `./lenis.css`
 
 - `default` → `./lenis.css`
@@ -89,6 +94,7 @@
 - `UtilsLenis` → `./src/utils/lenis.ts` (`./utils/lenis`)
 - `UtilsSectionMagnet` → `./src/utils/sectionMagnet.ts` (`./utils/sectionMagnet`)
 - `UtilsTicker` → `./src/utils/ticker.ts` (`./utils/ticker`)
+- `UtilsViewTransition` → `./src/utils/viewTransition.ts` (`./utils/viewTransition`)
 
 ## API Report File for "@yesid/motion"
 
@@ -262,6 +268,15 @@ interface LenisScroller {
 }
 
 // @public (undocumented)
+const loadCustomEase: () => Promise<void>;
+
+// @public (undocumented)
+const loadDrawSVG: () => Promise<void>;
+
+// @public (undocumented)
+const loadMorphSVG: () => Promise<void>;
+
+// @public (undocumented)
 function magnetic(node: HTMLElement, params?: MagneticParams): {
     update(newParams: MagneticParams): void;
     destroy(): void;
@@ -370,6 +385,9 @@ declare namespace UtilsGsap {
     export {
         initScrollTriggerConfig,
         ensureSplitTextRegistered,
+        loadDrawSVG,
+        loadMorphSVG,
+        loadCustomEase,
         gsap,
         ScrollTrigger,
         SplitText
@@ -403,6 +421,30 @@ declare namespace UtilsTicker {
         unsubscribe,
         TickerCallback
     }
+}
+
+declare namespace UtilsViewTransition {
+    export {
+        viewTransition,
+        ViewTransitionNavigation
+    }
+}
+
+// @public
+function viewTransition(navigation: ViewTransitionNavigation): Promise<void> | undefined;
+
+// @public
+interface ViewTransitionNavigation {
+    // (undocumented)
+    complete: Promise<unknown>;
+    // (undocumented)
+    from: {
+        url: URL;
+    } | null;
+    // (undocumented)
+    to: {
+        url: URL;
+    } | null;
 }
 
 // @public (undocumented)
