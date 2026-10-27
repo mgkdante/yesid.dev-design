@@ -28,10 +28,16 @@ export function ensureSplitTextRegistered(): void {
 	loadedPlugins.add('SplitText');
 }
 
-async function loadPlugin(name: string, load: () => Promise<object>): Promise<void> {
-	if (loadedPlugins.has(name)) return;
-	gsap.registerPlugin(await load());
-	loadedPlugins.add(name);
+const pendingPlugins = new Map<string, Promise<void>>();
+
+function loadPlugin(name: string, load: () => Promise<object>): Promise<void> {
+	let pending = pendingPlugins.get(name);
+	if (!pending) {
+		pending = load().then((plugin) => gsap.registerPlugin(plugin));
+		pending.catch(() => pendingPlugins.delete(name));
+		pendingPlugins.set(name, pending);
+	}
+	return pending;
 }
 
 export const loadDrawSVG = () =>

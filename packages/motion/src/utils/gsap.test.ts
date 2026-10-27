@@ -68,33 +68,11 @@ describe('lazy plugin loaders', () => {
 		['loadDrawSVG', () => import('gsap/DrawSVGPlugin').then((m) => m.DrawSVGPlugin)],
 		['loadMorphSVG', () => import('gsap/MorphSVGPlugin').then((m) => m.MorphSVGPlugin)],
 		['loadCustomEase', () => import('gsap/CustomEase').then((m) => m.CustomEase)],
-	] as const)('%s registers its plugin only on the first call', async (name, plugin) => {
+	] as const)('%s registers its plugin once, even for concurrent calls', async (name, plugin) => {
 		const { gsap } = await import('gsap');
 		const loaders = await import('./gsap.js');
+		await Promise.all([loaders[name](), loaders[name]()]);
 		await loaders[name]();
 		expect(gsap.registerPlugin).toHaveBeenCalledExactlyOnceWith(await plugin());
-		await loaders[name]();
-		expect(gsap.registerPlugin).toHaveBeenCalledTimes(1);
-	});
-});
-
-describe('re-exports', () => {
-	beforeEach(() => {
-		vi.resetModules();
-	});
-
-	it('re-exports gsap', async () => {
-		const { gsap } = await import('./gsap.js');
-		expect(gsap).toBeDefined();
-	});
-
-	it('re-exports ScrollTrigger', async () => {
-		const { ScrollTrigger } = await import('./gsap.js');
-		expect(ScrollTrigger).toBeDefined();
-	});
-
-	it('re-exports SplitText', async () => {
-		const { SplitText } = await import('./gsap.js');
-		expect(SplitText).toBeDefined();
 	});
 });

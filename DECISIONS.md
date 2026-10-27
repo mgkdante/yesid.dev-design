@@ -86,14 +86,13 @@ deterministic targets without pretending that clamp is a native DTCG dimension.
 ## D11: UI compatibility is owned by durable package and consumer contracts
 
 `packages/ui/README.md` owns the shared component behavior and the known consumer compatibility
-seams. `BOUNDARIES.md` owns the cross-product placement decision, and each product owns the tests
-for its local policy and appearance. Product conflicts never become app checks in the package:
-yesid.dev's Button conversion and Card bevel/shadow stay local, Transit's flat Card contract stays
-local, and composed `CollapsibleSection` behavior stays local until a merged package contract ships.
+seams. `BOUNDARIES.md` owns the cross-product placement decision. Product conflicts never become
+app checks in the package: the owner settles each one and the package ships the single look
+(design-standard ds2 settled the Card, Button, resizable, StickyPanel, TerminalCursor, Separator
+and MetroStation conflicts in yesid.dev's favor).
 
 Shared controlled views own only their rendered mechanics. Consumers continue to own copy,
-locale selection, state, persistence, actions, and adapters such as StopLabel prefixes,
-MetroStation roundels, and StickyPanel or TerminalCursor compatibility styling. Package and
+locale selection, state, persistence and actions, such as StopLabel prefixes. Package and
 Gallery tests prove the neutral surface; every adoption still requires the consumer's source
 guards, generated outputs, tests, build, accessibility checks, and relevant browser comparison.
 
