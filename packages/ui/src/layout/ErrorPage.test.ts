@@ -5,15 +5,15 @@ import ErrorPage, { type ErrorPageProps } from './ErrorPage.svelte';
 const props: ErrorPageProps = {
 	status: 404,
 	label: 'ROUTE NOT FOUND',
-	heading: 'This station is under construction',
-	body: 'The page you want has not opened yet.',
+	heading: 'This page is under construction',
+	body: 'The page you want has not been built yet.',
 	suggestions: [
-		{ href: '/lines', label: 'Lines' },
-		{ href: '/stops', label: 'Stops' },
+		{ href: '/docs', label: 'Docs' },
+		{ href: '/guides', label: 'Guides' },
 	],
 	suggestionsLabel: 'Where to next',
 	statusNote: '# no such route',
-	signLabel: 'STATION',
+	signLabel: 'SAMPLE',
 };
 
 const page = (overrides: Partial<ErrorPageProps> = {}) => render(ErrorPage, { props: { ...props, ...overrides } });
@@ -30,8 +30,8 @@ describe('404', () => {
 		expect(view.getByTestId('construction-scene')).toBeInTheDocument();
 		expect(view.getByTestId('error-label').textContent).toBe('ROUTE NOT FOUND');
 		expect(view.container.querySelectorAll('h1')).toHaveLength(1);
-		expect(view.getByRole('heading', { level: 1 }).textContent).toBe('This station is under construction');
-		expect(view.getByText('The page you want has not opened yet.')).toBeInTheDocument();
+		expect(view.getByRole('heading', { level: 1 }).textContent).toBe('This page is under construction');
+		expect(view.getByText('The page you want has not been built yet.')).toBeInTheDocument();
 		expect(view.queryByRole('alert')).toBeNull();
 	});
 
@@ -62,9 +62,9 @@ describe('other statuses', () => {
 
 describe('illustration sign', () => {
 	it.each([
-		[404, 'STATION', ['STATION', '404']],
+		[404, 'SAMPLE', ['SAMPLE', '404']],
 		[404, undefined, ['404']],
-		[500, 'STATION', ['STATION']],
+		[500, 'SAMPLE', ['SAMPLE']],
 		[500, undefined, []],
 	])('for status %i with signLabel %j shows %j', (status, signLabel, expected) => {
 		expect(signText(page({ status, signLabel }))).toEqual(expected);
@@ -77,8 +77,8 @@ describe('suggestions', () => {
 		const nav = view.getByRole('navigation', { name: 'Where to next' });
 		const items = view.getAllByTestId('error-suggestion-link');
 		expect(items.map((link) => [link.textContent?.trim(), link.getAttribute('href')])).toEqual([
-			['Lines', '/lines'],
-			['Stops', '/stops'],
+			['Docs', '/docs'],
+			['Guides', '/guides'],
 		]);
 		expect(items.every((link) => nav.contains(link))).toBe(true);
 	});

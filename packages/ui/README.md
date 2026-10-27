@@ -355,7 +355,8 @@ the chrome.
 
 `SiteFooter` renders the hazard strip, the `brand` snippet with a `tagline`, one labelled
 navigation per entry in `groups` (`navLabel` when the accessible name differs from the heading;
-`external` links open in a new tab with `rel="me noopener noreferrer"`; `after` adds controls
+`external` links open in a new tab with `rel="noopener noreferrer"`, and `me` adds `rel="me"` for
+the owner's own profiles; `after` adds controls
 such as a consent button inside the group), and a status row with `statusStart`, a live lamp
 (`liveLabel` for screen readers) and today's date. `data-in-view` reports whether it is on
 screen.

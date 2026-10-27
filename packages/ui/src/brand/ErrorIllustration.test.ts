@@ -15,8 +15,8 @@ describe('ErrorIllustration', () => {
 	it.each([
 		[{}, []],
 		[{ code: '404' }, ['404']],
-		[{ signLabel: 'STATION' }, ['STATION']],
-		[{ signLabel: 'STATION', code: '404' }, ['STATION', '404']],
+		[{ signLabel: 'SAMPLE' }, ['SAMPLE']],
+		[{ signLabel: 'SAMPLE', code: '404' }, ['SAMPLE', '404']],
 	])('with %j the sign reads %j', (props, expected) => {
 		const texts = [...scene(props).container.querySelectorAll('text')].map((text) => text.textContent);
 		expect(texts).toEqual(expected);

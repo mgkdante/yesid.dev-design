@@ -34,13 +34,61 @@ test('detail frame layout at this width', async ({ page }) => {
 	expect((await title.boundingBox())!.y).toBeGreaterThanOrEqual((await navBottom()) + NAV_CLEARANCE);
 
 	await page.evaluate(() => window.scrollTo(0, 800));
-	expect((await left.boundingBox())!.y).toBeGreaterThanOrEqual(await navBottom());
+	await expect
+		.poll(async () => Math.abs((await left.boundingBox())!.y - (await navBottom())))
+		.toBeLessThanOrEqual(2);
 
 	await page.setViewportSize({ width: 1280, height: 600 });
 	await page.evaluate(() => window.scrollTo(0, 0));
 	const box = (await header.boundingBox())!;
 	expect(box.y + box.height).toBeLessThanOrEqual(568);
 	expect((await title.boundingBox())!.y).toBeGreaterThanOrEqual((await navBottom()) + NAV_CLEARANCE);
+});
+
+test('detail frame layout variants', async ({ page }) => {
+	test.skip(page.viewportSize()!.width < DESKTOP_MIN_WIDTH, 'the rails collapse below the desktop breakpoint');
+
+	const slot = (name: string) => page.locator(`[data-slot="detail-shell-${name}"]`);
+	const box = async (name: string) => (await slot(name).boundingBox())!;
+	const open = async (query: string) => {
+		await page.goto(`/detail-frame?${query}`);
+		await page.evaluate(() => document.fonts.ready);
+	};
+	const stuckAt = async (top: number) => {
+		await page.evaluate(() => window.scrollTo(0, 800));
+		await expect.poll(async () => Math.abs((await box('left')).y - top)).toBeLessThanOrEqual(2);
+	};
+
+	await open('');
+	await stuckAt(88);
+	await expect(slot('left')).toHaveCSS('overflow-y', 'visible');
+
+	await open('layout=measured');
+	await expect.poll(async () => Math.abs((await box('center')).width - 736)).toBeLessThanOrEqual(1);
+
+	await open('layout=two');
+	await expect(slot('right')).toHaveCount(0);
+	const [twoLeft, twoCenter] = [await box('left'), await box('center')];
+	expect(twoCenter.x).toBeGreaterThanOrEqual(twoLeft.x + twoLeft.width);
+
+	await open('layout=right');
+	await expect(slot('left')).toHaveCount(0);
+	const [rightCenter, rightRail] = [await box('center'), await box('right')];
+	expect(rightRail.x).toBeGreaterThanOrEqual(rightCenter.x + rightCenter.width);
+
+	await open('layout=pane');
+	await expect(slot('left')).toHaveCSS('position', 'static');
+	const [paneLeft, paneCenter] = [await box('left'), await box('center')];
+	expect(paneLeft.y + paneLeft.height).toBeLessThanOrEqual(paneCenter.y);
+
+	await open('railScroll=1');
+	await expect(slot('left')).toHaveCSS('overflow-y', 'auto');
+	await expect(slot('left')).toHaveCSS('max-height', `${page.viewportSize()!.height - 88}px`);
+	expect((await box('left')).height).toBeCloseTo(page.viewportSize()!.height - 88, 0);
+
+	await open('railTop=140');
+	await expect(slot('left')).toHaveCSS('top', '140px');
+	await stuckAt(140);
 });
 
 test('error page and footer pass axe', async ({ page }, testInfo) => {
@@ -63,6 +111,26 @@ test('error page and footer pass axe', async ({ page }, testInfo) => {
 		}));
 		expect(blockers, `${path} has blocking axe violations`).toEqual([]);
 	}
+
+	await page.goto('/error-page');
+	await page.emulateMedia({ reducedMotion: 'reduce' });
+	await expect(page.locator('.light-a').first()).toHaveCSS('animation-name', 'none');
+	await expect(page.getByTestId('error-suggestion-link').first()).toHaveCSS('transition-duration', '0s');
+
+	await page.setViewportSize({ width: 390, height: 600 });
+	await page.goto('/error-page?long=1');
+	const lastLink = page.getByTestId('error-suggestion-link').last();
+	await expect(lastLink).toContainText('deliberately long');
+	const terminal = page.getByTestId('terminal-line');
+	await terminal.scrollIntoViewIfNeeded();
+	await expect(lastLink).toBeInViewport();
+	await expect(terminal).toBeInViewport();
+	const [line, footer] = [(await terminal.boundingBox())!, (await page.locator('[data-slot="footer"]').boundingBox())!];
+	expect(footer.y).toBeGreaterThanOrEqual(line.y + line.height);
+
+	await page.emulateMedia({ reducedMotion: 'no-preference' });
+	await page.reload();
+	await expect(page.locator('.light-a').first()).not.toHaveCSS('animation-name', 'none');
 
 	if (!desktop) return;
 	await page.goto('/error-page');

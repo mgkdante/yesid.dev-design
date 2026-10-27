@@ -1,5 +1,20 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import { ErrorPage, SiteFooter } from '@yesid/ui/layout';
+
+	const suggestions = [
+		{ href: '/', label: 'Home' },
+		{ href: '/listing-frame', label: 'Listing' },
+		{ href: '/detail-frame', label: 'Detail' },
+	];
+	const longSuggestions = suggestions.map(({ href, label }) => ({
+		href,
+		label: `${label} with a deliberately long destination label`,
+	}));
+
+	let long = $state(false);
+	onMount(() => (long = page.url.searchParams.get('long') === '1'));
 </script>
 
 <svelte:head>
@@ -21,13 +36,13 @@
 <ErrorPage
 	status={404}
 	label="Error 404"
-	heading="Wrong platform"
-	body="The page you asked for is not on this line."
-	suggestions={[
-		{ href: '/', label: 'Home' },
-		{ href: '/listing-frame', label: 'Listing' },
-		{ href: '/detail-frame', label: 'Detail' },
-	]}
+	heading={long
+		? 'Wrong platform, and a heading long enough to wrap across several lines on a narrow screen'
+		: 'Wrong platform'}
+	body={long
+		? 'The page you asked for is not on this line. This longer explanation keeps going so the body wraps onto several lines as well and the whole error page grows taller than a short viewport.'
+		: 'The page you asked for is not on this line.'}
+	suggestions={long ? longSuggestions : suggestions}
 	suggestionsLabel="Suggested pages"
 	statusNote="route not found"
 	signLabel="STATION"

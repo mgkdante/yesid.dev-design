@@ -10,8 +10,10 @@
 		href: string;
 		label: string;
 		ariaLabel?: string;
-		/** Opens in a new tab with `rel="me noopener noreferrer"`. */
+		/** Opens in a new tab with `rel="noopener noreferrer"`. */
 		external?: boolean;
+		/** Adds `rel="me"`: the page links to its owner's own profile. */
+		me?: boolean;
 	}
 
 	export interface SiteFooterGroup {
@@ -80,7 +82,7 @@
 							<FooterLink
 								href={link.href}
 								target="_blank"
-								rel="me noopener noreferrer"
+								rel={link.me ? 'me noopener noreferrer' : 'noopener noreferrer'}
 								aria-label={link.ariaLabel}>{link.label}</FooterLink
 							>
 						{:else}

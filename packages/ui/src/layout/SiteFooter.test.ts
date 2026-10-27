@@ -9,11 +9,11 @@ const groups: SiteFooterProps['groups'] = [
 	{
 		label: 'Explore',
 		links: [
-			{ href: '/map', label: 'Map' },
-			{ href: '/lines', label: 'Lines' },
+			{ href: '/docs', label: 'Docs' },
+			{ href: '/guides', label: 'Guides' },
 		],
 	},
-	{ label: 'Audit', navLabel: 'Audit trail', links: [{ href: '/status', label: 'Data health' }] },
+	{ label: 'Status', navLabel: 'System status', links: [{ href: '/status', label: 'Uptime' }] },
 	{
 		label: 'Legal',
 		testId: 'footer-legal',
@@ -24,6 +24,7 @@ const groups: SiteFooterProps['groups'] = [
 		label: 'Connect',
 		links: [
 			{ href: 'https://example.com/code', label: 'GitHub', ariaLabel: 'Code on GitHub', external: true },
+			{ href: 'https://example.com/profile', label: 'Profile', external: true, me: true },
 			{ href: '/contact', label: 'Contact' },
 		],
 	},
@@ -32,8 +33,8 @@ const groups: SiteFooterProps['groups'] = [
 const footer = (props: Partial<SiteFooterProps> = {}) =>
 	render(SiteFooter, {
 		props: {
-			brand: html('<a href="/" data-testid="wordmark">transit</a>'),
-			tagline: 'Citizen analytics',
+			brand: html('<a href="/" data-testid="wordmark">Acme</a>'),
+			tagline: 'Sample analytics',
 			groups,
 			statusPrefix: 'SYSTEM',
 			liveLabel: 'Live',
@@ -76,24 +77,24 @@ describe('brand', () => {
 		const view = footer();
 		expect(root(view).dataset.slot).toBe('footer');
 		expect(root(view).contains(view.getByTestId('wordmark'))).toBe(true);
-		expect(within(root(view)).getByText('Citizen analytics')).toBeInTheDocument();
+		expect(within(root(view)).getByText('Sample analytics')).toBeInTheDocument();
 	});
 });
 
 describe('groups', () => {
 	it('gives each group its own labelled navigation, in order, with its links in order', () => {
 		const view = footer();
-		expect(navs(view).map((nav) => nav.getAttribute('aria-label'))).toEqual(['Explore', 'Audit trail', 'Legal', 'Connect']);
+		expect(navs(view).map((nav) => nav.getAttribute('aria-label'))).toEqual(['Explore', 'System status', 'Legal', 'Connect']);
 		expect(links(navs(view)[0])).toEqual([
-			['Map', '/map'],
-			['Lines', '/lines'],
+			['Docs', '/docs'],
+			['Guides', '/guides'],
 		]);
-		expect(links(navs(view)[1])).toEqual([['Data health', '/status']]);
+		expect(links(navs(view)[1])).toEqual([['Uptime', '/status']]);
 	});
 
 	it('keeps the group label as the visible heading when navLabel differs', () => {
-		const audit = within(footer().getByRole('navigation', { name: 'Audit trail' }));
-		expect(audit.getByText('Audit')).toBeInTheDocument();
+		const status = within(footer().getByRole('navigation', { name: 'System status' }));
+		expect(status.getByText('Status')).toBeInTheDocument();
 	});
 
 	it('puts a group testId on that group navigation only', () => {
@@ -122,7 +123,11 @@ describe('links', () => {
 		const link = footer().getByRole('link', { name: 'Code on GitHub' });
 		expect(link.getAttribute('href')).toBe('https://example.com/code');
 		expect(link.getAttribute('target')).toBe('_blank');
-		expect(link.getAttribute('rel')).toBe('me noopener noreferrer');
+		expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+	});
+
+	it('adds me to the rel of an external link that is the owner profile', () => {
+		expect(footer().getByRole('link', { name: 'Profile' }).getAttribute('rel')).toBe('me noopener noreferrer');
 	});
 
 	it('leaves internal links in the same tab without an aria-label', () => {

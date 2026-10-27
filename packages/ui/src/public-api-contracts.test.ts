@@ -290,7 +290,7 @@ const invalidDetailToc: DetailFrameProps = { children: ignoredChildren, toc: { e
 const errorPageProps: ErrorPageProps = {
 	status: 404,
 	label: 'Not found',
-	heading: 'Wrong platform',
+	heading: 'Page not found',
 	body: 'This page does not exist.',
 	suggestions: [{ href: '/', label: 'Home' }],
 };
@@ -307,7 +307,7 @@ const siteFooterProps: SiteFooterProps = {
 // @ts-expect-error the live lamp needs a screen-reader label
 const invalidSiteFooter: SiteFooterProps = { ...siteFooterProps, liveLabel: undefined };
 
-const errorIllustrationProps: ErrorIllustrationProps = { code: '404', signLabel: 'STATION' };
+const errorIllustrationProps: ErrorIllustrationProps = { code: '404', signLabel: 'SAMPLE' };
 
 const comboboxProps: ComboboxProps = {
 	options: [],

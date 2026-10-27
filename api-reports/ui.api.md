@@ -1726,6 +1726,7 @@ interface SiteFooterLink {
     href: string;
     // (undocumented)
     label: string;
+    me?: boolean;
 }
 
 // @public (undocumented)
