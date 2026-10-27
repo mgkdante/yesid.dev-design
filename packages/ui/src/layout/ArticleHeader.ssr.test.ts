@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { Window } from 'happy-dom';
 import { render } from 'svelte/server';
 import { expect, it } from 'vitest';
 import ArticleHeader from './ArticleHeader.svelte';
@@ -14,9 +15,10 @@ it('server markup has the title, back link and meta', () => {
 			meta: ['12 metrics', { label: 'Updated', text: 'Jul 9', datetime: '2026-07-09' }],
 		},
 	});
-	const h1 = body.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? '';
+	const document = new Window().document;
+	document.body.innerHTML = body;
 
-	expect(h1.replace(/<[^>]+>|<!--[\s\S]*?-->/g, '').trim()).toBe('Reliability report');
+	expect(document.querySelector('h1')?.textContent?.trim()).toBe('Reliability report');
 	expect(body).toContain('href="/reports"');
 	expect(body).toContain('Back to reports');
 	expect(body).toContain('12 metrics');
