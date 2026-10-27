@@ -42,37 +42,7 @@ describe('push-to-figma', () => {
   });
 
   it('produces 161 variables', () => {
-    // Sanity check on the starting count: 69 after the package trim, plus 13
-    // additions, for 82: 3 theme-moded colors, 6 surface aliases,
-    // 3 border aliases and shadow/sheet. The next 19 are 7 theme-invariant
-    // signal-systems tokens (hazard-a/b, signage-bg/text, signal-
-    // proceed/caution/stop) + 12 per-mode pairs that merge to one variable
-    // each (terminal-chrome, terminal-ink, terminal-ink-muted, signal-lunar,
-    // lamp-bezel, line-amber, accent-surface, grid-line-major/minor,
-    // grid-block-marker, grid-glow, edge-highlight). destructive-foreground
-    // moved brand → per-mode, which re-modes the existing variable without
-    // changing the count. Two BOLD structural-rule variables add
-    // border/rule + border/rule-accent (solid orange / yellow voices).
-    // One color/reflective variable carries the theme-invariant WHITE voice of
-    // the four-color infrastructure doctrine.
-    // Typography token system (listing/detail consolidation) adds 24 number
-    // variables: detail-body, nav, menu, tag, metric-chip, card title/body/meta,
-    // back-link and control sizes across mobile + desktop scales.
-    // Glow token system adds 1: color/glow — the theme-invariant decorative
-    // glow color (glows ride --glow, vivid in both themes; never text, so not
-    // AA-bound), so glows read in light without per-component overrides.
-    // Four variables cover shadow/cta + shadow/cta-hover
-    // (hero CTA shadow folded into tokens) and z/overlay + z/ripple (modal and
-    // ripple z-index tiers above nav).
-    // The dataviz scale contributes 23 variables:
-    // status 5, occupancy 5, severity 3 and heatmap 10, with per-mode pairs
-    // that merge to one moded color/dataviz-* variable each. 133 was the
-    // prior parity-anchor count.
-    // Four canonical breakpoint dimensions cover tablet min/max and
-    // desktop min/max.
-    // One semantic strip composite dimension is size/stripH.
-    // ds1 adds 20: tracking 3, measure 4, glass 2, size/tap-min, z/footer and
-    // the 9 density/compact/text overrides.
+    // The count changes whenever tokens.json gains or loses leaves.
     const vars = runScript();
     expect(vars.length).toBe(181);
   });
