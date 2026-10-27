@@ -122,7 +122,7 @@
 
 ## Direct public assets
 
-- `./base.css` — direct asset `./base.css` (`default`), sha256 `6118c815ba35310c9b58bebe8a900f19184bb41fe3bddac1d10fcd652d30d638`
+- `./base.css` — direct asset `./base.css` (`default`), sha256 `2d4c026dc2d4671aece13160c6ff2c99b6302fa10c19fbd92899f86a787286a8`
 
 ## Declaration namespaces
 
@@ -177,28 +177,34 @@ import { VariantProps } from 'tailwind-variants';
 
 // @public (undocumented)
 type $$ComponentProps = {
+    name: SectionIconName;
+    class?: string;
+};
+
+// @public (undocumented)
+type $$ComponentProps_2 = {
     badge?: TocBadgeSpec;
     iconClass?: string;
 };
 
 // @public (undocumented)
-type $$ComponentProps_2 = WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+type $$ComponentProps_3 = WithElementRef<HTMLAttributes<HTMLDivElement>> & {
     size?: 'default' | 'sm';
     interactive?: boolean;
 };
 
 // @public (undocumented)
-type $$ComponentProps_3 = ResizablePrimitive.PaneGroupProps & {
+type $$ComponentProps_4 = ResizablePrimitive.PaneGroupProps & {
     this?: ResizablePrimitive.PaneGroup;
 };
 
 // @public (undocumented)
-type $$ComponentProps_4 = WithoutChildrenOrChild<ResizablePrimitive.PaneResizerProps> & {
+type $$ComponentProps_5 = WithoutChildrenOrChild<ResizablePrimitive.PaneResizerProps> & {
     withHandle?: boolean;
 };
 
 // @public (undocumented)
-type $$ComponentProps_5 = WithoutChild<ScrollArea_2.RootProps> & {
+type $$ComponentProps_6 = WithoutChild<ScrollArea_2.RootProps> & {
     orientation?: 'vertical' | 'horizontal' | 'both' | undefined;
     scrollbarXClasses?: string | undefined;
     scrollbarYClasses?: string | undefined;
@@ -206,12 +212,12 @@ type $$ComponentProps_5 = WithoutChild<ScrollArea_2.RootProps> & {
 };
 
 // @public (undocumented)
-type $$ComponentProps_6 = Tabs_2.ListProps & {
+type $$ComponentProps_7 = Tabs_2.ListProps & {
     variant?: TabsListVariant;
 };
 
 // @public (undocumented)
-type $$ComponentProps_7 = Toggle_2.RootProps & {
+type $$ComponentProps_8 = Toggle_2.RootProps & {
     variant?: ToggleVariant;
     size?: ToggleSize;
 };
@@ -328,14 +334,27 @@ declare namespace Brand {
         BlueprintShellProps,
         ChevronToggle,
         ChevronToggleProps,
+        CollapsibleSection,
+        CollapsibleSectionProps,
+        CornerMarks,
+        CornerMarksProps,
+        MetricDisplay,
+        MetricDisplayProps,
         MetroStation,
         MetroStationProps,
         QuietModeButton,
         QuietModeActiveEffect,
         QuietModeButtonCopy,
         QuietModeButtonProps,
+        SectionHeading,
+        SectionHeadingProps,
+        SectionIcon,
+        SectionIconName,
         SectionLabel,
         SectionLabelProps,
+        StatusDot,
+        StatusDotColor,
+        StatusDotProps,
         StickyPanel,
         StickyPanelProps,
         StopLabel,
@@ -345,7 +364,25 @@ declare namespace Brand {
         ThemeToggle,
         ThemeToggleProps,
         TocBadge,
-        TocBadgeSpec
+        TocBadgeSpec,
+        TocNav,
+        TocNavProps,
+        TocPill,
+        TocPillProps,
+        TOC_TARGET_SELECTOR,
+        flattenToc,
+        landTocFragments,
+        navigateToc,
+        observeActiveToc,
+        onTocNavigate,
+        openCollapsedTocTarget,
+        reconcileActiveToc,
+        resolveTocCounter,
+        revealTocTarget,
+        settleLayout,
+        tocElement,
+        RevealTocTargetOptions,
+        TocEntry
     }
 }
 
@@ -454,7 +491,7 @@ cta: string;
 }, undefined, "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 rounded-lg border border-transparent bg-clip-padding text-control font-medium focus-visible:ring-3 active:not-aria-[haspopup]:translate-y-px aria-invalid:ring-3 [&_svg:not([class*='size-'])]:size-4 group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0", unknown, unknown, undefined>>;
 
 // @public (undocumented)
-const Card: Component<$$ComponentProps_2, {}, "ref">;
+const Card: Component<$$ComponentProps_3, {}, "ref">;
 
 // @public (undocumented)
 type Card = ReturnType<typeof Card>;
@@ -545,6 +582,38 @@ const CollapsibleContent: Component<Omit<Collapsible_2.ContentProps, "child">, {
 type CollapsibleContent = ReturnType<typeof CollapsibleContent>;
 
 // @public (undocumented)
+const CollapsibleSection: Component<CollapsibleSectionProps, {}, "open">;
+
+// @public (undocumented)
+type CollapsibleSection = ReturnType<typeof CollapsibleSection>;
+
+// @public (undocumented)
+interface CollapsibleSectionProps {
+    // (undocumented)
+    accentColor?: string;
+    anchor?: string;
+    // (undocumented)
+    children?: Snippet;
+    // (undocumented)
+    collapsible?: boolean;
+    // (undocumented)
+    headerActions?: Snippet;
+    headerVariant?: 'default' | 'article-summary';
+    // (undocumented)
+    icon?: Snippet;
+    index?: number | null;
+    // (undocumented)
+    open?: boolean;
+    openSignal?: number | null;
+    quiet?: boolean;
+    sectionKey?: string;
+    // (undocumented)
+    subtitle?: string;
+    // (undocumented)
+    title: string;
+}
+
+// @public (undocumented)
 const CollapsibleTrigger: Component<Collapsible_2.TriggerProps, {}, "ref">;
 
 // @public (undocumented)
@@ -587,6 +656,21 @@ function configureUi(configuration?: UiConfiguration): ConfigureUiResult;
 // @public (undocumented)
 type ConfigureUiResult = 'initialized' | 'unchanged';
 
+// @public (undocumented)
+const CornerMarks: Component<CornerMarksProps, {}, "">;
+
+// @public (undocumented)
+type CornerMarks = ReturnType<typeof CornerMarks>;
+
+// @public (undocumented)
+interface CornerMarksProps extends HTMLAttributes<HTMLDivElement> {
+    // (undocumented)
+    class?: string;
+    // (undocumented)
+    opacity?: number;
+    size?: 'sm' | 'md';
+}
+
 // @public
 function createCn(vocab?: {
     text?: string[];
@@ -619,6 +703,9 @@ const desktop: MediaQuery;
 
 // @public
 const DESKTOP_MIN_WIDTH = "1024px";
+
+// @public (undocumented)
+function flattenToc(entries: TocEntry[]): TocEntry[];
 
 // @public (undocumented)
 const FooterGroup: Component<FooterGroupProps, {}, "ref">;
@@ -684,14 +771,27 @@ declare namespace Index {
         BlueprintShellProps,
         ChevronToggle,
         ChevronToggleProps,
+        CollapsibleSection,
+        CollapsibleSectionProps,
+        CornerMarks,
+        CornerMarksProps,
+        MetricDisplay,
+        MetricDisplayProps,
         MetroStation,
         MetroStationProps,
         QuietModeButton,
         QuietModeActiveEffect,
         QuietModeButtonCopy,
         QuietModeButtonProps,
+        SectionHeading,
+        SectionHeadingProps,
+        SectionIcon,
+        SectionIconName,
         SectionLabel,
         SectionLabelProps,
+        StatusDot,
+        StatusDotColor,
+        StatusDotProps,
         StickyPanel,
         StickyPanelProps,
         StopLabel,
@@ -701,9 +801,30 @@ declare namespace Index {
         ThemeToggle,
         ThemeToggleProps,
         TocBadge,
-        TocBadgeSpec
+        TocBadgeSpec,
+        TocNav,
+        TocNavProps,
+        TocPill,
+        TocPillProps,
+        TOC_TARGET_SELECTOR,
+        flattenToc,
+        landTocFragments,
+        navigateToc,
+        observeActiveToc,
+        onTocNavigate,
+        openCollapsedTocTarget,
+        reconcileActiveToc,
+        resolveTocCounter,
+        revealTocTarget,
+        settleLayout,
+        tocElement,
+        RevealTocTargetOptions,
+        TocEntry
     }
 }
+
+// @public
+function landTocFragments(root?: Element | Document): () => void;
 
 declare namespace Layout {
     export {
@@ -711,6 +832,33 @@ declare namespace Layout {
         SiteRootProps,
         SiteRootScroller
     }
+}
+
+// @public
+type LocaleFree = string | number | boolean | null | LocaleFree[];
+
+// @public (undocumented)
+const MetricDisplay: Component<MetricDisplayProps, {}, "">;
+
+// @public (undocumented)
+type MetricDisplay = ReturnType<typeof MetricDisplay>;
+
+// @public (undocumented)
+interface MetricDisplayProps extends HTMLAttributes<HTMLDivElement> {
+    absent?: Snippet;
+    // (undocumented)
+    class?: string;
+    info?: Snippet;
+    // (undocumented)
+    label: string;
+    // (undocumented)
+    labelBelow?: boolean;
+    // (undocumented)
+    size?: 'sm' | 'md' | 'lg';
+    // (undocumented)
+    sublabel?: string;
+    // (undocumented)
+    value: string | null | undefined;
 }
 
 // @public (undocumented)
@@ -726,6 +874,32 @@ type MetroStationProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
     pulseDelay?: number;
     roundel?: Snippet<[stationNo: string]>;
 };
+
+// @public
+function navigateToc(id: string): void;
+
+// @public
+function observeActiveToc(setActive: (id: string) => void, selector?: string): () => void;
+
+// @public
+function onTocNavigate(input: {
+    type: string;
+    to: {
+        url: URL;
+    } | null;
+}): void;
+
+// @public (undocumented)
+function openCollapsedTocTarget(id: string): boolean;
+
+// @public
+interface Persisted<T extends LocaleFree> {
+    // (undocumented)
+    value: T;
+}
+
+// @public (undocumented)
+const persisted: <T extends LocaleFree>(key: string, initial: T) => Persisted<Widen<T>>;
 
 // @public (undocumented)
 const Portal: Component<PortalProps, {}, "">;
@@ -992,22 +1166,46 @@ interface QuietModeStore {
 }
 
 // @public (undocumented)
-const ResizableHandle: Component<$$ComponentProps_4, {}, "ref">;
+function reconcileActiveToc(activeId: string, previousIds: readonly string[], nextIds: readonly string[]): string;
+
+// @public (undocumented)
+const ResizableHandle: Component<$$ComponentProps_5, {}, "ref">;
 
 // @public (undocumented)
 type ResizableHandle = ReturnType<typeof ResizableHandle>;
 
 // @public (undocumented)
-const ResizablePaneGroup: Component<$$ComponentProps_3, {}, "ref" | "this">;
+const ResizablePaneGroup: Component<$$ComponentProps_4, {}, "ref" | "this">;
 
 // @public (undocumented)
 type ResizablePaneGroup = ReturnType<typeof ResizablePaneGroup>;
 
 // @public (undocumented)
+function resolveTocCounter(entries: TocEntry[], activeId: string): {
+    current: number;
+    total: number;
+};
+
+// @public (undocumented)
+function revealTocTarget(id: string, input: RevealTocTargetOptions): Promise<boolean>;
+
+// @public (undocumented)
+interface RevealTocTargetOptions {
+    // (undocumented)
+    beforeReveal?: (id: string) => void;
+    // (undocumented)
+    behavior: ScrollBehavior;
+    // (undocumented)
+    block?: ScrollLogicalPosition;
+    // (undocumented)
+    isCurrent?: () => boolean;
+}
+
+// @public (undocumented)
 const Root: Component<AlertDialogRootPropsWithoutHTML, {}, "open">;
 
 // @public (undocumented)
-const ScrollArea: Component<$$ComponentProps_5, {}, "ref" | "viewportRef">;
+const ScrollArea: Component<$$ComponentProps_6, {}, "ref" | "viewportRef">;
 
 // @public (undocumented)
 type ScrollArea = ReturnType<typeof ScrollArea>;
@@ -1017,6 +1215,38 @@ const ScrollAreaScrollbar: Component<Omit<ScrollArea_2.ScrollbarProps, "child">,
 
 // @public (undocumented)
 type ScrollAreaScrollbar = ReturnType<typeof ScrollAreaScrollbar>;
+
+// @public (undocumented)
+const SectionHeading: Component<SectionHeadingProps, {}, "">;
+
+// @public (undocumented)
+type SectionHeading = ReturnType<typeof SectionHeading>;
+
+// @public (undocumented)
+interface SectionHeadingProps extends HTMLAttributes<HTMLDivElement> {
+    // (undocumented)
+    class?: string;
+    // (undocumented)
+    dot?: boolean;
+    explainer?: Snippet;
+    // (undocumented)
+    heading?: string;
+    headingAccent?: string;
+    // (undocumented)
+    level?: 1 | 2 | 3 | 4 | 5 | 6;
+    number?: number;
+    // (undocumented)
+    numberTone?: 'rest' | 'active';
+    overline?: string;
+    // (undocumented)
+    subheading?: string;
+}
+
+// @public (undocumented)
+const SectionIcon: Component<$$ComponentProps, {}, "">;
+
+// @public (undocumented)
+type SectionIcon = ReturnType<typeof SectionIcon>;
 
 // @public (undocumented)
 type SectionIconName = 'toc' | 'image' | 'eye' | 'layers' | 'chart' | 'grid' | 'list' | 'arrow' | 'briefcase' | 'github';
@@ -1073,6 +1303,9 @@ type SeparatorProps = SeparatorDefaultProps | SeparatorHazardProps | SeparatorGr
 
 // @public (undocumented)
 type SeparatorVariant = 'default' | 'hazard' | 'gradient';
+
+// @public (undocumented)
+function settleLayout(target: Element | null, maxWaitMs?: number): Promise<void>;
 
 // @public (undocumented)
 type SheetCloseProps = Dialog.CloseProps;
@@ -1208,11 +1441,38 @@ declare namespace State {
         ThemeStore,
         QuietModeInit,
         QuietModeStore,
+        LocaleFree,
+        Widen,
+        Persisted,
         theme,
         quietMode,
+        persisted,
         desktop,
         DESKTOP_MIN_WIDTH
     }
+}
+
+// @public (undocumented)
+const StatusDot: Component<StatusDotProps, {}, "">;
+
+// @public (undocumented)
+type StatusDot = ReturnType<typeof StatusDot>;
+
+// @public (undocumented)
+type StatusDotColor = 'orange' | 'green' | 'caution' | 'stop' | 'lunar' | 'early' | 'on_time' | 'late' | 'severe' | 'unknown';
+
+// @public (undocumented)
+interface StatusDotProps extends HTMLAttributes<HTMLSpanElement> {
+    // (undocumented)
+    class?: string;
+    color?: StatusDotColor;
+    // (undocumented)
+    label?: string;
+    // (undocumented)
+    pulse?: boolean;
+    ring?: boolean;
+    // (undocumented)
+    size?: 'sm' | 'md';
 }
 
 // @public (undocumented)
@@ -1262,7 +1522,7 @@ const TabsContent: Component<Tabs_2.ContentProps, {}, "ref">;
 type TabsContent = ReturnType<typeof TabsContent>;
 
 // @public (undocumented)
-const TabsList: Component<$$ComponentProps_6, {}, "ref">;
+const TabsList: Component<$$ComponentProps_7, {}, "ref">;
 
 // @public (undocumented)
 type TabsList = ReturnType<typeof TabsList>;
@@ -1339,8 +1599,11 @@ interface ThemeToggleProps {
     label: string;
 }
 
+// @public
+const TOC_TARGET_SELECTOR = "[data-section-index], [data-toc]";
+
 // @public (undocumented)
-const TocBadge: Component<$$ComponentProps, {}, "">;
+const TocBadge: Component<$$ComponentProps_2, {}, "">;
 
 // @public (undocumented)
 type TocBadge = ReturnType<typeof TocBadge>;
@@ -1354,8 +1617,70 @@ type TocBadgeSpec = {
     name: SectionIconName;
 };
 
+// @public
+function tocElement(id: string): Element | null;
+
 // @public (undocumented)
-const Toggle: Component<$$ComponentProps_7, {}, "ref" | "pressed">;
+interface TocEntry {
+    badge?: TocBadgeSpec;
+    // (undocumented)
+    children: TocEntry[];
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    level: number;
+    rail?: boolean;
+    // (undocumented)
+    title: string;
+}
+
+// @public (undocumented)
+const TocNav: Component<TocNavProps, {}, "open">;
+
+// @public (undocumented)
+type TocNav = ReturnType<typeof TocNav>;
+
+// @public (undocumented)
+interface TocNavProps {
+    // (undocumented)
+    activeId: string;
+    // (undocumented)
+    collapsible?: boolean;
+    // (undocumented)
+    counterPrefix?: string;
+    // (undocumented)
+    entries: TocEntry[];
+    // (undocumented)
+    heading: string;
+    // (undocumented)
+    onNavigate: (id: string) => void;
+    // (undocumented)
+    open?: boolean;
+    quiet?: boolean;
+    // (undocumented)
+    sectionKey?: string;
+}
+
+// @public (undocumented)
+const TocPill: Component<TocPillProps, {}, "">;
+
+// @public (undocumented)
+type TocPill = ReturnType<typeof TocPill>;
+
+// @public (undocumented)
+interface TocPillProps {
+    // (undocumented)
+    activeId: string;
+    // (undocumented)
+    closeAria: string;
+    // (undocumented)
+    entries: TocEntry[];
+    onNavigate?: (id: string) => void;
+    openAria: string;
+}
+
+// @public (undocumented)
+const Toggle: Component<$$ComponentProps_8, {}, "ref" | "pressed">;
 
 // @public (undocumented)
 type Toggle = ReturnType<typeof Toggle>;
@@ -1448,6 +1773,9 @@ type UiVocabulary = {
     text?: readonly string[];
     colors?: readonly string[];
 };
+
+// @public
+type Widen<T> = [T] extends [string] ? string : [T] extends [number] ? number : [T] extends [boolean] ? boolean : T;
 
 // @public (undocumented)
 type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & {

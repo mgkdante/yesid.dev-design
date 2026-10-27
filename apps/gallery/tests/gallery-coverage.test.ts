@@ -42,7 +42,7 @@ describe('Gallery coverage authority', () => {
 		expect([...GALLERY_COVERAGE.motion].sort()).toEqual(
 			exportedActions('../../../packages/motion/src/actions/index.ts'),
 		);
-		expect(GALLERY_COVERAGE.brand).toHaveLength(10);
+		expect(GALLERY_COVERAGE.brand).toHaveLength(18);
 		expect(GALLERY_COVERAGE.motion).toHaveLength(8);
 	});
 

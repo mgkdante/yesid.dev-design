@@ -1,0 +1,6 @@
+---
+"@yesid/ui": minor
+"@yesid/motion": minor
+---
+
+Add table-of-contents navigation and brand atoms. `@yesid/ui/brand` now exports `CollapsibleSection`, `CornerMarks`, `MetricDisplay`, `SectionHeading`, `SectionIcon`, `StatusDot`, `TocNav` and `TocPill` with their prop types, plus the toc helpers `TOC_TARGET_SELECTOR`, `flattenToc`, `landTocFragments`, `navigateToc`, `observeActiveToc`, `onTocNavigate`, `openCollapsedTocTarget`, `reconcileActiveToc`, `resolveTocCounter`, `revealTocTarget`, `settleLayout` and `tocElement`. `@yesid/ui/state` adds `persisted`, tab-scoped state whose values must be locale-free. `@yesid/motion` adds `./lenis.css`, which `@yesid/ui/base.css` now imports. `CollapsibleSection` follows quiet mode by default and stores only reader choices under `persisted:<sectionKey>`. `TocPill` defaults `onNavigate` to `navigateToc`, which jumps under reduced motion. To migrate, import from `@yesid/ui/brand` and `@yesid/ui/state`, delete the local copies, and drop any direct `lenis/dist/lenis.css` import. Replace `closeSignal` and `bulkCollapsed` props with the default behavior (or `quiet={false}`), and pass Transit-style absence text through `MetricDisplay`'s `absent` snippet.

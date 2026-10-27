@@ -58,6 +58,10 @@
 - `types` → `./src/utils/ticker.ts`
 - `default` → `./src/utils/ticker.ts`
 
+### `./lenis.css`
+
+- `default` → `./lenis.css`
+
 ### `./ripple.css`
 
 - `default` → `./ripple.css`
@@ -68,6 +72,7 @@
 
 ## Direct public assets
 
+- `./lenis.css` — direct asset `./lenis.css` (`default`), sha256 `ab21ffdeba92306b34ebad0120342d0f47060b77fd95b6c6f75c71f44e7997c0`
 - `./ripple.css` — direct asset `./ripple.css` (`default`), sha256 `82b517fcefcae016cb209c4837100c37283e108b906a0cdac8d2400f4f796235`
 - `./tap-feedback.css` — direct asset `./tap-feedback.css` (`default`), sha256 `238c46d07f5bc16b8c9b6057d92e1a4930af6f9709710da50375deaa117c5319`
 

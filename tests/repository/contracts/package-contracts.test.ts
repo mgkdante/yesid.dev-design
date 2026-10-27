@@ -355,6 +355,7 @@ describe('conditioned package export contract', () => {
 		]));
 		expect(new Set(Object.keys(readExports(manifests['@yesid/motion'])))).toEqual(new Set([
 			...Object.keys(EXISTING_MOTION_EXPORTS),
+			'./lenis.css',
 			'./ripple.css',
 			'./tap-feedback.css',
 		]));
@@ -444,6 +445,7 @@ describe('conditioned package export contract', () => {
 	);
 
 	it.each([
+		['@yesid/motion', './lenis.css', './lenis.css'],
 		['@yesid/motion', './ripple.css', './ripple.css'],
 		['@yesid/motion', './tap-feedback.css', './tap-feedback.css'],
 		['@yesid/tokens', './tokens.css', './tokens.css'],
