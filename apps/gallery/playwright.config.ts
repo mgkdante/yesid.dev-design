@@ -39,7 +39,7 @@ export default defineConfig({
 		baseURL,
 		deviceScaleFactor: 1,
 		locale: 'en-CA',
-		reducedMotion: 'reduce',
+		contextOptions: { reducedMotion: 'reduce' },
 		screenshot: 'only-on-failure',
 		serviceWorkers: 'block',
 		timezoneId: 'UTC',

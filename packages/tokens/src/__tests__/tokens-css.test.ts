@@ -27,6 +27,10 @@ const fixture: TokenTree = {
   duration: {
     fast: { $type: 'duration', $value: '150ms' },
   },
+  text: {
+    body: { $type: 'dimension', $value: '1.125rem' },
+    title: { $type: 'dimension', $value: '2rem' },
+  },
   breakpoint: {
     'tablet-min': { $type: 'dimension', $value: '768px' },
     'tablet-max': { $type: 'dimension', $value: '767px' },
@@ -98,5 +102,46 @@ describe('generateTokensCss', () => {
     expect(css.match(/  --strip-h: 68px;/g)).toHaveLength(1);
     expect(css).not.toContain('--size-stripH');
     expect(css).not.toContain('--size-strip-h');
+  });
+});
+
+describe('generateTokensCss density modes', () => {
+  const body = { $type: 'dimension', $value: '1rem' };
+  const withDensity = (density: unknown): TokenTree => ({ ...fixture, density }) as TokenTree;
+  const compactCss = generateTokensCss(withDensity({ compact: { text: { body } } }));
+
+  it('emits a compact block after the theme blocks with the overridden values', () => {
+    const block = compactCss.match(/\[data-density="compact"\] \{([\s\S]*?)\n\}/)![1];
+
+    expect(block).toContain('--text-body: 1rem;');
+    expect(block).not.toContain('--text-title');
+    expect(compactCss.indexOf('[data-density="compact"]')).toBeGreaterThan(
+      compactCss.lastIndexOf('prefers-color-scheme: light'),
+    );
+  });
+
+  it('keeps density leaves out of :root', () => {
+    const root = compactCss.match(/:root \{([\s\S]*?)\n\}/)![1];
+
+    expect(root).toContain('--text-body: 1.125rem;');
+    expect(root).not.toContain('--text-body: 1rem;');
+  });
+
+  it('throws for a flat override name', () => {
+    expect(() => generateTokensCss(withDensity({ compact: { 'text-body': body } }))).toThrow(
+      /density\.compact\.text-body overrides no base token/,
+    );
+  });
+
+  it('throws when a mode is a leaf', () => {
+    expect(() => generateTokensCss(withDensity({ compact: body }))).toThrow(
+      /density\.compact must be a token group/,
+    );
+  });
+
+  it('throws when an override path is missing from the base tree', () => {
+    expect(() => generateTokensCss(withDensity({ compact: { text: { missing: body } } }))).toThrow(
+      /density\.compact\.text\.missing overrides no base token/,
+    );
   });
 });

@@ -6,8 +6,10 @@ package stylesheet. Repository and consumer adapters own physical output paths.
 
 ## Interface
 
-- Public assets: `@yesid/tokens/tokens.json` and `@yesid/tokens/tokens.css`.
-- Public mechanics: parse, serialize, types, and the four generator subpaths.
+- Public assets: `@yesid/tokens/tokens.json`, `tokens.css`, `theme.css` (the Tailwind `@theme` map and
+  semantic color utilities), and `fonts.css` with the bundled Inter and JetBrains Mono files.
+- Public mechanics: parse, serialize, types, `./fonts` (`preloadFont`), and the five generator
+  subpaths, including `./generators/theme-css`.
 - Generated interface authority: [`api-reports/tokens.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.17.0/api-reports/tokens.api.md).
 
 The internal `buildAll` module composes generators for repository tooling. It is not a public
@@ -19,9 +21,25 @@ package export. Legacy `./src/*` aliases remain compatibility surfaces until the
 - `tokens.json` is the only editable token-value source.
 - Generators are pure: inputs in, strings out. They do not know repository or consumer paths.
 - `tools/build-tokens.ts` maps logical output to four committed artifacts: package CSS, motion
-  TypeScript, the Gallery token region, and `DESIGN.md`.
+  TypeScript, `theme.css`, and `DESIGN.md`.
 - Generation order and LF bytes are deterministic across Linux and Windows.
 - Generated files are never hand-edited. Change token source or generator code, then regenerate.
+
+## Using the tokens
+
+Import order in the app stylesheet: `@yesid/tokens/tokens.css`, then `tailwindcss`, then
+`@yesid/ui/base.css`, which brings `theme.css`. Import `@yesid/tokens/fonts.css` from the root
+layout and preload only the latin faces in SvelteKit:
+
+```ts
+import { preloadFont } from '@yesid/tokens/fonts';
+
+resolve(event, { preload: ({ type, path }) => type !== 'font' || preloadFont(path) });
+```
+
+Compact density is opt-in: set `data-density="compact"` on `<html>` or on a subtree to apply the
+`density.compact` overrides. `tokens.css` also declares the breakpoints as `@custom-media`; inside
+Svelte styles they need postcss-global-data and postcss-custom-media in the consumer's build.
 
 ## Consumers and compatibility
 

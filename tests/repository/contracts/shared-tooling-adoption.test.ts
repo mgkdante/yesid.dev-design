@@ -278,6 +278,16 @@ describe('ST4 Design shared-tooling adoption', () => {
 				},
 			},
 			{
+				paths: ['packages/tokens/fonts/inter-latin-wght-normal.woff2'],
+				reason: 'matched',
+				relevant: {
+					'ci-work': true,
+					'browser-authority-work': true,
+					'token-outputs-windows-work': true,
+					'token-byte-parity-work': false,
+				},
+			},
+			{
 				paths: ['tools/api-authority.ts', 'api-reports/ui.api.md'],
 				reason: 'matched',
 				relevant: {
