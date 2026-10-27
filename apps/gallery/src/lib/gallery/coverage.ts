@@ -20,6 +20,7 @@ export const GALLERY_COVERAGE = {
 		'ChevronToggle',
 		'CollapsibleSection',
 		'CornerMarks',
+		'ErrorIllustration',
 		'FilterGroup',
 		'FilterSection',
 		'FilterSummary',

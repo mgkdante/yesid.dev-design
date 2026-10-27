@@ -37,6 +37,7 @@ import {
 	ChevronToggle,
 	CollapsibleSection,
 	CornerMarks,
+	ErrorIllustration,
 	FilterGroup,
 	FilterSection,
 	FilterSummary,
@@ -52,6 +53,7 @@ import {
 	TocNav,
 	TocPill,
 	type CollapsibleSectionProps,
+	type ErrorIllustrationProps,
 	type FilterGroupProps,
 	type FilterSectionProps,
 	type FilterSummaryProps,
@@ -64,7 +66,18 @@ import {
 	type TocNavProps,
 	type TocPillProps,
 } from '@yesid/ui/brand';
-import { ListingFrame, type ListingFrameProps } from '@yesid/ui/layout';
+import {
+	ArticleHeader,
+	DetailFrame,
+	ErrorPage,
+	ListingFrame,
+	SiteFooter,
+	type ArticleHeaderProps,
+	type DetailFrameProps,
+	type ErrorPageProps,
+	type ListingFrameProps,
+	type SiteFooterProps,
+} from '@yesid/ui/layout';
 
 type BindingsOf<T> = T extends Component<any, any, infer Bindings> ? Bindings : never;
 
@@ -249,6 +262,53 @@ const invalidListingFrame: ListingFrameProps = {
 	children: ignoredChildren,
 };
 
+const articleHeaderProps: ArticleHeaderProps = {
+	title: 'Reading the line',
+	highlight: 'line',
+	backHref: '/notes',
+	backLabel: 'All notes',
+	meta: ['Notes', { text: 'May 2026', datetime: '2026-05', label: 'Published' }],
+};
+// @ts-expect-error the back link copy is the caller's
+const invalidArticleHeader: ArticleHeaderProps = { title: 'Reading the line', backHref: '/notes' };
+
+const detailFrameProps: DetailFrameProps = {
+	children: ignoredChildren,
+	left: ignoredChildren,
+	right: ignoredChildren,
+	measure: '46rem',
+	toc: {
+		entries: tocEntries,
+		openAria: 'open contents',
+		closeAria: 'close contents',
+		onNavigate: (id) => expectTypeOf(id).toEqualTypeOf<string>(),
+	},
+};
+// @ts-expect-error the contents pill needs the caller's accessible names
+const invalidDetailToc: DetailFrameProps = { children: ignoredChildren, toc: { entries: [] } };
+
+const errorPageProps: ErrorPageProps = {
+	status: 404,
+	label: 'Not found',
+	heading: 'Wrong platform',
+	body: 'This page does not exist.',
+	suggestions: [{ href: '/', label: 'Home' }],
+};
+// @ts-expect-error the page copy is the caller's
+const invalidErrorPage: ErrorPageProps = { status: 404 };
+
+const siteFooterProps: SiteFooterProps = {
+	brand: ignoredChildren,
+	tagline: 'Built in Montreal',
+	groups: [{ label: 'Links', links: [{ href: 'https://example.com', label: 'Site', external: true }] }],
+	statusPrefix: 'System',
+	liveLabel: 'Live',
+};
+// @ts-expect-error the live lamp needs a screen-reader label
+const invalidSiteFooter: SiteFooterProps = { ...siteFooterProps, liveLabel: undefined };
+
+const errorIllustrationProps: ErrorIllustrationProps = { code: '404', signLabel: 'STATION' };
+
 const comboboxProps: ComboboxProps = {
 	options: [],
 	label: 'Choose',
@@ -327,6 +387,14 @@ describe('public UI prop contracts', () => {
 		expectTypeOf<BindingsOf<typeof FilterSection>>().toEqualTypeOf<''>();
 		expectTypeOf<BindingsOf<typeof FilterSummary>>().toEqualTypeOf<''>();
 		expectTypeOf<BindingsOf<typeof ListingFrame>>().toEqualTypeOf<''>();
+		expectTypeOf<BindingsOf<typeof ArticleHeader>>().toEqualTypeOf<''>();
+		expectTypeOf<BindingsOf<typeof DetailFrame>>().toEqualTypeOf<'activeId'>();
+		expectTypeOf<BindingsOf<typeof ErrorPage>>().toEqualTypeOf<''>();
+		expectTypeOf<BindingsOf<typeof SiteFooter>>().toEqualTypeOf<''>();
+		expectTypeOf<BindingsOf<typeof ErrorIllustration>>().toEqualTypeOf<''>();
+		expectTypeOf<NonNullable<ArticleHeaderProps['canvas']>>().toEqualTypeOf<
+			Snippet<[HTMLElement | undefined]>
+		>();
 		expectTypeOf<BindingsOf<typeof Combobox>>().toEqualTypeOf<'value' | 'open'>();
 		expectTypeOf<BindingsOf<typeof Separator>>().toEqualTypeOf<'ref'>();
 		expectTypeOf<BindingsOf<typeof ToggleGroup>>().toEqualTypeOf<'value' | 'ref'>();
@@ -350,6 +418,11 @@ describe('public UI prop contracts', () => {
 		expect(filterSummaryProps.locale).toBe('en');
 		expect(searchInputProps.value).toBe('');
 		expect(listingFrameProps.filterPersistKey).toBe('listing-filters');
+		expect(articleHeaderProps.highlight).toBe('line');
+		expect(detailFrameProps.measure).toBe('46rem');
+		expect(errorPageProps.status).toBe(404);
+		expect(siteFooterProps.groups[0]!.links[0]!.external).toBe(true);
+		expect(errorIllustrationProps.code).toBe('404');
 		expect(comboboxProps.open).toBe(false);
 		expect(separatorDefault.variant).toBe('default');
 		expect(separatorHazard.maxWidth).toBe('100%');
