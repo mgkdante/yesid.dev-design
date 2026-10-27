@@ -6,6 +6,7 @@
 		ChevronToggle,
 		CollapsibleSection,
 		CornerMarks,
+		ErrorIllustration,
 		FilterGroup,
 		FilterSection,
 		FilterSummary,
@@ -323,6 +324,16 @@
 			<Card.Content class="grid grid-cols-2 gap-4">
 				<div class="relative h-24 rounded-md bg-muted"><CornerMarks /></div>
 				<div class="relative h-24 rounded-md bg-muted"><CornerMarks size="md" opacity={0.7} /></div>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:ErrorIllustration">
+			<Card.Header>
+				<Card.Title>ErrorIllustration</Card.Title>
+				<Card.Description>Station scene with a hazard-striped sign for error pages.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<ErrorIllustration code="404" signLabel="STATION" />
 			</Card.Content>
 		</Card.Root>
 

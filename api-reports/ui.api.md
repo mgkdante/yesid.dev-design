@@ -122,7 +122,7 @@
 
 ## Direct public assets
 
-- `./base.css` — direct asset `./base.css` (`default`), sha256 `2d4c026dc2d4671aece13160c6ff2c99b6302fa10c19fbd92899f86a787286a8`
+- `./base.css` — direct asset `./base.css` (`default`), sha256 `f2559603a5e1527c45c0ddd1901dd10a6c96b92bb9150301540a7ac28d57d894`
 
 ## Declaration namespaces
 
@@ -232,6 +232,54 @@ type AnchorOnlyProps_2 = Exclude<keyof HTMLAnchorAttributes, keyof HTMLButtonAtt
 type AnchorOnlyProps_3 = Exclude<keyof HTMLAnchorAttributes, keyof HTMLButtonAttributes>;
 
 // @public (undocumented)
+const ArticleHeader: Component<ArticleHeaderProps, {}, "">;
+
+// @public (undocumented)
+type ArticleHeader = ReturnType<typeof ArticleHeader>;
+
+// @public (undocumented)
+interface ArticleHeaderProps {
+    // (undocumented)
+    accent?: string;
+    // (undocumented)
+    actions?: Snippet;
+    // (undocumented)
+    backHref: string;
+    // (undocumented)
+    backLabel: string;
+    canvas?: Snippet<[HTMLElement | undefined]>;
+    // (undocumented)
+    category?: string;
+    // (undocumented)
+    controls?: Snippet;
+    decorations?: Snippet;
+    // (undocumented)
+    edgeLeft?: string;
+    // (undocumented)
+    edgeRight?: string;
+    highlight?: string;
+    // (undocumented)
+    meta?: readonly ArticleMetaEntry[];
+    metaPending?: boolean;
+    // (undocumented)
+    subtitle?: string;
+    // (undocumented)
+    testId?: string;
+    // (undocumented)
+    title: string;
+    // (undocumented)
+    titleId?: string;
+    watermark?: string;
+}
+
+// @public (undocumented)
+type ArticleMetaEntry = string | {
+    readonly text: string;
+    readonly datetime?: string;
+    readonly label?: string;
+};
+
+// @public (undocumented)
 const Badge: Component<BadgeProps, {}, "ref">;
 
 // @public (undocumented)
@@ -338,6 +386,8 @@ declare namespace Brand {
         CollapsibleSectionProps,
         CornerMarks,
         CornerMarksProps,
+        ErrorIllustration,
+        ErrorIllustrationProps,
         FilterGroup,
         FilterGroupItem,
         FilterGroupProps,
@@ -714,6 +764,101 @@ const desktop: MediaQuery;
 const DESKTOP_MIN_WIDTH = "1024px";
 
 // @public (undocumented)
+const DetailFrame: Component<DetailFrameProps, {}, "activeId">;
+
+// @public (undocumented)
+type DetailFrame = ReturnType<typeof DetailFrame>;
+
+// @public (undocumented)
+interface DetailFrameProps extends Omit<HTMLAttributes<HTMLElement>, 'children'> {
+    // (undocumented)
+    activeId?: string;
+    // (undocumented)
+    after?: Snippet;
+    // (undocumented)
+    children: Snippet;
+    // (undocumented)
+    header?: Snippet;
+    // (undocumented)
+    left?: Snippet;
+    // (undocumented)
+    leftMobile?: boolean;
+    measure?: string;
+    mobileSummary?: Snippet;
+    paneOwnedRail?: boolean;
+    // (undocumented)
+    rail?: Snippet;
+    railScroll?: boolean;
+    // (undocumented)
+    right?: Snippet;
+    summary?: Snippet;
+    // (undocumented)
+    toc?: DetailFrameToc;
+    // (undocumented)
+    toolbar?: Snippet;
+}
+
+// @public (undocumented)
+interface DetailFrameToc {
+    // (undocumented)
+    closeAria: string;
+    // (undocumented)
+    entries: TocEntry[];
+    landFragments?: boolean;
+    // (undocumented)
+    onNavigate?: (id: string) => void;
+    // (undocumented)
+    openAria: string;
+    pillEntries?: TocEntry[];
+    selector?: string;
+}
+
+// @public (undocumented)
+const ErrorIllustration: Component<ErrorIllustrationProps, {}, "">;
+
+// @public (undocumented)
+type ErrorIllustration = ReturnType<typeof ErrorIllustration>;
+
+// @public (undocumented)
+interface ErrorIllustrationProps {
+    // (undocumented)
+    class?: string;
+    code?: string;
+    signLabel?: string;
+}
+
+// @public (undocumented)
+const ErrorPage: Component<ErrorPageProps, {}, "">;
+
+// @public (undocumented)
+type ErrorPage = ReturnType<typeof ErrorPage>;
+
+// @public (undocumented)
+interface ErrorPageLink {
+    // (undocumented)
+    href: string;
+    // (undocumented)
+    label: string;
+}
+
+// @public (undocumented)
+interface ErrorPageProps {
+    // (undocumented)
+    body: string;
+    detail?: string;
+    // (undocumented)
+    heading: string;
+    // (undocumented)
+    label: string;
+    signLabel?: string;
+    // (undocumented)
+    status: number;
+    statusNote?: string;
+    suggestions?: readonly ErrorPageLink[];
+    suggestionsLabel?: string;
+}
+
+// @public (undocumented)
 const FilterGroup: Component<FilterGroupProps, {}, "">;
 
 // @public (undocumented)
@@ -854,6 +999,8 @@ declare namespace Index {
         CollapsibleSectionProps,
         CornerMarks,
         CornerMarksProps,
+        ErrorIllustration,
+        ErrorIllustrationProps,
         FilterGroup,
         FilterGroupItem,
         FilterGroupProps,
@@ -916,8 +1063,21 @@ function landTocFragments(root?: Element | Document): () => void;
 
 declare namespace Layout {
     export {
+        ArticleHeader,
+        ArticleHeaderProps,
+        ArticleMetaEntry,
+        DetailFrame,
+        DetailFrameProps,
+        DetailFrameToc,
+        ErrorPage,
+        ErrorPageLink,
+        ErrorPageProps,
         ListingFrame,
         ListingFrameProps,
+        SiteFooter,
+        SiteFooterGroup,
+        SiteFooterLink,
+        SiteFooterProps,
         SiteRoot,
         SiteRootProps,
         SiteRootScroller
@@ -1538,6 +1698,50 @@ right: string;
 bottom: string;
 };
 }, undefined, "bg-popover text-popover-foreground shadow-sheet fixed flex flex-col gap-4 transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out", unknown, unknown, undefined>>;
+
+// @public (undocumented)
+const SiteFooter: Component<SiteFooterProps, {}, "">;
+
+// @public (undocumented)
+type SiteFooter = ReturnType<typeof SiteFooter>;
+
+// @public (undocumented)
+interface SiteFooterGroup {
+    after?: Snippet;
+    // (undocumented)
+    label: string;
+    // (undocumented)
+    links: readonly SiteFooterLink[];
+    navLabel?: string;
+    // (undocumented)
+    testId?: string;
+}
+
+// @public (undocumented)
+interface SiteFooterLink {
+    // (undocumented)
+    ariaLabel?: string;
+    external?: boolean;
+    // (undocumented)
+    href: string;
+    // (undocumented)
+    label: string;
+    me?: boolean;
+}
+
+// @public (undocumented)
+interface SiteFooterProps {
+    // (undocumented)
+    brand: Snippet;
+    // (undocumented)
+    groups: readonly SiteFooterGroup[];
+    liveLabel: string;
+    // (undocumented)
+    statusPrefix: string;
+    statusStart?: Snippet;
+    // (undocumented)
+    tagline: string;
+}
 
 // @public (undocumented)
 const SiteRoot: Component<SiteRootProps, {}, "">;
