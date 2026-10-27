@@ -17,7 +17,11 @@ describe('rune modules', () => {
 	// .svelte.js/.svelte.ts files to compileModule without stripping TypeScript first.
 	it('compile the way a consumer dev server pre-bundles them', () => {
 		const modules = runeModules();
-		expect(modules).toEqual(['state/quiet-mode.svelte.js', 'state/theme.svelte.js']);
+		expect(modules).toEqual([
+			'state/persisted.svelte.js',
+			'state/quiet-mode.svelte.js',
+			'state/theme.svelte.js',
+		]);
 		for (const path of modules) {
 			const code = readFileSync(join(SRC, path), 'utf8');
 			expect(() => compileModule(code, { filename: path, generate: 'client', dev: true }), path).not.toThrow();

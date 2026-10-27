@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/svelte';
-import SectionIcon, { type SectionIconName } from './section-icon.internal.svelte';
+import SectionIcon, { type SectionIconName } from './SectionIcon.svelte';
 
 const NAMES: SectionIconName[] = [
 	'toc',

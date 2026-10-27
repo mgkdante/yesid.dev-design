@@ -35,13 +35,26 @@ import {
 } from '@yesid/ui/toggle-group';
 import {
 	ChevronToggle,
+	CollapsibleSection,
+	CornerMarks,
+	MetricDisplay,
 	QuietModeButton,
+	SectionHeading,
+	SectionIcon,
 	SectionLabel,
+	StatusDot,
 	StopLabel,
 	TerminalCursor,
+	TocNav,
+	TocPill,
+	type CollapsibleSectionProps,
+	type MetricDisplayProps,
 	type QuietModeButtonProps,
 	type StopLabelProps,
 	type TerminalCursorProps,
+	type TocEntry,
+	type TocNavProps,
+	type TocPillProps,
 } from '@yesid/ui/brand';
 
 type BindingsOf<T> = T extends Component<any, any, infer Bindings> ? Bindings : never;
@@ -134,6 +147,48 @@ const invalidQuietModeChildren: QuietModeButtonProps = {
 	// @ts-expect-error the package owns the two-button body
 	children: ignoredChildren,
 };
+
+const tocEntries: TocEntry[] = [
+	{ id: 'intro', title: 'Intro', level: 2, badge: { kind: 'number', value: 1 }, children: [] },
+];
+const tocNavProps: TocNavProps = {
+	entries: tocEntries,
+	activeId: 'intro',
+	heading: 'Contents',
+	open: true,
+	sectionKey: 'toc',
+	quiet: false,
+	onNavigate: (id) => expectTypeOf(id).toEqualTypeOf<string>(),
+};
+const tocPillProps: TocPillProps = {
+	entries: tocEntries,
+	activeId: 'intro',
+	openAria: 'open contents',
+	closeAria: 'close contents',
+};
+// @ts-expect-error the pill's accessible name needs the caller's open copy
+const invalidTocPill: TocPillProps = { entries: [], activeId: '', closeAria: 'close contents' };
+
+const collapsibleSectionProps: CollapsibleSectionProps = {
+	title: 'Section',
+	open: false,
+	sectionKey: 'section',
+	quiet: false,
+	openSignal: 1,
+	headerVariant: 'article-summary',
+};
+const metricDisplayProps: MetricDisplayProps = {
+	value: null,
+	label: 'Delay',
+	absent: ignoredChildren,
+	info: ignoredChildren,
+};
+type StatusDotComponentProps = ComponentProps<typeof StatusDot>;
+type SectionIconComponentProps = ComponentProps<typeof SectionIcon>;
+// @ts-expect-error status colors are a closed set
+const invalidStatusDotColor: StatusDotComponentProps = { color: 'purple' };
+// @ts-expect-error icon names are a closed set
+const invalidSectionIcon: SectionIconComponentProps = { name: 'star' };
 
 const comboboxProps: ComboboxProps = {
 	options: [],

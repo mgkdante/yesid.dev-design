@@ -34,6 +34,10 @@ edge, then hands the wheel to the page, and stops any page glide in flight when 
 the wheel back. Elements that own wheel and pinch input, such as maps, use Lenis's built-in
 `data-lenis-prevent` attribute instead.
 
+`@yesid/motion/lenis.css` is the Lenis stylesheet, copied so isolated installs can import it.
+`@yesid/ui/base.css` imports it, so an app that imports base.css needs nothing else and drops any
+direct `lenis/dist/lenis.css` import.
+
 GSAP remains third-party software under its own terms; it is not covered by this repository's MIT
 grant. See [`NOTICE`](https://github.com/mgkdante/yesid.dev-design/blob/v0.14.1/NOTICE) for the exact licence boundary.
 
