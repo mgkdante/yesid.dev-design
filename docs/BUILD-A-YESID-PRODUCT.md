@@ -189,6 +189,9 @@ export const handle: Handle = ({ event, resolve }) =>
 ```
 
 A hash-based CSP adds the hash from `@yesid/ui/boot.json` to `script-src`.
+List `@yesid/tokens` and `@yesid/seo-kit` in Vite's `ssr.noExternal`: they ship
+TypeScript, and the Svelte plugin otherwise externalizes `@yesid/ui`'s
+dependencies in dev and tests, where Node can't load them.
 Render `SeoHead` from `@yesid/ui/head` once in the root layout with the page's
 resolved title, description, canonical and alternates. The share card, favicon
 mark, robots and security headers come from `@yesid/seo-kit`.
