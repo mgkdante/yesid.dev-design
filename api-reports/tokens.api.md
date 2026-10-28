@@ -49,11 +49,6 @@
 - `types` → `./src/generators/theme-css.ts`
 - `default` → `./src/generators/theme-css.ts`
 
-### `./generators/theme-block`
-
-- `types` → `./src/generators/theme-block.ts`
-- `default` → `./src/generators/theme-block.ts`
-
 ### `./generators/motion-ts`
 
 - `types` → `./src/generators/motion-ts.ts`
@@ -74,11 +69,6 @@
 - `types` → `./src/generators/tokens-css.ts`
 - `default` → `./src/generators/tokens-css.ts`
 
-### `./src/generators/theme-block.ts`
-
-- `types` → `./src/generators/theme-block.ts`
-- `default` → `./src/generators/theme-block.ts`
-
 ### `./src/generators/motion-ts.ts`
 
 - `types` → `./src/generators/motion-ts.ts`
@@ -86,8 +76,8 @@
 
 ## Direct public assets
 
-- `./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `e6999a9177e29e8def5eb9fbc112eb817713ce906cc06ea26db2124e184d607e`
-- `./tokens.css` — direct asset `./tokens.css` (`default`), sha256 `81ea7111eeea3a4d505c5f10890885bcba0cca523e73036a5fec269b0eb1e6a1`
+- `./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `3359acc455547a77451c6ad5afa87bb36399d1e4bb04b6a0dd149c86f643db66`
+- `./tokens.css` — direct asset `./tokens.css` (`default`), sha256 `6286b105eab318adb454cc688bc11a8e6de27f067f1262bd611d17163d9275ca`
 - `./theme.css` — direct asset `./theme.css` (`default`), sha256 `1aec29a2d9b5a396bd9f207266553c1ba2650a8a7ed7236edaa456e3d69d2fa6`
 - `./fonts.css` — direct asset `./fonts.css` (`default`), sha256 `86b24f9e84418fa584e8cb8ac4ecdefb0869376eb6ecc07054c5f4412d30a362`
 
@@ -99,7 +89,6 @@
 - `Types` → `./src/types.ts` (`./types`)
 - `GeneratorsTokensCss` → `./src/generators/tokens-css.ts` (`./generators/tokens-css`, `./src/generators/tokens-css.ts`)
 - `GeneratorsThemeCss` → `./src/generators/theme-css.ts` (`./generators/theme-css`)
-- `GeneratorsThemeBlock` → `./src/generators/theme-block.ts` (`./generators/theme-block`, `./src/generators/theme-block.ts`)
 - `GeneratorsMotionTs` → `./src/generators/motion-ts.ts` (`./generators/motion-ts`, `./src/generators/motion-ts.ts`)
 - `GeneratorsDesignMd` → `./src/generators/design-md.ts` (`./generators/design-md`)
 
@@ -141,9 +130,6 @@ function generateDesignMd(tree: TokenTree, opts?: DesignMdOptions): string;
 // @public (undocumented)
 function generateMotionTs(tree: TokenTree): string;
 
-// @public @deprecated (undocumented)
-function generateThemeBlock(tree: TokenTree): string;
-
 // @public
 function generateThemeCss(tree: TokenTree): string;
 
@@ -160,13 +146,6 @@ declare namespace GeneratorsDesignMd {
 declare namespace GeneratorsMotionTs {
     export {
         generateMotionTs
-    }
-}
-
-declare namespace GeneratorsThemeBlock {
-    export {
-        generateThemeBlock,
-        replaceThemeRegion
     }
 }
 
@@ -205,9 +184,6 @@ function parseTokens(input: unknown): TokenTree;
 
 // @public
 function preloadFont(path: string): boolean;
-
-// @public @deprecated (undocumented)
-function replaceThemeRegion(fileContent: string, freshRegion: string): string;
 
 declare namespace Serialize {
     export {

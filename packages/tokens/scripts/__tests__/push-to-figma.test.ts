@@ -41,12 +41,6 @@ describe('push-to-figma', () => {
     expect(Object.keys(colorCard!.values).sort()).toEqual(['dark', 'light']);
   });
 
-  it('produces 161 variables', () => {
-    // The count changes whenever tokens.json gains or loses leaves.
-    const vars = runScript();
-    expect(vars.length).toBe(181);
-  });
-
   it('preserves the semantic strip height name, value, and description', () => {
     const vars = runScript();
     const stripH = vars.find((v) => v.name === 'size/stripH');

@@ -77,6 +77,7 @@ const EXISTING_UI_EXPORTS = {
 	'./head': './src/head/index.ts',
 	'./feedback': './src/feedback/index.ts',
 	'./table': './src/table/index.ts',
+	'./blueprints': './src/blueprints/index.ts',
 } as const;
 
 const EXISTING_MOTION_EXPORTS = {
@@ -92,6 +93,7 @@ const EXISTING_MOTION_EXPORTS = {
 	'./utils/sectionMagnet': './src/utils/sectionMagnet.ts',
 	'./utils/ticker': './src/utils/ticker.ts',
 	'./utils/viewTransition': './src/utils/viewTransition.ts',
+	'./utils/blueprintScrub': './src/utils/blueprintScrub.ts',
 } as const;
 
 const GATES_EXPORTS = {
@@ -138,12 +140,10 @@ const TOKEN_TYPESCRIPT_EXPORTS = {
 	'./fonts': './src/fonts.ts',
 	'./generators/tokens-css': './src/generators/tokens-css.ts',
 	'./generators/theme-css': './src/generators/theme-css.ts',
-	'./generators/theme-block': './src/generators/theme-block.ts',
 	'./generators/motion-ts': './src/generators/motion-ts.ts',
 	'./generators/design-md': './src/generators/design-md.ts',
 	'./src/parse.ts': './src/parse.ts',
 	'./src/generators/tokens-css.ts': './src/generators/tokens-css.ts',
-	'./src/generators/theme-block.ts': './src/generators/theme-block.ts',
 	'./src/generators/motion-ts.ts': './src/generators/motion-ts.ts',
 } as const;
 

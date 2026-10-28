@@ -6,7 +6,9 @@
 		FilterSummary,
 		SearchInput,
 	} from '@yesid/ui/brand';
+	import { BlueprintBridge, BlueprintSignal } from '@yesid/ui/blueprints';
 	import { ListingFrame } from '@yesid/ui/layout';
+	import { blueprintScrub } from '@yesid/motion/utils/blueprintScrub';
 
 	const modes = [
 		{ key: 'travaux', label: 'Travaux' },
@@ -46,12 +48,12 @@
 </svelte:head>
 
 {#snippet hero()}
-	<svg class="size-full" viewBox="0 0 320 140" preserveAspectRatio="none" aria-hidden="true">
-		<path d="M20 112L92 30l58 54 62-62 88 90" fill="none" stroke="currentColor" />
-	</svg>
+	<BlueprintBridge class="size-full" />
 {/snippet}
 
-{#snippet details()}{/snippet}
+{#snippet details()}
+	<BlueprintSignal class="edge-detail" style="top:0;right:8%;width:10%;height:58%;opacity:0.2;" />
+{/snippet}
 
 <ListingFrame
 	heading="Catalogue"
@@ -60,6 +62,7 @@
 	description="Exemple de page de liste avec filtres, recherche et résultats."
 	filterLabel="Filtres"
 	filterPersistKey="gallery-listing-filters"
+	onHeaderMount={blueprintScrub}
 >
 	{#snippet blueprint()}
 		<BlueprintShell {hero} {details} labels={['GRID 02', 'AXIS 17', 'REV 04']} />

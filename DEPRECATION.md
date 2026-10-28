@@ -54,3 +54,10 @@ major transition. There is no hidden patch exception.
 Removal evidence belongs in the pull request: the original deprecation release,
 dates, intervening minor, migration documentation, API report diff, and focused
 consumer or clean-room verification.
+
+## Removals
+
+- **v0.24.0:** removed `@yesid/tokens/generators/theme-block` and its legacy `./src/generators/theme-block.ts`
+  alias (`generateThemeBlock`, `replaceThemeRegion`; deprecated in v0.18.0), `MetroStation`'s `roundel`
+  snippet (v0.19.0), and `QuietModeInit.storageKey` with `SiteRootProps.quietModeKey` (v0.22.0). Each had
+  passed its intervening-minor gate. The owner waived the 90-day wait on 2026-10-28; neither consumer used them.

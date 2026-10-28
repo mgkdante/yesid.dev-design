@@ -5,7 +5,11 @@ import { blockingAxeViolations } from './authority.js';
 import { GALLERY_THEMES, openGallery } from './gallery.js';
 
 async function scan(page: Page, testInfo: TestInfo, state: string): Promise<void> {
-	const results = await new AxeBuilder({ page }).analyze();
+	// Every rule everywhere, except contrast inside blueprint art: aria-hidden decoration whose faint
+	// reference labels are exempt.
+	const rest = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
+	const contrast = await new AxeBuilder({ page }).withRules(['color-contrast']).exclude('.blueprint-bg').analyze();
+	const results = { ...rest, violations: [...rest.violations, ...contrast.violations] };
 	await testInfo.attach(`axe-${state}.json`, {
 		body: JSON.stringify(results, null, 2),
 		contentType: 'application/json',

@@ -24,14 +24,6 @@ describe('quietMode', () => {
 		expect(document.documentElement.dataset.quietMode).toBeUndefined();
 	});
 
-	it('uses the storage key passed to init', () => {
-		localStorage.setItem('transit:quiet-mode', 'true');
-		quietMode.init({ storageKey: 'transit:quiet-mode' });
-		expect(quietMode.enabled).toBe(true);
-		quietMode.forgetDefault();
-		expect(localStorage.getItem('transit:quiet-mode')).toBeNull();
-	});
-
 	it('remembers and forgets the collapsed default', () => {
 		quietMode.init();
 		quietMode.rememberCurrent();

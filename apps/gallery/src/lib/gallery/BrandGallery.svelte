@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Badge } from '@yesid/ui/badge';
 	import * as Card from '@yesid/ui/card';
 	import {
 		BlueprintShell,
 		ChevronToggle,
+		CodeBlock,
 		CollapsibleSection,
 		CornerMarks,
 		CornerMeta,
@@ -12,6 +12,7 @@
 		FilterSection,
 		FilterSummary,
 		LanguageToggle,
+		ManifestoCanvas,
 		MetricDisplay,
 		MetroStation,
 		QuietModeButton,
@@ -24,6 +25,7 @@
 		StickyPanel,
 		StopLabel,
 		TerminalCursor,
+		TerminalPanel,
 		ThemeToggle,
 		TocBadge,
 		TocNav,
@@ -34,8 +36,10 @@
 		type StatusDotColor,
 		type TocEntry,
 	} from '@yesid/ui/brand';
+	import * as blueprints from '@yesid/ui/blueprints';
 
 	let chevronOpen = $state(false);
+	let manifestoHost = $state<HTMLElement>();
 	let filterMode = $state<string | null>('tram');
 	let searchText = $state('');
 	let grain = $state('week');
@@ -68,6 +72,21 @@
 	const iconNames = 'toc image eye layers chart grid list arrow briefcase github'.split(
 		' ',
 	) as SectionIconName[];
+	const sqlTokens = [
+		['keyword', 'select '],
+		['function', 'count'],
+		['punctuation', '(*)'],
+		['keyword', ' from '],
+		['plain', 'trips'],
+		['keyword', ' where '],
+		['plain', 'delay_s '],
+		['punctuation', '> '],
+		['number', '300'],
+		['punctuation', ';'],
+		['comment', ' -- late runs'],
+	] as const;
+	const sql = sqlTokens.map(([, text]) => text).join('');
+	const copyLabels = { label: 'Copy', ariaLabel: 'Copy code', failed: 'Copy failed' };
 	const quietModeCopy = {
 		collapse: 'Collapse all',
 		expand: 'Expand all',
@@ -79,24 +98,11 @@
 </script>
 
 {#snippet blueprintHero()}
-	<svg class="size-full" viewBox="0 0 320 140" preserveAspectRatio="none" aria-hidden="true">
-		<path d="M20 112L92 30l58 54 62-62 88 90" fill="none" stroke="currentColor" />
-		<circle cx="92" cy="30" r="12" fill="none" stroke="currentColor" />
-		<text x="112" y="48" fill="currentColor" font-family="JetBrains Mono" font-size="10">
-			REF-02
-		</text>
-	</svg>
+	<blueprints.BlueprintBridge class="size-full" />
 {/snippet}
 
 {#snippet blueprintDetails()}
-	<svg
-		class="edge-detail top-[18%] right-[8%] h-20 w-28"
-		viewBox="0 0 112 80"
-		aria-hidden="true"
-	>
-		<rect x="8" y="8" width="96" height="64" fill="none" stroke="currentColor" />
-		<path d="M8 40h96M56 8v64" fill="none" stroke="currentColor" />
-	</svg>
+	<blueprints.BlueprintSignal class="edge-detail top-[10%] right-[8%] h-28 w-16" />
 {/snippet}
 
 {#snippet noReading()}
@@ -105,17 +111,6 @@
 
 {#snippet medianNote()}
 	<span class="font-mono text-caption text-muted-foreground">7-day median</span>
-{/snippet}
-
-{#snippet customRoundel(stationNo: string)}
-	<Badge
-		variant="number"
-		class="station-number-badge"
-		style="background-color: var(--signage-bg); color: var(--signage-text);"
-		aria-hidden="true"
-	>
-		{stationNo}
-	</Badge>
 {/snippet}
 
 <section class="mt-10" aria-labelledby="gallery-brand-components">
@@ -202,17 +197,10 @@
 		<Card.Root data-gallery-family="brand:MetroStation">
 			<Card.Header>
 				<Card.Title>MetroStation</Card.Title>
-				<Card.Description>Self-contained and caller-supplied roundels.</Card.Description>
+				<Card.Description>A zero-padded station number in a signage roundel.</Card.Description>
 			</Card.Header>
-			<Card.Content class="grid grid-cols-2 gap-6 text-center">
-				<div class="flex flex-col items-center gap-2">
-					<SectionLabel text="DEFAULT" variant="metric" />
-					<MetroStation index={3} showLine class="h-24" />
-				</div>
-				<div class="flex flex-col items-center gap-2">
-					<SectionLabel text="CUSTOM ROUNDEL" variant="metric" />
-					<MetroStation index={3} showLine roundel={customRoundel} class="h-24" />
-				</div>
+			<Card.Content class="flex justify-center">
+				<MetroStation index={3} showLine class="h-24" />
 			</Card.Content>
 		</Card.Root>
 
@@ -283,6 +271,63 @@
 				</div>
 				<div data-gallery-family="brand:TerminalCursor">
 					<p class="font-mono text-mono">SYSTEM READY<TerminalCursor /></p>
+				</div>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:TerminalPanel">
+			<Card.Header>
+				<Card.Title>TerminalPanel</Card.Title>
+				<Card.Description>Signal-head title bar with a tag and status, and a footer readout.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<TerminalPanel
+					title="dispatch"
+					tag="v2"
+					status="online"
+					footer={[
+						{ label: 'next', value: '06:04' },
+						{ label: 'state', value: 'on time' },
+					]}
+				>
+					<p class="font-mono text-mono">~ departures --line 2</p>
+				</TerminalPanel>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:CodeBlock">
+			<Card.Header>
+				<Card.Title>CodeBlock</Card.Title>
+				<Card.Description>Caller-highlighted source in the syntax tokens with a copy button, and plain source.</Card.Description>
+			</Card.Header>
+			<Card.Content class="grid gap-3">
+				<CodeBlock code={sql} title="query" language="sql" copy={copyLabels}>
+					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+					<pre tabindex="0"><code
+							>{#each sqlTokens as [type, text], i (i)}<span
+									class:italic={type === 'comment'}
+									style:color="var(--syntax-{type})">{text}</span
+								>{/each}</code
+						></pre>
+				</CodeBlock>
+				<CodeBlock
+					code="bun run build --filter @yesid/ui && bun run test --filter @yesid/ui -- --reporter=verbose --coverage --coverage.reporter=text-summary"
+					title="shell"
+				/>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:ManifestoCanvas">
+			<Card.Header>
+				<Card.Title>ManifestoCanvas</Card.Title>
+				<Card.Description>Circuit nodes that light up near the pointer; static under reduced motion.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<div
+					bind:this={manifestoHost}
+					class="relative h-40 overflow-hidden rounded-md border border-border bg-muted"
+				>
+					<ManifestoCanvas containerEl={manifestoHost} />
 				</div>
 			</Card.Content>
 		</Card.Root>
@@ -509,4 +554,19 @@
 			</Card.Content>
 		</Card.Root>
 	</div>
+</section>
+
+<section class="mt-10" aria-labelledby="gallery-blueprints">
+	<h2 id="gallery-blueprints" class="font-heading text-title font-semibold">Blueprint drawings</h2>
+	<p class="mt-1 text-small text-muted-foreground">
+		Every drawing in <code>@yesid/ui/blueprints</code>, drawn in <code>currentColor</code>.
+	</p>
+	<ul class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+		{#each Object.entries(blueprints) as [name, Drawing] (name)}
+			<li class="rounded-md border border-border p-3 text-primary" data-gallery-blueprint={name}>
+				<Drawing class="h-32 w-full" aria-hidden="true" />
+				<p class="mt-2 font-mono text-caption text-muted-foreground">{name}</p>
+			</li>
+		{/each}
+	</ul>
 </section>
