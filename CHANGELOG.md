@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.21.0
+
+<!-- release-fragment: ds4-head-seo-assets -->
+- `@yesid/seo-kit` (minor), `@yesid/ui` (minor): `@yesid/ui/head` adds `SeoHead`, which writes a page's title, description, canonical and hreflang, Open Graph, Twitter, robots and one `@graph` JSON-LD script from resolved values, and `injectThemeBoot`, which swaps `%yesid.themeBoot%` in `app.html` for the pre-paint script. That script sets the stored theme and, as the parser adds them, the stored open or closed state of persisted collapsibles, so a reload no longer paints a closed section open. `@yesid/ui/boot.json` carries the script's CSP hash. `CollapsibleSection`, `FilterGroup` and `ListingFrame` mark their state with `data-persisted-key` and `data-persisted-body`; `ChevronToggle` and `FilterGroup` style from `data-state` instead of the `chevron-open` and `filter-open` classes. The theme store also repaints `link[rel="icon"]` with the brand mark in `--primary`. `@yesid/seo-kit` adds `serializeJsonLd`, `robotsTxt`, the share card (`./og` with `renderOgPng` and the token palette, `./og/fonts` for Vite and `./og/files` for Bun scripts, with Inter and JetBrains Mono TTFs), `./icons` (`brandMarkSvg`, `touchIconSvg`) and `./headers` (`SECURITY_HEADERS`, `contentSecurityPolicy`). To migrate, replace the app's SeoHead, OG template and fonts, favicon builder and app.html theme script with these, and change any test that reads `chevron-open` or `filter-open` to read `data-state` or `aria-expanded`.
+
 ## 0.20.0
 
 <!-- release-fragment: ds3-site-header -->
