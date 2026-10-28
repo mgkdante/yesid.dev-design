@@ -627,7 +627,8 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 20px;
-		padding-block: 14px;
+		--menu-pad: 14px;
+		padding-block: var(--menu-pad);
 		font-size: var(--text-menu-label-mobile);
 		text-decoration: none;
 		opacity: 1;
@@ -696,14 +697,15 @@
 	.menu-line {
 		position: absolute;
 		left: 6px;
-		top: 33px;
-		bottom: -14px;
+		top: calc(var(--menu-pad) + 19px);
+		bottom: calc(-1 * var(--menu-pad));
 		width: 2px;
 		background: color-mix(in srgb, var(--foreground) 6%, transparent);
 	}
 	.menu-item:has(> :global(.menu-icon)) .menu-line {
 		left: 11px;
-		top: calc(14px + 0.75em + 12px);
+		top: calc(var(--menu-pad) + 0.75em + 12px);
+		bottom: calc(12px - 0.75em - var(--menu-pad));
 	}
 	.menu-line-active {
 		background: linear-gradient(
@@ -777,7 +779,7 @@
 	@media (max-height: 720px) {
 		.menu-item {
 			min-height: 44px;
-			padding-block: 10px;
+			--menu-pad: 10px;
 			font-size: clamp(1.5rem, 2vw, 1.75rem);
 		}
 	}
