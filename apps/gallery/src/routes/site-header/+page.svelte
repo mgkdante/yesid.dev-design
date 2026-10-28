@@ -3,8 +3,18 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { SiteHeader } from '@yesid/ui/layout';
+	import {
+		HOME,
+		LABELS,
+		LANGUAGE_LABEL,
+		LINKS,
+		LOCALES,
+		MENU_ITEMS,
+		SEARCH_LABEL,
+		languageHref,
+	} from '$lib/gallery/site-header-fixture';
 
-	const locale = $derived((browser && page.url.searchParams.get('lang')) || 'en');
+	const locale = $derived((browser && page.url.searchParams.get('lang')) || LOCALES[0]);
 </script>
 
 <svelte:head>
@@ -14,41 +24,19 @@
 {#snippet search()}
 	<input
 		type="search"
-		aria-label="Search"
-		placeholder="Search"
+		aria-label={SEARCH_LABEL}
+		placeholder={SEARCH_LABEL}
 		class="h-9 w-56 rounded-full border border-border-subtle bg-muted px-4 text-small"
 	/>
 {/snippet}
 
 <SiteHeader
 	navigation={{ beforeNavigate, onNavigate, afterNavigate }}
-	home="/site-header"
-	links={[
-		{ href: '/site-header', label: 'Header', current: true },
-		{ href: '/listing-frame', label: 'Listing', priority: 2 },
-		{ href: '/detail-frame', label: 'Detail', priority: 3 },
-	]}
-	menuItems={[
-		{ href: '/site-header', label: 'Header', subtitle: 'This page', current: true },
-		{ href: '/listing-frame', label: 'Listing', subtitle: 'Listing frame' },
-		{ href: '/detail-frame', label: 'Detail', subtitle: 'Detail frame' },
-		{ href: 'https://example.com', label: 'Elsewhere', external: true, ariaLabel: 'Elsewhere (opens in a new tab)' },
-	]}
-	labels={{
-		openMenu: 'Open menu',
-		closeMenu: 'Close menu',
-		menu: 'Site menu',
-		theme: 'Dark theme',
-		nav: 'Primary',
-		menuFooter: 'Sample footer',
-	}}
-	language={{
-		locale,
-		locales: ['en', 'fr'],
-		href: (next) => `/site-header?lang=${next}`,
-		label: 'Language',
-		preserveState: true,
-	}}
+	home={HOME}
+	links={LINKS}
+	menuItems={MENU_ITEMS}
+	labels={LABELS}
+	language={{ locale, locales: LOCALES, href: languageHref, label: LANGUAGE_LABEL, preserveState: true }}
 	{search}
 />
 
