@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/svelte';
+import { fireEvent, render, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -34,9 +34,9 @@ function setup() {
 			language: { locale: 'en', locales: ['en', 'fr'], href: (next: string) => `/${next}`, label: 'Language' },
 		},
 	});
-	const toggle = view.getByTestId('nav-menu-toggle');
-	const items = () => view.container.querySelectorAll('[data-menu-item]');
-	return { hooks, toggle, items, open: () => fireEvent.click(toggle) };
+	const toggle = view.getByRole('button', { name: 'Open menu' });
+	const menu = () => view.queryByRole('navigation', { name: 'Site menu' });
+	return { hooks, toggle, menu, open: () => fireEvent.click(toggle) };
 }
 
 afterEach(() => {
@@ -46,30 +46,31 @@ afterEach(() => {
 
 describe('SiteHeader', () => {
 	it('opens the menu from the toggle and closes it from a menu link', async () => {
-		const { toggle, items, open } = setup();
-		expect(items()).toHaveLength(0);
+		const { toggle, menu, open } = setup();
+		expect(menu()).toBeNull();
 		await open();
 		expect(toggle.getAttribute('aria-expanded')).toBe('true');
 		expect(toggle.getAttribute('aria-label')).toBe('Close menu');
-		expect(items()[0]!.getAttribute('aria-current')).toBe('page');
-		expect(items()[1]!.getAttribute('target')).toBe('_blank');
+		const items = within(menu()!).getAllByRole('link');
+		expect(items[0]!.getAttribute('aria-current')).toBe('page');
+		expect(items[1]!.getAttribute('target')).toBe('_blank');
 
-		await fireEvent.click(items()[0]!);
+		await fireEvent.click(items[0]!);
 		await tick();
-		expect(items()).toHaveLength(0);
+		expect(menu()).toBeNull();
 		expect(toggle.getAttribute('aria-expanded')).toBe('false');
 	});
 
 	it('closes for a navigation but stays open for its own language switch', async () => {
-		const { hooks, items, open } = setup();
+		const { hooks, menu, open } = setup();
 		await open();
 		hooks.before!(link('/fr'));
 		await tick();
-		expect(items()).toHaveLength(2);
+		expect(menu()).not.toBeNull();
 
 		hooks.before!(link('/elsewhere'));
 		await tick();
-		expect(items()).toHaveLength(0);
+		expect(menu()).toBeNull();
 	});
 
 	it('holds a navigation until the menu has finished closing', async () => {

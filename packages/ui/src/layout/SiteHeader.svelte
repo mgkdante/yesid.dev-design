@@ -288,7 +288,7 @@
 						}}
 					>
 						<Dialog.Title class="sr-only">{labels.menu}</Dialog.Title>
-						<nav class="menu-content">
+						<nav class="menu-content" aria-label={labels.menu}>
 							{#each menuItems as item, i (item.href)}
 								<a
 									data-menu-item

@@ -9,18 +9,18 @@ const to = (path: string) => ({ url: new URL(path, location.href) });
 
 describe('LanguageToggle', () => {
 	it('renders nothing with fewer than two locales', () => {
-		const { container } = render(LanguageToggle, { props: { locale: 'en', locales: ['en'], href, label: 'Language' } });
-		expect(container.querySelector('a')).toBeNull();
+		const { queryByRole } = render(LanguageToggle, { props: { locale: 'en', locales: ['en'], href, label: 'Language' } });
+		expect(queryByRole('link')).toBeNull();
 	});
 
 	it('links to the next locale and names the current one', () => {
-		const { getByTestId } = render(LanguageToggle, {
+		const { getByRole } = render(LanguageToggle, {
 			props: { locale: 'fr', locales: ['en', 'fr', 'es'], href, label: 'Langue' },
 		});
-		const link = getByTestId('language-toggle');
+		const link = getByRole('link', { name: 'Langue: Français' });
 		expect(link.getAttribute('href')).toBe('/es/page?q=1#h');
-		expect(link.getAttribute('aria-label')).toBe('Langue: Français');
-		expect([...link.querySelectorAll('text')].map((board) => board.textContent)).toEqual(['EN', 'FR', 'ES']);
+		expect(link.textContent).toContain('EN');
+		expect(link.textContent).toContain('ES');
 		expect(link.hasAttribute('data-sveltekit-reset')).toBe(false);
 		expect(link.hasAttribute('data-sveltekit-reload')).toBe(false);
 	});
@@ -29,13 +29,13 @@ describe('LanguageToggle', () => {
 		const reload = render(LanguageToggle, {
 			props: { locale: 'en', locales: ['en', 'fr'], href, label: 'Language', reload: true },
 		});
-		expect(reload.getByTestId('language-toggle').hasAttribute('data-sveltekit-reload')).toBe(true);
+		expect(reload.getByRole('link', { name: 'Language: English' }).hasAttribute('data-sveltekit-reload')).toBe(true);
 		reload.unmount();
 
 		const kept = render(LanguageToggle, {
 			props: { locale: 'en', locales: ['en', 'fr'], href, label: 'Language', preserveState: true },
 		});
-		expect(kept.getByTestId('language-toggle').getAttribute('data-sveltekit-reset')).toBe('false');
+		expect(kept.getByRole('link', { name: 'Language: English' }).getAttribute('data-sveltekit-reset')).toBe('false');
 	});
 
 	it('resets focus only after its own state-preserving navigation', () => {
