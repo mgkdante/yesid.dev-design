@@ -350,7 +350,6 @@ pre, code, table {
 		outline-offset: -2px;
 	}
 	.terminal-code-body code {
-		display: block;
 		font-family: var(--font-mono);
 	}
 	.terminal-code-copy {

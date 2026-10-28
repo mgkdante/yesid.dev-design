@@ -64,7 +64,7 @@ describe('Gallery coverage authority', () => {
 	it('server-renders every family and state scenario from the executable matrix', () => {
 		const { body } = render(GalleryPage);
 		for (const name of Object.keys(blueprints)) {
-			expect(body, `blueprint:${name}`).toContain(`data-gallery-family="blueprint:${name}"`);
+			expect(body, `blueprint:${name}`).toContain(`data-gallery-blueprint="${name}"`);
 		}
 		for (const family of GALLERY_COVERAGE.primitives) {
 			expect(body, `primitive:${family}`).toContain(

@@ -5,7 +5,8 @@ import { blockingAxeViolations } from './authority.js';
 import { GALLERY_THEMES, openGallery } from './gallery.js';
 
 async function scan(page: Page, testInfo: TestInfo, state: string): Promise<void> {
-	const results = await new AxeBuilder({ page }).analyze();
+	// Blueprint art is aria-hidden decoration; its faint reference labels are exempt from contrast.
+	const results = await new AxeBuilder({ page }).exclude('.blueprint-bg').analyze();
 	await testInfo.attach(`axe-${state}.json`, {
 		body: JSON.stringify(results, null, 2),
 		contentType: 'application/json',

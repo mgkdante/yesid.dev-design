@@ -310,7 +310,10 @@
 								>{/each}</code
 						></pre>
 				</CodeBlock>
-				<CodeBlock code="bun run build" title="shell" />
+				<CodeBlock
+					code="bun run build --filter @yesid/ui && bun run test --filter @yesid/ui -- --reporter=verbose --coverage --coverage.reporter=text-summary"
+					title="shell"
+				/>
 			</Card.Content>
 		</Card.Root>
 
@@ -560,8 +563,8 @@
 	</p>
 	<ul class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 		{#each Object.entries(blueprints) as [name, Drawing] (name)}
-			<li class="rounded-md border border-border p-3 text-primary" data-gallery-family="blueprint:{name}">
-				<Drawing class="h-32 w-full" />
+			<li class="rounded-md border border-border p-3 text-primary" data-gallery-blueprint={name}>
+				<Drawing class="h-32 w-full" aria-hidden="true" />
 				<p class="mt-2 font-mono text-caption text-muted-foreground">{name}</p>
 			</li>
 		{/each}
