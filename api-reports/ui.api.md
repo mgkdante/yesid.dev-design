@@ -122,6 +122,18 @@
 - `svelte` → `./src/head/index.ts`
 - `default` → `./src/head/index.ts`
 
+### `./feedback`
+
+- `types` → `./src/feedback/index.ts`
+- `svelte` → `./src/feedback/index.ts`
+- `default` → `./src/feedback/index.ts`
+
+### `./table`
+
+- `types` → `./src/table/index.ts`
+- `svelte` → `./src/table/index.ts`
+- `default` → `./src/table/index.ts`
+
 ### `./base.css`
 
 - `default` → `./base.css`
@@ -157,6 +169,8 @@
 - `Layout` → `./src/layout/index.ts` (`./layout`)
 - `State` → `./src/state/index.ts` (`./state`)
 - `Head` → `./src/head/index.ts` (`./head`)
+- `Feedback` → `./src/feedback/index.ts` (`./feedback`)
+- `Table` → `./src/table/index.ts` (`./table`)
 
 ## API Report File for "@yesid/ui"
 
@@ -165,10 +179,13 @@
 ```ts
 
 import { AlertDialogRootPropsWithoutHTML } from 'bits-ui';
+import type { AnalyticsConsentStore } from '@yesid/analytics/consent';
+import type { AnalyticsControlsInput } from '@yesid/analytics/policy';
 import { ClassValue } from 'clsx';
 import { Collapsible as Collapsible_2 } from 'bits-ui';
 import { Combobox as Combobox_2 } from 'bits-ui';
 import { Component } from 'svelte';
+import { ComponentConstructorOptions } from 'svelte';
 import { Dialog } from 'bits-ui';
 import type { HTMLAnchorAttributes } from 'svelte/elements';
 import type { HTMLAttributes } from 'svelte/elements';
@@ -180,6 +197,7 @@ import * as ResizablePrimitive from 'paneforge';
 import { ScrollArea as ScrollArea_2 } from 'bits-ui';
 import type { Separator } from 'bits-ui';
 import type { Snippet } from 'svelte';
+import { SvelteComponent } from 'svelte';
 import type { SVGAttributes } from 'svelte/elements';
 import { Tabs as Tabs_2 } from 'bits-ui';
 import { Toggle as Toggle_2 } from 'bits-ui';
@@ -233,6 +251,112 @@ type $$ComponentProps_8 = Toggle_2.RootProps & {
     variant?: ToggleVariant;
     size?: ToggleSize;
 };
+
+// @public (undocumented)
+interface $$IsomorphicComponent {
+    // (undocumented)
+    <K extends string = string>(internal: unknown, props: ReturnType<__sveltets_Render<K>['props']> & {}): ReturnType<__sveltets_Render<K>['exports']>;
+    // (undocumented)
+    new <K extends string = string>(options: ComponentConstructorOptions<ReturnType<__sveltets_Render<K>['props']>>): SvelteComponent<ReturnType<__sveltets_Render<K>['props']>, ReturnType<__sveltets_Render<K>['events']>, ReturnType<__sveltets_Render<K>['slots']>> & {
+        $$bindings?: ReturnType<__sveltets_Render<K>['bindings']>;
+    } & ReturnType<__sveltets_Render<K>['exports']>;
+    // (undocumented)
+    z_$$bindings?: ReturnType<__sveltets_Render<any>['bindings']>;
+}
+
+// @public (undocumented)
+interface $$IsomorphicComponent_2 {
+    // (undocumented)
+    <T>(internal: unknown, props: ReturnType<__sveltets_Render_2<T>['props']> & {}): ReturnType<__sveltets_Render_2<T>['exports']>;
+    // (undocumented)
+    new <T>(options: ComponentConstructorOptions<ReturnType<__sveltets_Render_2<T>['props']>>): SvelteComponent<ReturnType<__sveltets_Render_2<T>['props']>, ReturnType<__sveltets_Render_2<T>['events']>, ReturnType<__sveltets_Render_2<T>['slots']>> & {
+        $$bindings?: ReturnType<__sveltets_Render_2<T>['bindings']>;
+    } & ReturnType<__sveltets_Render_2<T>['exports']>;
+    // (undocumented)
+    z_$$bindings?: ReturnType<__sveltets_Render_2<any>['bindings']>;
+}
+
+// @public (undocumented)
+function $$render<K extends string = string>(): {
+    props: SegmentedChoiceProps<K>;
+    exports: {};
+    bindings: "";
+    slots: {};
+    events: {};
+};
+
+// @public (undocumented)
+function $$render_2<T>(): {
+    props: DataTableProps<T>;
+    exports: {};
+    bindings: "";
+    slots: {};
+    events: {};
+};
+
+// @public (undocumented)
+class __sveltets_Render<K extends string = string> {
+    // (undocumented)
+    bindings(): "";
+    // (undocumented)
+    events(): ReturnType<typeof $$render<K>>['events'];
+    // (undocumented)
+    exports(): {};
+    // (undocumented)
+    props(): ReturnType<typeof $$render<K>>['props'];
+    // (undocumented)
+    slots(): ReturnType<typeof $$render<K>>['slots'];
+}
+
+// @public (undocumented)
+class __sveltets_Render_2<T> {
+    // (undocumented)
+    bindings(): "";
+    // (undocumented)
+    events(): ReturnType<typeof $$render_2<T>>['events'];
+    // (undocumented)
+    exports(): {};
+    // (undocumented)
+    props(): ReturnType<typeof $$render_2<T>>['props'];
+    // (undocumented)
+    slots(): ReturnType<typeof $$render_2<T>>['slots'];
+}
+
+// @public (undocumented)
+const AnalyticsConsent: Component<AnalyticsConsentProps, {}, "">;
+
+// @public (undocumented)
+type AnalyticsConsent = ReturnType<typeof AnalyticsConsent>;
+
+// @public (undocumented)
+interface AnalyticsConsentCopy {
+    // (undocumented)
+    accept: string;
+    // (undocumented)
+    decline: string;
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    privacy: string;
+    settings: string;
+    // (undocumented)
+    title: string;
+}
+
+// @public (undocumented)
+interface AnalyticsConsentProps {
+    canShow?: boolean;
+    // (undocumented)
+    controls?: AnalyticsControlsInput;
+    // (undocumented)
+    copy: AnalyticsConsentCopy;
+    // (undocumented)
+    id?: string;
+    // (undocumented)
+    privacyHref: string;
+    // (undocumented)
+    store: AnalyticsConsentStore;
+}
 
 // @public (undocumented)
 type AnchorOnlyProps = Exclude<keyof HTMLAnchorAttributes, keyof HTMLAttributes<HTMLSpanElement>>;
@@ -398,6 +522,8 @@ declare namespace Brand {
         CollapsibleSectionProps,
         CornerMarks,
         CornerMarksProps,
+        CornerMeta,
+        CornerMetaProps,
         ErrorIllustration,
         ErrorIllustrationProps,
         FilterGroup,
@@ -423,6 +549,9 @@ declare namespace Brand {
         SectionIconName,
         SectionLabel,
         SectionLabelProps,
+        SegmentedChoice,
+        SegmentedChoiceOption,
+        SegmentedChoiceProps,
         StatusDot,
         StatusDotColor,
         StatusDotProps,
@@ -440,6 +569,8 @@ declare namespace Brand {
         TocNavProps,
         TocPill,
         TocPillProps,
+        ToggleChip,
+        ToggleChipProps,
         TOC_TARGET_SELECTOR,
         flattenToc,
         landTocFragments,
@@ -463,6 +594,30 @@ declare namespace Brand {
         OnNavigate,
         SiteNavigation
     }
+}
+
+// @public (undocumented)
+const Breadcrumb: Component<BreadcrumbProps, {}, "">;
+
+// @public (undocumented)
+type Breadcrumb = ReturnType<typeof Breadcrumb>;
+
+// @public (undocumented)
+interface BreadcrumbItem {
+    // (undocumented)
+    href: string;
+    // (undocumented)
+    name: string;
+}
+
+// @public (undocumented)
+interface BreadcrumbProps {
+    // (undocumented)
+    class?: string;
+    // (undocumented)
+    items: readonly BreadcrumbItem[];
+    // (undocumented)
+    label: string;
 }
 
 // @public (undocumented)
@@ -754,6 +909,22 @@ function configureUi(configuration?: UiConfiguration): ConfigureUiResult;
 type ConfigureUiResult = 'initialized' | 'unchanged';
 
 // @public (undocumented)
+const ControlsRail: Component<ControlsRailProps, {}, "">;
+
+// @public (undocumented)
+type ControlsRail = ReturnType<typeof ControlsRail>;
+
+// @public (undocumented)
+interface ControlsRailProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+    // (undocumented)
+    children?: Snippet;
+    // (undocumented)
+    class?: string;
+    // (undocumented)
+    label?: string;
+}
+
+// @public (undocumented)
 const CornerMarks: Component<CornerMarksProps, {}, "">;
 
 // @public (undocumented)
@@ -766,6 +937,28 @@ interface CornerMarksProps extends HTMLAttributes<HTMLDivElement> {
     // (undocumented)
     opacity?: number;
     size?: 'sm' | 'md';
+}
+
+// @public (undocumented)
+const CornerMeta: Component<CornerMetaProps, {}, "">;
+
+// @public (undocumented)
+type CornerMeta = ReturnType<typeof CornerMeta>;
+
+// @public (undocumented)
+interface CornerMetaProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+    // (undocumented)
+    bottomLeft?: Snippet;
+    // (undocumented)
+    bottomRight?: Snippet;
+    // (undocumented)
+    class?: string;
+    // (undocumented)
+    crosshair?: boolean;
+    // (undocumented)
+    topLeft?: Snippet;
+    // (undocumented)
+    topRight?: Snippet;
 }
 
 // @public
@@ -796,6 +989,88 @@ type CustomSeparatorElementProps = WithElementRef<Omit<HTMLAttributes<HTMLDivEle
     child?: never;
     children?: never;
     decorative?: never;
+};
+
+// @public (undocumented)
+const DashboardGrid: Component<DashboardGridProps, {}, "">;
+
+// @public (undocumented)
+type DashboardGrid = ReturnType<typeof DashboardGrid>;
+
+// @public (undocumented)
+interface DashboardGridProps extends Omit<HTMLAttributes<HTMLElement>, 'children'> {
+    // (undocumented)
+    as?: 'div' | 'ul' | 'ol' | 'section';
+    // (undocumented)
+    children?: Snippet;
+    // (undocumented)
+    class?: string;
+    gutter?: boolean;
+    // (undocumented)
+    label?: string;
+    minTile?: string;
+}
+
+// @public (undocumented)
+const DataTable: $$IsomorphicComponent_2;
+
+// @public (undocumented)
+type DataTable<T> = InstanceType<typeof DataTable<T>>;
+
+// @public (undocumented)
+type DataTableAlign = 'start' | 'end';
+
+// @public (undocumented)
+interface DataTableColumn<T> {
+    // (undocumented)
+    readonly align?: DataTableAlign;
+    // (undocumented)
+    readonly cell: Snippet<[T]>;
+    // (undocumented)
+    readonly header: string;
+    // (undocumented)
+    readonly key: string;
+    // (undocumented)
+    readonly numeric?: boolean;
+    // (undocumented)
+    readonly rowHeader?: true;
+    // (undocumented)
+    readonly width?: string;
+}
+
+// @public (undocumented)
+interface DataTableProps<T> extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+    // (undocumented)
+    readonly borderCollapse?: 'collapse' | 'separate';
+    // (undocumented)
+    readonly caption: string;
+    // (undocumented)
+    readonly class?: string;
+    // (undocumented)
+    readonly columns: readonly DataTableColumn<T>[];
+    readonly frame?: 'none' | 'card';
+    // (undocumented)
+    readonly headerBand?: 'none' | 'terminal';
+    // (undocumented)
+    readonly key: (row: T, index: number) => string;
+    // (undocumented)
+    readonly responsive?: DataTableResponsive;
+    // (undocumented)
+    readonly rows: readonly T[];
+    // (undocumented)
+    readonly tableClass?: string;
+}
+
+// @public (undocumented)
+type DataTableResponsive = {
+    mode: 'none';
+} | {
+    mode: 'stack';
+    at: 'compact' | 'tablet';
+} | {
+    mode: 'scroll';
+    minWidth?: string;
+    minWidthCompact?: string;
 };
 
 // @public
@@ -897,6 +1172,18 @@ interface ErrorPageProps {
     statusNote?: string;
     suggestions?: readonly ErrorPageLink[];
     suggestionsLabel?: string;
+}
+
+declare namespace Feedback {
+    export {
+        StateNotice,
+        StateNoticePresentation,
+        StateNoticeProps,
+        StateNoticeTone,
+        AnalyticsConsent,
+        AnalyticsConsentCopy,
+        AnalyticsConsentProps
+    }
 }
 
 // @public (undocumented)
@@ -1050,6 +1337,8 @@ declare namespace Index {
         CollapsibleSectionProps,
         CornerMarks,
         CornerMarksProps,
+        CornerMeta,
+        CornerMetaProps,
         ErrorIllustration,
         ErrorIllustrationProps,
         FilterGroup,
@@ -1075,6 +1364,9 @@ declare namespace Index {
         SectionIconName,
         SectionLabel,
         SectionLabelProps,
+        SegmentedChoice,
+        SegmentedChoiceOption,
+        SegmentedChoiceProps,
         StatusDot,
         StatusDotColor,
         StatusDotProps,
@@ -1092,6 +1384,8 @@ declare namespace Index {
         TocNavProps,
         TocPill,
         TocPillProps,
+        ToggleChip,
+        ToggleChipProps,
         TOC_TARGET_SELECTOR,
         flattenToc,
         landTocFragments,
@@ -1170,7 +1464,22 @@ declare namespace Layout {
         SiteHeaderLabels,
         SiteHeaderLink,
         SiteHeaderMenuItem,
-        SiteHeaderProps
+        SiteHeaderProps,
+        Breadcrumb,
+        BreadcrumbItem,
+        BreadcrumbProps,
+        ControlsRail,
+        ControlsRailProps,
+        DashboardGrid,
+        DashboardGridProps,
+        Masthead,
+        MastheadProps,
+        Surface,
+        SurfaceProps,
+        SurfaceRail,
+        SurfaceRailContext,
+        SurfaceRailPresentation,
+        SurfaceRailProps
     }
 }
 
@@ -1209,6 +1518,39 @@ interface LocaleContext<Locale extends string> {
 
 // @public
 type LocaleFree = string | number | boolean | null | LocaleFree[];
+
+// @public (undocumented)
+const Masthead: Component<MastheadProps, {}, "">;
+
+// @public (undocumented)
+type Masthead = ReturnType<typeof Masthead>;
+
+// @public (undocumented)
+interface MastheadProps {
+    // (undocumented)
+    children?: Snippet;
+    // (undocumented)
+    class?: string;
+    // (undocumented)
+    cornerMeta?: Snippet;
+    // (undocumented)
+    explainer?: Snippet;
+    // (undocumented)
+    heading: string;
+    // (undocumented)
+    headingId?: string;
+    // (undocumented)
+    kicker: string;
+    // (undocumented)
+    lede?: string;
+    // (undocumented)
+    level?: 1 | 2 | 3 | 4 | 5 | 6;
+    // (undocumented)
+    meta?: Snippet;
+    // (undocumented)
+    subheading?: string;
+    tape?: boolean;
+}
 
 // @public (undocumented)
 const MetricDisplay: Component<MetricDisplayProps, {}, "">;
@@ -1679,6 +2021,43 @@ type SectionLabelProps = Omit<HTMLAttributes<HTMLSpanElement>, 'children' | 'cla
 };
 
 // @public (undocumented)
+const SegmentedChoice: $$IsomorphicComponent;
+
+// @public (undocumented)
+type SegmentedChoice<K extends string = string> = InstanceType<typeof SegmentedChoice<K>>;
+
+// @public (undocumented)
+interface SegmentedChoiceOption<K extends string = string> {
+    readonly compactLabel?: string;
+    // (undocumented)
+    readonly describedById?: string;
+    // (undocumented)
+    readonly disabled?: boolean;
+    // (undocumented)
+    readonly key: K;
+    // (undocumented)
+    readonly label: string;
+    // (undocumented)
+    readonly title?: string;
+}
+
+// @public (undocumented)
+interface SegmentedChoiceProps<K extends string = string> extends Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'role' | 'aria-label'> {
+    // (undocumented)
+    readonly class?: string;
+    // (undocumented)
+    readonly label: string;
+    // (undocumented)
+    readonly onSelect: (key: K) => void;
+    // (undocumented)
+    readonly options: readonly SegmentedChoiceOption<K>[];
+    // (undocumented)
+    readonly value: K;
+    // (undocumented)
+    readonly variant?: 'default' | 'joined-grid';
+}
+
+// @public (undocumented)
 const SeoHead: Component<SeoHeadProps, {}, "">;
 
 // @public (undocumented)
@@ -2047,6 +2426,38 @@ declare namespace State {
 }
 
 // @public (undocumented)
+const StateNotice: Component<StateNoticeProps, {}, "">;
+
+// @public (undocumented)
+type StateNotice = ReturnType<typeof StateNotice>;
+
+// @public (undocumented)
+type StateNoticePresentation = 'row' | 'pill' | 'silo' | 'card' | 'responsive';
+
+// @public (undocumented)
+interface StateNoticeProps extends Omit<HTMLAttributes<HTMLElement>, 'children' | 'title'> {
+    // (undocumented)
+    action?: Snippet;
+    // (undocumented)
+    body?: string;
+    // (undocumented)
+    class?: string;
+    // (undocumented)
+    glyph?: string;
+    // (undocumented)
+    meta?: Snippet;
+    // (undocumented)
+    presentation?: StateNoticePresentation;
+    // (undocumented)
+    title: string;
+    // (undocumented)
+    tone?: StateNoticeTone;
+}
+
+// @public (undocumented)
+type StateNoticeTone = 'neutral' | 'positive' | 'warning' | 'error';
+
+// @public (undocumented)
 const StatusDot: Component<StatusDotProps, {}, "">;
 
 // @public (undocumented)
@@ -2102,6 +2513,65 @@ type StopLabelProps = StopLabelElementProps & {
     prefix?: string;
     class?: string;
 };
+
+// @public (undocumented)
+const Surface: Component<SurfaceProps, {}, "">;
+
+// @public (undocumented)
+type Surface = ReturnType<typeof Surface>;
+
+// @public (undocumented)
+interface SurfaceProps extends Omit<HTMLAttributes<HTMLElement>, 'children'> {
+    // (undocumented)
+    as?: 'section' | 'div' | 'article';
+    // (undocumented)
+    children?: Snippet;
+    // (undocumented)
+    class?: string;
+}
+
+// @public (undocumented)
+const SurfaceRail: Component<SurfaceRailProps, {}, "">;
+
+// @public (undocumented)
+type SurfaceRail = ReturnType<typeof SurfaceRail>;
+
+// @public (undocumented)
+interface SurfaceRailContext {
+    // (undocumented)
+    closeSheet: () => void;
+    // (undocumented)
+    presentation: SurfaceRailPresentation;
+}
+
+// @public (undocumented)
+type SurfaceRailPresentation = 'desktop' | 'mobile';
+
+// @public (undocumented)
+interface SurfaceRailProps {
+    // (undocumented)
+    class?: string;
+    // (undocumented)
+    closeAria: string;
+    // (undocumented)
+    label: string;
+    mobileVisible?: boolean;
+    // (undocumented)
+    openAria: string;
+    // (undocumented)
+    rail: Snippet<[SurfaceRailContext]>;
+    summary?: string;
+}
+
+declare namespace Table {
+    export {
+        DataTable,
+        DataTableAlign,
+        DataTableColumn,
+        DataTableProps,
+        DataTableResponsive
+    }
+}
 
 // @public (undocumented)
 const Tabs: Component<Tabs_2.RootProps, {}, "ref" | "value">;
@@ -2278,6 +2748,20 @@ const Toggle: Component<$$ComponentProps_8, {}, "ref" | "pressed">;
 
 // @public (undocumented)
 type Toggle = ReturnType<typeof Toggle>;
+
+// @public (undocumented)
+const ToggleChip: Component<ToggleChipProps, {}, "">;
+
+// @public (undocumented)
+type ToggleChip = ReturnType<typeof ToggleChip>;
+
+// @public (undocumented)
+interface ToggleChipProps extends Omit<HTMLButtonAttributes, 'aria-pressed'> {
+    // (undocumented)
+    class?: string;
+    // (undocumented)
+    pressed: boolean;
+}
 
 // @public (undocumented)
 const ToggleGroup_2: Component<ToggleGroupProps, {}, "ref" | "value">;

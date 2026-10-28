@@ -29,6 +29,9 @@ import {
 } from '../../../tools/adopt.js';
 import { fullTreeHash } from '../../../tools/adopt/contract.js';
 
+// Adoption copies a full package payload; Windows CI runners take 5–9s per test.
+vi.setConfig({ testTimeout: 30_000 });
+
 const scratch: string[] = [];
 const crashFixture = fileURLToPath(new URL('./fixtures/adopt-crash.ts', import.meta.url));
 const OLD_COMMIT = 'fedcba9876543210fedcba9876543210fedcba98';

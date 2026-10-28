@@ -7,9 +7,18 @@ storage keys, copy, or legal policy.
 
 ## Interface
 
-The root export and `./config`, `./consent`, `./policy`, `./client`, and `./plausible` subpaths are
-public. See [`api-reports/analytics.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.22.0/api-reports/analytics.api.md) for the exact
+The root export and `./config`, `./consent`, `./policy`, `./client`, `./plausible`, and `./vitals`
+subpaths are public. See [`api-reports/analytics.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.22.0/api-reports/analytics.api.md) for the exact
 interface.
+
+## Web vitals
+
+`./vitals` holds the beacon schema (`parseVitalsBeacon`, `parseVitalsSample` and their limits) for
+the receiving endpoint, and `startVitals({ endpoint, load })` for the page. `load` returns the
+`web-vitals` module (`() => import('web-vitals')`), so the package adds no dependency. The
+collector starts once per page, keeps up to 12 samples, and sends one beacon when the page is
+hidden, through `sendBeacon` or a keepalive `fetch`. It never throws. Products own whether it
+runs and where the samples go.
 
 ## Invariants
 
@@ -24,7 +33,8 @@ interface.
 
 ## Consumers and compatibility
 
-Products own when the client mounts, consent copy/UI, storage migration, runtime configuration,
+Products own when the client mounts, consent copy (the consent UI is `AnalyticsConsent` in
+`@yesid/ui/feedback`), storage migration, runtime configuration,
 and provider acceptance. The package accepts injected adapters because browser/test/runtime
 implementations genuinely vary. Current receipts live in [`CONSUMERS.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.22.0/CONSUMERS.md).
 
