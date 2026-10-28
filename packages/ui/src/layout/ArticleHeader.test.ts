@@ -152,6 +152,18 @@ describe('title highlight', () => {
 });
 
 describe('canvas', () => {
+	it('defaults to a decorative canvas and lets snippets replace or suppress it', () => {
+		const view = header();
+		const canvases = view.container.querySelectorAll('canvas');
+		expect(canvases).toHaveLength(1);
+		expect(root(view).contains(canvases[0])).toBe(true);
+		expect(hidden(canvases[0])).toBe(true);
+		const custom = render(Canvas, { props: { seen: [] } });
+		expect([...custom.container.querySelectorAll('canvas')]).toEqual([custom.getByTestId('canvas')]);
+		const empty = header({ canvas: createRawSnippet(() => ({ render: () => '<span></span>' })) });
+		expect(empty.container.querySelectorAll('canvas')).toHaveLength(0);
+	});
+
 	it('passes the snippet undefined first, then the header element, and renders inside it behind the content', () => {
 		const seen: (HTMLElement | undefined)[] = [];
 		const view = render(Canvas, { props: { seen } });

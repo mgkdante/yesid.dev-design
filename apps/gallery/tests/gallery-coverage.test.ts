@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { render } from 'svelte/server';
+import * as blueprints from '@yesid/ui/blueprints';
 import { describe, expect, it } from 'vitest';
 
 import { GALLERY_COVERAGE } from '../src/lib/gallery/coverage.js';
@@ -62,6 +63,9 @@ describe('Gallery coverage authority', () => {
 
 	it('server-renders every family and state scenario from the executable matrix', () => {
 		const { body } = render(GalleryPage);
+		for (const name of Object.keys(blueprints)) {
+			expect(body, `blueprint:${name}`).toContain(`data-gallery-family="blueprint:${name}"`);
+		}
 		for (const family of GALLERY_COVERAGE.primitives) {
 			expect(body, `primitive:${family}`).toContain(
 				`data-gallery-family="primitive:${family}"`,

@@ -5,6 +5,27 @@ import { blockingAxeViolations } from './authority.js';
 
 const DESKTOP_MIN_WIDTH = 1024;
 
+test('blueprint strokes follow scrolling and remain fully drawn under reduced motion', async ({ page }) => {
+	test.skip(page.viewportSize()!.width < DESKTOP_MIN_WIDTH, 'Blueprint scrubbing is desktop only');
+	await page.emulateMedia({ reducedMotion: 'no-preference' });
+	await page.goto('/listing-frame');
+	if (await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)) {
+		await page.addStyleTag({ content: 'body { min-height: 300vh; }' });
+	}
+	const path = page.locator('[data-slot="listing-frame"] .blueprint-bg svg path').first();
+	const fraction = () => path.evaluate((element) => {
+		const [drawn, total] = (element as SVGPathElement).style.strokeDasharray.split(',').map(parseFloat);
+		return drawn / total;
+	});
+	await expect.poll(fraction).toBeGreaterThan(0);
+	const initial = await fraction();
+	await page.mouse.wheel(0, 800);
+	await expect.poll(fraction).toBeGreaterThan(initial);
+	await page.emulateMedia({ reducedMotion: 'reduce' });
+	await page.reload();
+	await expect.poll(() => path.evaluate((element) => (element as SVGPathElement).style.strokeDasharray)).toBe('');
+});
+
 function listing(page: Page) {
 	return {
 		search: page.getByRole('textbox', { name: 'Rechercher' }),
