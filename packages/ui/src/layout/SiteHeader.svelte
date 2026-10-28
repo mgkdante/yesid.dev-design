@@ -227,7 +227,7 @@
 						class="nav-pill pointer-events-auto flex items-center"
 						class:nav-pill-compact={active}
 					>
-						<Wordmark href={home} text={wordmark} autoPlay data-testid="nav-wordmark" class="nav-wordmark min-h-11" />
+						<Wordmark href={home} text={wordmark} autoPlay class="nav-wordmark min-h-11" />
 
 						{#if links.length}
 							<span class="nav-divider nav-collapsible nav-links-part" class:nav-collapsed={active} aria-hidden="true"

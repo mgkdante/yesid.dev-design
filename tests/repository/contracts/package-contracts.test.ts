@@ -310,10 +310,16 @@ describe('browser authority script contract', () => {
 			const output = `${result.stdout}\n${result.stderr}`;
 			const specs = readdirSync(join(REPOSITORY_PATH, 'apps/gallery/tests/browser')).filter((file) =>
 				file.endsWith('.spec.ts'),
-			).length;
+			);
+			const listed = new Set(
+				[...output.matchAll(/\[([\w-]+)\] › ([\w.-]+\.spec\.ts):/g)].map(([, project, spec]) => `${project} ${spec}`),
+			);
 
 			expect(result.status, output).toBe(0);
-			expect(output).toMatch(new RegExp(`Total: \\d+ tests? in ${specs} files?`));
+			// Every spec runs on both the desktop and the mobile project.
+			for (const project of ['chromium-noble-desktop', 'chromium-noble-mobile']) {
+				for (const spec of specs) expect(listed, output).toContain(`${project} ${spec}`);
+			}
 			expect(output).not.toContain('vite v');
 			expect(output).not.toContain('Wrote site to "build"');
 		},

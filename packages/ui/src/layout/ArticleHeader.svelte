@@ -421,10 +421,6 @@
 		margin-top: 0.75rem;
 	}
 
-	.header__actions + .header__controls {
-		margin-top: 0.75rem;
-	}
-
 	@media (max-width: 390px) {
 		.header__cat-line {
 			gap: 0.5rem;
@@ -491,10 +487,6 @@
 
 		.header__back {
 			margin-bottom: 0.5rem;
-		}
-
-		.header__controls {
-			margin-top: 0.75rem;
 		}
 	}
 
