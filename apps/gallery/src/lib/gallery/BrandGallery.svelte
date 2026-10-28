@@ -10,6 +10,7 @@
 		FilterGroup,
 		FilterSection,
 		FilterSummary,
+		LanguageToggle,
 		MetricDisplay,
 		MetroStation,
 		QuietModeButton,
@@ -25,6 +26,7 @@
 		TocBadge,
 		TocNav,
 		TocPill,
+		Wordmark,
 		type SectionIconName,
 		type StatusDotColor,
 		type TocEntry,
@@ -226,6 +228,27 @@
 			</Card.Header>
 			<Card.Content>
 				<ThemeToggle label="Dark theme" />
+			</Card.Content>
+		</Card.Root>
+		<Card.Root data-gallery-family="brand:Wordmark">
+			<Card.Header>
+				<Card.Title>Wordmark</Card.Title>
+				<Card.Description>Name plus accent dot; hover runs the letter effects unless animate is off.</Card.Description>
+			</Card.Header>
+			<Card.Content class="flex items-center gap-6">
+				<Wordmark href="/" class="text-2xl" />
+				<Wordmark href="/" text="transit" animate={false} class="text-2xl" />
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:LanguageToggle">
+			<Card.Header>
+				<Card.Title>LanguageToggle</Card.Title>
+				<Card.Description>Signpost with one board per locale; links to the next one through the caller's href.</Card.Description>
+			</Card.Header>
+			<Card.Content class="flex items-center gap-6">
+				<LanguageToggle locale="en" locales={['en', 'fr']} href={(next) => `/?lang=${next}`} label="Language" />
+				<LanguageToggle locale="fr" locales={['en', 'fr', 'es']} href={(next) => `/?lang=${next}`} label="Langue" />
 			</Card.Content>
 		</Card.Root>
 

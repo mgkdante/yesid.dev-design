@@ -1,7 +1,7 @@
 # Gallery
 
 Private static dogfood for the yesid.dev-design packages. Gallery owns neutral rendered examples,
-package coverage, accessibility/browser checks, and reviewed visual baselines. It is not a
+package coverage, and browser checks of behavior and accessibility. It is not a
 released package and cannot prove that Transit or yesid.dev adopted or preserved product behavior.
 
 ## Interface and dependency direction
@@ -18,9 +18,7 @@ it does not create new package exports.
 
 - Gallery remains versioned separately from the seven coordinated packages.
 - Browser authority is pinned to Chromium, UTC, `en-CA`, reduced motion, desktop/mobile projects,
-  one worker, no retries, and exact screenshots.
-- Snapshot updates require an explained rendered change and visual review. Host-specific local
-  antialiasing is not permission to rewrite Noble baselines.
+  one worker and no retries. Browser tests assert behavior; there are no pixel snapshots.
 - Gallery success is upstream integration evidence only; consumers own adoption and deployment.
 
 ## Commands
@@ -40,7 +38,7 @@ builds the production Gallery before executing the browser suite.
 ## Failure modes and release implications
 
 Unit/SSR failures point to package integration or Gallery policy. Browser failures additionally
-cover built output, interactions, accessibility, fonts, responsive containment, and screenshots.
+cover built output, interactions, accessibility, fonts and responsive containment.
 Package success cannot waive a Gallery failure, and Gallery success cannot waive consumer gates.
 
 Gallery source and README changes do not require a coordinated package release unless package

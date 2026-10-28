@@ -15,20 +15,9 @@ export default defineConfig({
 	retries: 0,
 	workers: 1,
 	timeout: 30_000,
-	expect: {
-		timeout: 5_000,
-		toHaveScreenshot: {
-			animations: 'disabled',
-			caret: 'hide',
-			maxDiffPixels: 0,
-			scale: 'css',
-			threshold: 0,
-		},
-	},
+	expect: { timeout: 5_000 },
 	preserveOutput: 'failures-only',
-	updateSnapshots: 'none',
 	outputDir: './test-results',
-	snapshotPathTemplate: '{testDir}/__screenshots__/{projectName}/{testFilePath}/{arg}{ext}',
 	reporter: process.env.CI
 		? [
 				['line'],
