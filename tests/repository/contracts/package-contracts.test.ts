@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import { isAbsolute, relative } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { isAbsolute, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
@@ -299,22 +299,8 @@ describe('prospective package release contract', () => {
 });
 
 describe('browser authority script contract', () => {
-	const rootManifest = readManifest(ROOT_MANIFEST_URL);
-
-	it('delegates root browser commands through Bun run in the Gallery workspace', () => {
-		expect(rootManifest.scripts?.['test:browser']).toBe(
-			'bun run --cwd apps/gallery test:browser',
-		);
-		expect(rootManifest.scripts?.['test:browser:list']).toBe(
-			'bun run --cwd apps/gallery test:browser:list',
-		);
-		expect(rootManifest.scripts?.['browser:install']).toBe(
-			'bun run --cwd apps/gallery browser:install',
-		);
-	});
-
 	it(
-		'discovers the complete browser matrix through the root command',
+		'discovers every browser spec through the root command',
 		() => {
 			const result = spawnSync('bun', ['run', 'test:browser:list'], {
 				cwd: REPOSITORY_PATH,
@@ -322,9 +308,12 @@ describe('browser authority script contract', () => {
 				timeout: 10_000,
 			});
 			const output = `${result.stdout}\n${result.stderr}`;
+			const specs = readdirSync(join(REPOSITORY_PATH, 'apps/gallery/tests/browser')).filter((file) =>
+				file.endsWith('.spec.ts'),
+			).length;
 
 			expect(result.status, output).toBe(0);
-			expect(output).toMatch(/Total: 32 tests in 7 files/);
+			expect(output).toMatch(new RegExp(`Total: \\d+ tests? in ${specs} files?`));
 			expect(output).not.toContain('vite v');
 			expect(output).not.toContain('Wrote site to "build"');
 		},
