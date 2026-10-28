@@ -16,6 +16,7 @@
 		"test:browser:list": "playwright test --config playwright.config.ts --list"
 	},
 	"dependencies": {
+		"@yesid/analytics": "workspace:*",
 		"@yesid/motion": "workspace:*",
 		"@yesid/tokens": "workspace:*",
 		"@yesid/ui": "workspace:*"

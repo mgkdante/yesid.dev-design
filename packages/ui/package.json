@@ -106,6 +106,16 @@
       "svelte": "./src/head/index.ts",
       "default": "./src/head/index.ts"
     },
+    "./feedback": {
+      "types": "./src/feedback/index.ts",
+      "svelte": "./src/feedback/index.ts",
+      "default": "./src/feedback/index.ts"
+    },
+    "./table": {
+      "types": "./src/table/index.ts",
+      "svelte": "./src/table/index.ts",
+      "default": "./src/table/index.ts"
+    },
     "./base.css": "./base.css",
     "./boot.json": "./src/head/boot.json"
   },
@@ -116,6 +126,7 @@
   },
   "dependencies": {
     "@lucide/svelte": "^1.18.0",
+    "@yesid/analytics": "workspace:*",
     "@yesid/motion": "workspace:*",
     "@yesid/seo-kit": "workspace:*",
     "@yesid/tokens": "workspace:*",

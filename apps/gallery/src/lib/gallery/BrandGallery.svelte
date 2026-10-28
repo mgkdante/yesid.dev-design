@@ -6,6 +6,7 @@
 		ChevronToggle,
 		CollapsibleSection,
 		CornerMarks,
+		CornerMeta,
 		ErrorIllustration,
 		FilterGroup,
 		FilterSection,
@@ -18,6 +19,7 @@
 		SectionHeading,
 		SectionIcon,
 		SectionLabel,
+		SegmentedChoice,
 		StatusDot,
 		StickyPanel,
 		StopLabel,
@@ -26,6 +28,7 @@
 		TocBadge,
 		TocNav,
 		TocPill,
+		ToggleChip,
 		Wordmark,
 		type SectionIconName,
 		type StatusDotColor,
@@ -35,6 +38,13 @@
 	let chevronOpen = $state(false);
 	let filterMode = $state<string | null>('tram');
 	let searchText = $state('');
+	let grain = $state('week');
+	let lateOnly = $state(true);
+	const grainOptions = [
+		{ key: 'day', label: 'Day' },
+		{ key: 'week', label: 'Week' },
+		{ key: 'month', label: 'Month', disabled: true },
+	];
 	const modeItems = [
 		{ key: 'bus', label: 'Bus' },
 		{ key: 'tram', label: 'Tram' },
@@ -334,6 +344,20 @@
 			</Card.Content>
 		</Card.Root>
 
+		<Card.Root data-gallery-family="brand:CornerMeta">
+			<Card.Header>
+				<Card.Title>CornerMeta</Card.Title>
+				<Card.Description>Decorative corner notes from 768px, with crosshair marks.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<div class="relative h-28 rounded-md bg-muted">
+					{#snippet topLeft()}LINE 24{/snippet}
+					{#snippet bottomRight()}GENERATED 08:40{/snippet}
+					<CornerMeta crosshair {topLeft} {bottomRight} />
+				</div>
+			</Card.Content>
+		</Card.Root>
+
 		<Card.Root data-gallery-family="brand:ErrorIllustration">
 			<Card.Header>
 				<Card.Title>ErrorIllustration</Card.Title>
@@ -417,6 +441,34 @@
 					collapsible
 					onSelect={(key) => (filterMode = key)}
 				/>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:SegmentedChoice">
+			<Card.Header>
+				<Card.Title>SegmentedChoice</Card.Title>
+				<Card.Description>Radio group: arrows move and select, disabled options are skipped.</Card.Description>
+			</Card.Header>
+			<Card.Content class="grid gap-4">
+				<SegmentedChoice options={grainOptions} value={grain} label="Grain" onSelect={(key) => (grain = key)} />
+				<SegmentedChoice
+					options={grainOptions}
+					value={grain}
+					label="Grain, joined grid"
+					variant="joined-grid"
+					onSelect={(key) => (grain = key)}
+				/>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:ToggleChip">
+			<Card.Header>
+				<Card.Title>ToggleChip</Card.Title>
+				<Card.Description>Controlled pressed pill.</Card.Description>
+			</Card.Header>
+			<Card.Content class="flex flex-wrap gap-2">
+				<ToggleChip pressed={lateOnly} onclick={() => (lateOnly = !lateOnly)}>Late only</ToggleChip>
+				<ToggleChip pressed={false} disabled>Cancelled</ToggleChip>
 			</Card.Content>
 		</Card.Root>
 

@@ -75,6 +75,8 @@ const EXISTING_UI_EXPORTS = {
 	'./layout': './src/layout/index.ts',
 	'./state': './src/state/index.ts',
 	'./head': './src/head/index.ts',
+	'./feedback': './src/feedback/index.ts',
+	'./table': './src/table/index.ts',
 } as const;
 
 const EXISTING_MOTION_EXPORTS = {
@@ -115,6 +117,7 @@ const ANALYTICS_EXPORTS = {
 	'./consent': './src/consent.ts',
 	'./plausible': './src/plausible.ts',
 	'./policy': './src/policy.ts',
+	'./vitals': './src/vitals.ts',
 } as const;
 
 const I18N_CORE_EXPORTS = {

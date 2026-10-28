@@ -20,6 +20,7 @@ export const GALLERY_COVERAGE = {
 		'ChevronToggle',
 		'CollapsibleSection',
 		'CornerMarks',
+		'CornerMeta',
 		'ErrorIllustration',
 		'FilterGroup',
 		'FilterSection',
@@ -32,6 +33,7 @@ export const GALLERY_COVERAGE = {
 		'SectionHeading',
 		'SectionIcon',
 		'SectionLabel',
+		'SegmentedChoice',
 		'StatusDot',
 		'StickyPanel',
 		'StopLabel',
@@ -40,6 +42,7 @@ export const GALLERY_COVERAGE = {
 		'TocBadge',
 		'TocNav',
 		'TocPill',
+		'ToggleChip',
 		'Wordmark',
 	],
 	motion: [

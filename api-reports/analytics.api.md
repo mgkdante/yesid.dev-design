@@ -33,6 +33,11 @@
 - `types` → `./src/policy.ts`
 - `default` → `./src/policy.ts`
 
+### `./vitals`
+
+- `types` → `./src/vitals.ts`
+- `default` → `./src/vitals.ts`
+
 ## Direct public assets
 
 
@@ -44,6 +49,7 @@
 - `Consent` → `./src/consent.ts` (`./consent`)
 - `Plausible` → `./src/plausible.ts` (`./plausible`)
 - `Policy` → `./src/policy.ts` (`./policy`)
+- `Vitals` → `./src/vitals.ts` (`./vitals`)
 
 ## API Report File for "@yesid/analytics"
 
@@ -258,9 +264,39 @@ declare namespace Index {
         getAnalyticsPolicy,
         AnalyticsControlsInput,
         NormalizedAnalyticsControls,
-        AnalyticsPolicy
+        AnalyticsPolicy,
+        parseVitalsSample,
+        parseVitalsBeacon,
+        startVitals,
+        VITALS_METRIC_NAMES,
+        VitalsMetricName,
+        VITALS_RATINGS,
+        VitalsRating,
+        VITALS_NAV_TYPES,
+        VitalsNavType,
+        VitalsSample,
+        VitalsBeacon,
+        MAX_VITALS_SAMPLES,
+        MAX_VITALS_BODY_BYTES,
+        MAX_VITALS_PATH_LEN,
+        MAX_VITALS_CONN_LEN,
+        VitalsMetric,
+        WebVitalsModule,
+        StartVitalsOptions
     }
 }
+
+// @public (undocumented)
+const MAX_VITALS_BODY_BYTES = 4096;
+
+// @public (undocumented)
+const MAX_VITALS_CONN_LEN = 32;
+
+// @public (undocumented)
+const MAX_VITALS_PATH_LEN = 256;
+
+// @public (undocumented)
+const MAX_VITALS_SAMPLES = 12;
 
 // @public (undocumented)
 function normalizeAnalyticsControls(controls?: AnalyticsControlsInput): NormalizedAnalyticsControls;
@@ -272,6 +308,12 @@ interface NormalizedAnalyticsControls {
     // (undocumented)
     showBanner: boolean;
 }
+
+// @public
+function parseVitalsBeacon(input: unknown): VitalsSample[] | null;
+
+// @public (undocumented)
+function parseVitalsSample(input: unknown): VitalsSample | null;
 
 declare namespace Plausible {
     export {
@@ -332,6 +374,113 @@ function sanitizeAnalyticsUrl(url: URL): string;
 
 // @public (undocumented)
 function sendPlausibleEvent(payload: PlausibleEventPayload, fetcher?: PlausibleFetch, timeoutMs?: number): Promise<boolean>;
+
+// @public
+function startVitals(input: StartVitalsOptions): () => void;
+
+// @public (undocumented)
+interface StartVitalsOptions {
+    readonly endpoint: string;
+    readonly load: () => Promise<WebVitalsModule>;
+}
+
+declare namespace Vitals {
+    export {
+        parseVitalsSample,
+        parseVitalsBeacon,
+        startVitals,
+        VITALS_METRIC_NAMES,
+        VitalsMetricName,
+        VITALS_RATINGS,
+        VitalsRating,
+        VITALS_NAV_TYPES,
+        VitalsNavType,
+        VitalsSample,
+        VitalsBeacon,
+        MAX_VITALS_SAMPLES,
+        MAX_VITALS_BODY_BYTES,
+        MAX_VITALS_PATH_LEN,
+        MAX_VITALS_CONN_LEN,
+        VitalsMetric,
+        WebVitalsModule,
+        StartVitalsOptions
+    }
+}
+
+// @public (undocumented)
+const VITALS_METRIC_NAMES: readonly ["CLS", "FCP", "INP", "LCP", "TTFB"];
+
+// @public (undocumented)
+const VITALS_NAV_TYPES: readonly ["navigate", "reload", "back-forward", "back-forward-cache", "prerender", "restore"];
+
+// @public (undocumented)
+const VITALS_RATINGS: readonly ["good", "needs-improvement", "poor"];
+
+// @public (undocumented)
+interface VitalsBeacon {
+    // (undocumented)
+    readonly samples: readonly VitalsSample[];
+}
+
+// @public (undocumented)
+interface VitalsMetric {
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    readonly name: VitalsMetricName;
+    // (undocumented)
+    readonly navigationType: VitalsNavType;
+    // (undocumented)
+    readonly rating: VitalsRating;
+    // (undocumented)
+    readonly value: number;
+}
+
+// @public (undocumented)
+type VitalsMetricName = (typeof VITALS_METRIC_NAMES)[number];
+
+// @public (undocumented)
+type VitalsNavType = (typeof VITALS_NAV_TYPES)[number];
+
+// @public (undocumented)
+type VitalsRating = (typeof VITALS_RATINGS)[number];
+
+// @public (undocumented)
+type VitalsReporter = (onReport: (metric: VitalsMetric) => void, opts?: {
+    reportAllChanges?: boolean;
+}) => void;
+
+// @public (undocumented)
+interface VitalsSample {
+    // (undocumented)
+    readonly conn?: string;
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    readonly name: VitalsMetricName;
+    // (undocumented)
+    readonly navType: VitalsNavType;
+    // (undocumented)
+    readonly path: string;
+    // (undocumented)
+    readonly rating: VitalsRating;
+    // (undocumented)
+    readonly value: number;
+}
+
+// @public
+interface WebVitalsModule {
+    // (undocumented)
+    readonly onCLS: VitalsReporter;
+    // (undocumented)
+    readonly onFCP: VitalsReporter;
+    // (undocumented)
+    readonly onINP: VitalsReporter;
+    // (undocumented)
+    readonly onLCP: VitalsReporter;
+    // (undocumented)
+    readonly onTTFB: VitalsReporter;
+}
 
 // (No @packageDocumentation comment for this package)
 

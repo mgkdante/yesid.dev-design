@@ -102,6 +102,7 @@ components:
   ChevronToggle: {}
   CollapsibleSection: {}
   CornerMarks: {}
+  CornerMeta: {}
   ErrorIllustration: {}
   FilterGroup: {}
   FilterSection: {}
@@ -113,6 +114,7 @@ components:
   SectionHeading: {}
   SectionIcon: {}
   SectionLabel: {}
+  SegmentedChoice: {}
   StatusDot: {}
   StickyPanel: {}
   StopLabel: {}
@@ -121,6 +123,7 @@ components:
   TocBadge: {}
   TocNav: {}
   TocPill: {}
+  ToggleChip: {}
   Wordmark: {}
   LanguageToggle: {}
 ---
@@ -188,7 +191,7 @@ Borders use semantic tokens (`border`, `border-subtle`, `border-strong`).
 
 ## Components
 
-See `@yesid/ui/brand` (25 components: `BlueprintShell`, `ChevronToggle`, `CollapsibleSection`, `CornerMarks`, `ErrorIllustration`, `FilterGroup`, `FilterSection`, `FilterSummary`, `MetricDisplay`, `MetroStation`, `QuietModeButton`, `SearchInput`, `SectionHeading`, `SectionIcon`, `SectionLabel`, `StatusDot`, `StickyPanel`, `StopLabel`, `TerminalCursor`, `ThemeToggle`, `TocBadge`, `TocNav`, `TocPill`, `Wordmark`, `LanguageToggle`) and
+See `@yesid/ui/brand` (28 components: `BlueprintShell`, `ChevronToggle`, `CollapsibleSection`, `CornerMarks`, `CornerMeta`, `ErrorIllustration`, `FilterGroup`, `FilterSection`, `FilterSummary`, `MetricDisplay`, `MetroStation`, `QuietModeButton`, `SearchInput`, `SectionHeading`, `SectionIcon`, `SectionLabel`, `SegmentedChoice`, `StatusDot`, `StickyPanel`, `StopLabel`, `TerminalCursor`, `ThemeToggle`, `TocBadge`, `TocNav`, `TocPill`, `ToggleChip`, `Wordmark`, `LanguageToggle`) and
 14 primitive subpaths (`@yesid/ui/badge`, `@yesid/ui/button`, `@yesid/ui/card`, `@yesid/ui/collapsible`, `@yesid/ui/combobox`, `@yesid/ui/footer`, `@yesid/ui/resizable`, `@yesid/ui/scroll-area`, `@yesid/ui/separator`, `@yesid/ui/sheet`, `@yesid/ui/skeleton`, `@yesid/ui/tabs`, `@yesid/ui/toggle`, `@yesid/ui/toggle-group`). Design-system documentation:
 the public `@yesid/ui` package documentation and the living Gallery.
 
