@@ -270,7 +270,9 @@ and drawer, hidden at the desktop breakpoint; the caller supplies `openAria` and
 `onNavigate` defaults to `navigateToc`. `observeActiveToc` reports the active id from
 `[data-section-index]` and `[data-toc]` targets, and `onTocNavigate` belongs in `afterNavigate`.
 `landTocFragments()` is opt-in for apps whose layout does not already land same-page fragment
-links; start it next to `observeActiveToc` and run its cleanup on unmount.
+links; start it next to `observeActiveToc` and run its cleanup on unmount. Jumps through
+`navigateToc` and `revealTocTarget` land the section a quarter down the viewport, the same line
+`observeActiveToc` reads, so the active entry is always the one the reader picked.
 
 ### CornerMarks, StatusDot, MetricDisplay, SectionHeading, and SectionIcon
 

@@ -78,6 +78,28 @@ it('navigateToc lands an open nested heading, or the header of a closed card', (
 	expect(heading).toHaveBeenCalledOnce();
 });
 
+it('lands a TOC jump a quarter down the viewport, on the line the active tracker reads', () => {
+	reducedMotion(false);
+	mount(CARD);
+	const heading = document.querySelector<HTMLElement>('#nested')!;
+	let marginAtJump = '';
+	heading.scrollIntoView = vi.fn(() => {
+		marginAtJump = heading.style.scrollMarginTop;
+	});
+	toc.navigateToc('nested');
+	expect(marginAtJump).toBe('25vh');
+	expect(heading.style.scrollMarginTop).toBe('');
+
+	mount('<section data-toc="overview"></section>');
+	let rootMargin: string | undefined;
+	vi.stubGlobal('IntersectionObserver', function (_: unknown, options?: IntersectionObserverInit) {
+		rootMargin = options?.rootMargin;
+		return { observe: vi.fn(), disconnect: vi.fn() };
+	});
+	toc.observeActiveToc(vi.fn());
+	expect(rootMargin).toBe('-25% 0px -74% 0px');
+});
+
 it('navigateToc jumps under prefers-reduced-motion and ignores a missing target', () => {
 	reducedMotion(true);
 	mount(CARD);
