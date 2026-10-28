@@ -50,6 +50,10 @@
       "types": "./src/utils/ticker.ts",
       "default": "./src/utils/ticker.ts"
     },
+    "./utils/viewTransition": {
+      "types": "./src/utils/viewTransition.ts",
+      "default": "./src/utils/viewTransition.ts"
+    },
     "./lenis.css": "./lenis.css",
     "./ripple.css": "./ripple.css",
     "./tap-feedback.css": "./tap-feedback.css"

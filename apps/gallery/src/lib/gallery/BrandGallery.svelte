@@ -209,16 +209,12 @@
 		<Card.Root data-gallery-family="brand:StickyPanel">
 			<Card.Header>
 				<Card.Title>StickyPanel</Card.Title>
-				<Card.Description>Default surface beside a caller-owned visual hook.</Card.Description>
+				<Card.Description>Sticky surface-3 panel that chains wheel scrolling to the page.</Card.Description>
 			</Card.Header>
-			<Card.Content class="grid gap-3 sm:grid-cols-2">
+			<Card.Content>
 				<StickyPanel top="1rem">
-					<SectionLabel text="DEFAULT SURFACE" variant="metric" />
-					<p class="mt-2 text-small">Card surface, shadow, and native sticky scroll.</p>
-				</StickyPanel>
-				<StickyPanel top="1rem" class="gallery-sticky-configured">
-					<SectionLabel text="CONFIGURED SURFACE" variant="metric" />
-					<p class="mt-2 text-small">A caller class changes presentation without changing behavior.</p>
+					<SectionLabel text="STICKY PANEL" variant="metric" />
+					<p class="mt-2 text-small">Keyboard-scrollable, sticky below its top offset.</p>
 				</StickyPanel>
 			</Card.Content>
 		</Card.Root>
@@ -261,11 +257,8 @@
 					<TocBadge badge={{ kind: 'icon', name: 'chart' }} />
 					<span class="text-small text-muted-foreground">number · icon</span>
 				</div>
-				<div class="grid gap-3 sm:grid-cols-2" data-gallery-family="brand:TerminalCursor">
+				<div data-gallery-family="brand:TerminalCursor">
 					<p class="font-mono text-mono">SYSTEM READY<TerminalCursor /></p>
-					<p class="font-mono text-mono">
-						SERVICE READY<TerminalCursor class="gallery-terminal-configured" />
-					</p>
 				</div>
 			</Card.Content>
 		</Card.Root>

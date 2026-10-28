@@ -1,9 +1,4 @@
-// Test setup for @yesid/motion — keep the GSAP mock block intact
-// as the exact action-test contract (the motion tests
-// were written against these exact mocks). Plugins this package no longer
-// ships eagerly (MorphSVG/DrawSVG/CustomEase — see utils/gsap.ts deviation
-// note) keep their mocks: the extracted tests never import them, and keeping
-// the block whole preserves byte-fidelity of the mock contract.
+// GSAP and its plugins are mocked for every motion test.
 import { vi } from 'vitest';
 
 // Mock GSAP and its plugins for the happy-dom test environment.

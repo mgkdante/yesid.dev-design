@@ -88,6 +88,7 @@ const EXISTING_MOTION_EXPORTS = {
 	'./utils/lenis': './src/utils/lenis.ts',
 	'./utils/sectionMagnet': './src/utils/sectionMagnet.ts',
 	'./utils/ticker': './src/utils/ticker.ts',
+	'./utils/viewTransition': './src/utils/viewTransition.ts',
 } as const;
 
 const GATES_EXPORTS = {

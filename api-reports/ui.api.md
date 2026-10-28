@@ -122,7 +122,7 @@
 
 ## Direct public assets
 
-- `./base.css` — direct asset `./base.css` (`default`), sha256 `059ae46463783cd60596d6eddb806306eb72fc734e55be26e05a678442bbb90b`
+- `./base.css` — direct asset `./base.css` (`default`), sha256 `fecd34a7c4a71b92ab325c6c4c8b6552c73833f86d74c9805a40456ed0cf10d0`
 
 ## Declaration namespaces
 
@@ -484,6 +484,7 @@ type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
 const buttonVariants: TVReturnType<    {
 variant: {
 default: string;
+conversion: string;
 outline: string;
 secondary: string;
 ghost: string;
@@ -499,13 +500,15 @@ icon: string;
 'icon-xs': string;
 'icon-sm': string;
 'icon-lg': string;
+'icon-tap': string;
 'cta-sm': string;
 cta: string;
 'cta-lg': string;
 };
-}, undefined, "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 rounded-lg border border-transparent bg-clip-padding text-control font-medium focus-visible:ring-3 active:not-aria-[haspopup]:translate-y-px aria-invalid:ring-3 [&_svg:not([class*='size-'])]:size-4 group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0", {
+}, undefined, "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 rounded-lg border border-transparent bg-clip-padding text-sm font-medium focus-visible:ring-3 active:not-aria-[haspopup]:translate-y-px aria-invalid:ring-3 [&_svg:not([class*='size-'])]:size-4 group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0", {
 variant: {
 default: string;
+conversion: string;
 outline: string;
 secondary: string;
 ghost: string;
@@ -521,6 +524,7 @@ icon: string;
 'icon-xs': string;
 'icon-sm': string;
 'icon-lg': string;
+'icon-tap': string;
 'cta-sm': string;
 cta: string;
 'cta-lg': string;
@@ -528,6 +532,7 @@ cta: string;
 }, undefined, TVReturnType<    {
 variant: {
 default: string;
+conversion: string;
 outline: string;
 secondary: string;
 ghost: string;
@@ -543,11 +548,12 @@ icon: string;
 'icon-xs': string;
 'icon-sm': string;
 'icon-lg': string;
+'icon-tap': string;
 'cta-sm': string;
 cta: string;
 'cta-lg': string;
 };
-}, undefined, "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 rounded-lg border border-transparent bg-clip-padding text-control font-medium focus-visible:ring-3 active:not-aria-[haspopup]:translate-y-px aria-invalid:ring-3 [&_svg:not([class*='size-'])]:size-4 group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0", unknown, unknown, undefined>>;
+}, undefined, "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 rounded-lg border border-transparent bg-clip-padding text-sm font-medium focus-visible:ring-3 active:not-aria-[haspopup]:translate-y-px aria-invalid:ring-3 [&_svg:not([class*='size-'])]:size-4 group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0", unknown, unknown, undefined>>;
 
 // @public (undocumented)
 const Card: Component<$$ComponentProps_3, {}, "ref">;
