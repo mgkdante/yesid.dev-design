@@ -122,7 +122,7 @@
 
 ## Direct public assets
 
-- `./base.css` — direct asset `./base.css` (`default`), sha256 `fecd34a7c4a71b92ab325c6c4c8b6552c73833f86d74c9805a40456ed0cf10d0`
+- `./base.css` — direct asset `./base.css` (`default`), sha256 `b8860f676812666f3b9541bf80af44b8214fabdb214f6d0a31e0d9e35641d4f0`
 
 ## Declaration namespaces
 
@@ -441,7 +441,15 @@ declare namespace Brand {
         settleLayout,
         tocElement,
         RevealTocTargetOptions,
-        TocEntry
+        TocEntry,
+        Wordmark,
+        WordmarkProps,
+        LanguageToggle,
+        LanguageToggleProps,
+        resetFocusAfterNavigation,
+        NavigationEvent,
+        OnNavigate,
+        SiteNavigation
     }
 }
 
@@ -1060,12 +1068,43 @@ declare namespace Index {
         settleLayout,
         tocElement,
         RevealTocTargetOptions,
-        TocEntry
+        TocEntry,
+        Wordmark,
+        WordmarkProps,
+        LanguageToggle,
+        LanguageToggleProps,
+        resetFocusAfterNavigation,
+        NavigationEvent,
+        OnNavigate,
+        SiteNavigation
     }
 }
 
 // @public
 function landTocFragments(root?: Element | Document): () => void;
+
+// @public (undocumented)
+const LanguageToggle: Component<LanguageToggleProps, {}, "">;
+
+// @public (undocumented)
+type LanguageToggle = ReturnType<typeof LanguageToggle>;
+
+// @public (undocumented)
+interface LanguageToggleProps {
+    // (undocumented)
+    class?: string;
+    href: (locale: string) => string;
+    label: string;
+    // (undocumented)
+    locale: string;
+    // (undocumented)
+    locales: readonly string[];
+    names?: Readonly<Record<string, string>>;
+    // (undocumented)
+    onNavigate?: OnNavigate;
+    preserveState?: boolean;
+    reload?: boolean;
+}
 
 declare namespace Layout {
     export {
@@ -1086,7 +1125,12 @@ declare namespace Layout {
         SiteFooterProps,
         SiteRoot,
         SiteRootProps,
-        SiteRootScroller
+        SiteRootScroller,
+        SiteHeader,
+        SiteHeaderLabels,
+        SiteHeaderLink,
+        SiteHeaderMenuItem,
+        SiteHeaderProps
     }
 }
 
@@ -1162,7 +1206,25 @@ type MetroStationProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
 function navigateToc(id: string): void;
 
 // @public
+interface NavigationEvent {
+    // (undocumented)
+    shallow?: boolean;
+    // (undocumented)
+    to: {
+        url: URL;
+    } | null;
+    // (undocumented)
+    type: string;
+}
+
+// @public (undocumented)
+type NavigationResult = void | (() => void) | Promise<void | (() => void)>;
+
+// @public
 function observeActiveToc(setActive: (id: string) => void, selector?: string): () => void;
+
+// @public (undocumented)
+type OnNavigate = (callback: (navigation: NavigationEvent) => NavigationResult) => void;
 
 // @public
 function onTocNavigate(input: {
@@ -1450,6 +1512,9 @@ interface QuietModeStore {
 
 // @public (undocumented)
 function reconcileActiveToc(activeId: string, previousIds: readonly string[], nextIds: readonly string[]): string;
+
+// @public
+function resetFocusAfterNavigation(): () => void;
 
 // @public (undocumented)
 const ResizableHandle: Component<$$ComponentProps_5, {}, "ref">;
@@ -1747,6 +1812,81 @@ interface SiteFooterProps {
     statusStart?: Snippet;
     // (undocumented)
     tagline: string;
+}
+
+// @public (undocumented)
+const SiteHeader: Component<SiteHeaderProps, {}, "">;
+
+// @public (undocumented)
+type SiteHeader = ReturnType<typeof SiteHeader>;
+
+// @public (undocumented)
+interface SiteHeaderLabels {
+    // (undocumented)
+    closeMenu: string;
+    menu: string;
+    // (undocumented)
+    menuFooter?: string;
+    nav?: string;
+    // (undocumented)
+    openMenu: string;
+    // (undocumented)
+    theme: string;
+}
+
+// @public (undocumented)
+interface SiteHeaderLink {
+    // (undocumented)
+    current?: boolean;
+    // (undocumented)
+    href: string;
+    // (undocumented)
+    label: string;
+    priority?: 1 | 2 | 3;
+}
+
+// @public (undocumented)
+interface SiteHeaderMenuItem {
+    // (undocumented)
+    ariaLabel?: string;
+    // (undocumented)
+    current?: boolean;
+    external?: boolean;
+    // (undocumented)
+    href: string;
+    // (undocumented)
+    label: string;
+    // (undocumented)
+    subtitle?: string;
+}
+
+// @public (undocumented)
+interface SiteHeaderProps {
+    actions?: Snippet;
+    // (undocumented)
+    home: string;
+    // (undocumented)
+    labels: SiteHeaderLabels;
+    // (undocumented)
+    language?: Omit<LanguageToggleProps, 'onNavigate' | 'class'>;
+    // (undocumented)
+    links: readonly SiteHeaderLink[];
+    // (undocumented)
+    menuItems: readonly SiteHeaderMenuItem[];
+    navigation: SiteNavigation;
+    search?: Snippet;
+    // (undocumented)
+    wordmark?: string;
+}
+
+// @public (undocumented)
+interface SiteNavigation {
+    // (undocumented)
+    afterNavigate(callback: (navigation: NavigationEvent) => void): void;
+    // (undocumented)
+    beforeNavigate(callback: (navigation: NavigationEvent) => void): void;
+    // (undocumented)
+    onNavigate: OnNavigate;
 }
 
 // @public (undocumented)
@@ -2140,6 +2280,24 @@ type WithoutChildren<T> = T extends {
 
 // @public (undocumented)
 type WithoutChildrenOrChild<T> = WithoutChildren<WithoutChild<T>>;
+
+// @public (undocumented)
+const Wordmark: Component<WordmarkProps, {}, "">;
+
+// @public (undocumented)
+type Wordmark = ReturnType<typeof Wordmark>;
+
+// @public (undocumented)
+interface WordmarkProps extends Omit<HTMLAnchorAttributes, 'children'> {
+    animate?: boolean;
+    // (undocumented)
+    autoPlay?: boolean;
+    external?: boolean;
+    // (undocumented)
+    href: string;
+    // (undocumented)
+    text?: string;
+}
 
 // (No @packageDocumentation comment for this package)
 
