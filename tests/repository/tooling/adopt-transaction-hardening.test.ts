@@ -25,6 +25,9 @@ import {
 } from '../../../tools/adopt/transaction.js';
 import type { AdoptManifest } from '../../../tools/adopt/contract.js';
 
+// Adoption copies a full package payload; Windows CI runners take 5–9s per test.
+vi.setConfig({ testTimeout: 30_000 });
+
 const scratch: string[] = [];
 const DEAD_PID = 2_147_483_647;
 const ZERO_SHA1 = '0'.repeat(40);
