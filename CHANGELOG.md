@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.25.2
+
+<!-- release-fragment: p3-header-copy-contrast -->
+- `@yesid/ui` (patch): Protect listing-header glyphs with a solid page-colour shadow beneath their existing soft halo, preserving blueprint ink and header layout.
+
 ## 0.25.1
 
 <!-- release-fragment: p3-listing-headers -->
