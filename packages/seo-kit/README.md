@@ -1,23 +1,39 @@
 # @yesid/seo-kit
 
-Framework-neutral SEO construction mechanics. The package builds JSON-LD nodes, alternate-locale
-sitemap entries, and Satori SVG with consumer-injected rasterization. Products own content,
-canonical routes, indexing policy, fonts, templates, filesystem writes, and HTTP responses.
+Framework-neutral SEO construction mechanics. The package builds JSON-LD nodes and their script
+body, alternate-locale sitemap entries, robots.txt, the yesid share card, the favicon mark and the
+standard security headers. Products own content, canonical routes, indexing policy, their CSP,
+filesystem writes, rasterization and HTTP responses. The Svelte head component lives in
+`@yesid/ui/head`.
 
 ## Interface
 
-Consumers can use the root export or the `./jsonld`, `./sitemap`, and `./satori` subpaths. See
+Consumers can use the root export (JSON-LD, sitemap and robots, Satori) or the subpaths. See
 [`api-reports/seo-kit.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.20.0/api-reports/seo-kit.api.md) for exact types and exports.
+
+- `./jsonld`: node builders and `serializeJsonLd(nodes)`, one `@graph` body with `<` escaped.
+- `./sitemap`: alternate-locale entries, the sitemap document and `robotsTxt`.
+- `./satori`: `renderSatoriPng` with an injected rasterizer.
+- `./og`: `renderOgPng(card, fonts, rasterize)` draws the share card (eyebrow, wordmark with the
+  accent dot, title, handle and location) at `OG_WIDTH` × `OG_HEIGHT` in `OG_PALETTE`, the dark
+  token colors.
+- `./og/fonts`: `ogFonts`, inlined by Vite, for request-time rendering.
+- `./og/files`: `ogFontFiles` and `readOgFonts()` for Bun build scripts. Native Node can't load
+  this package's TypeScript from `node_modules`.
+- `./icons`: `brandMarkSvg(color)`, the tab-cut ring and dot, and `touchIconSvg(ground, color)`.
+- `./headers`: `SECURITY_HEADERS` and `contentSecurityPolicy(directives)`.
 
 ## Invariants
 
 - Builders return data or strings and do not read product state.
 - JSON-LD context inclusion is explicit; callers own identifiers and schema composition.
 - Sitemap output escapes XML, normalizes valid dates, and preserves caller-selected empty-element
-  style and locale ordering.
-- Satori rendering accepts caller options; PNG conversion stays behind the injected rasterizer
-  seam because file/native/network ownership varies by consumer.
-- The package owns no routes, locale registry, font files, cache, or deployment adapter.
+  style and locale ordering. `robotsTxt` without indexing disallows everything.
+- Card colors come from `tokens.json`, never literals. `fonts/` holds the card's Inter and
+  JetBrains Mono TTFs; Satori can't read WOFF2.
+- PNG conversion stays behind the injected rasterizer because native and file ownership varies by
+  consumer.
+- The package owns no routes, locale registry, cache, CSP or deployment adapter.
 
 ## Consumers and compatibility
 

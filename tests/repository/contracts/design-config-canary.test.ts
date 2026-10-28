@@ -91,6 +91,7 @@ const LIBRARY_CONFIGS = [
 			compilerOptions: {
 				module: 'ES2022',
 				isolatedModules: true,
+				resolveJsonModule: true,
 				types: ['node', 'vitest/globals'],
 				lib: ['ES2022', 'DOM', 'DOM.Iterable'],
 			},

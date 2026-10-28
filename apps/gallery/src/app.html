@@ -3,18 +3,7 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-		<!-- Resolve the theme before CSSOM to prevent a flash. Markup defaults to
-		     dark for no-JS clients and crawlers; a stored light or dark choice wins. -->
-		<script>
-			(function () {
-				var d = document.documentElement, t = null;
-				try { t = localStorage.getItem('theme'); } catch (e) {}
-				if (t !== 'light' && t !== 'dark') {
-					t = 'dark';
-				}
-				d.dataset.theme = t;
-			})();
-		</script>
+		%yesid.themeBoot%
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

@@ -101,7 +101,13 @@
       "svelte": "./src/state/index.ts",
       "default": "./src/state/index.ts"
     },
-    "./base.css": "./base.css"
+    "./head": {
+      "types": "./src/head/index.ts",
+      "svelte": "./src/head/index.ts",
+      "default": "./src/head/index.ts"
+    },
+    "./base.css": "./base.css",
+    "./boot.json": "./src/head/boot.json"
   },
   "scripts": {
     "test": "vitest run",
@@ -111,6 +117,7 @@
   "dependencies": {
     "@lucide/svelte": "^1.18.0",
     "@yesid/motion": "workspace:*",
+    "@yesid/seo-kit": "workspace:*",
     "@yesid/tokens": "workspace:*",
     "bits-ui": "^2.16.3",
     "clsx": "^2.1.1",
