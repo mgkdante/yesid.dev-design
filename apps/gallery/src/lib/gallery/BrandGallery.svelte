@@ -33,8 +33,6 @@
 	} from '@yesid/ui/brand';
 
 	let chevronOpen = $state(false);
-	let quietModeEnabled = $state(false);
-	let quietModeRemembered = $state(false);
 	let filterMode = $state<string | null>('tram');
 	let searchText = $state('');
 	const modeItems = [
@@ -255,17 +253,10 @@
 		<Card.Root data-gallery-family="brand:QuietModeButton">
 			<Card.Header>
 				<Card.Title>QuietModeButton</Card.Title>
-				<Card.Description>Caller-owned copy and state with an explicit active effect.</Card.Description>
+				<Card.Description>Caller-owned copy on the shared quiet-mode store, with an explicit active effect.</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<QuietModeButton
-					copy={quietModeCopy}
-					enabled={quietModeEnabled}
-					remembered={quietModeRemembered}
-					onToggle={() => (quietModeEnabled = !quietModeEnabled)}
-					onRememberToggle={() => (quietModeRemembered = !quietModeRemembered)}
-					activeEffect="glow"
-				/>
+				<QuietModeButton copy={quietModeCopy} activeEffect="glow" />
 			</Card.Content>
 		</Card.Root>
 

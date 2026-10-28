@@ -24,8 +24,8 @@ config source -> independent config archive -> exact-tag tooling consumers
 | `@yesid/gates` | consumer-supplied policy and filesystem inputs; no product preset | deterministic consumer-neutral findings |
 | `@yesid/seo-kit` | `@yesid/tokens`; consumer data and injected rasterizer | framework-neutral JSON-LD, sitemap and robots, share card, favicon mark, and security-header mechanics |
 | `@yesid/analytics` | consumer consent policy and injected transport | fail-closed consent state, sanitization, ordered client, and Plausible mechanics |
-| `@yesid/i18n-core` | consumer locale values and route rules | pure locale-routing mechanics |
-| `@yesid/ui` | `@yesid/motion` and `@yesid/seo-kit`; caller-owned state, copy, and actions | source-shipped Svelte primitives, rule-of-three brand components, and the page head |
+| `@yesid/i18n-core` | consumer locale values, Intl tags and route rules | pure locale routing, cached Intl formatting with relative time, and copy typing |
+| `@yesid/ui` | `@yesid/motion` and `@yesid/seo-kit`; caller-owned state, copy, and actions | source-shipped Svelte primitives, rule-of-three brand components, the page head, and shared state (theme, quiet mode, clock, locale context) |
 | `@yesid/config` | no coordinated-package dependency | independently versioned compiler and task configuration |
 | Gallery | `tokens`, `motion`, `gates`, and `ui` | private dogfood plus rendered, accessibility, motion, responsive, and visual authority |
 | Root tooling | release/config manifests plus explicit self-canaries | token generation, API reports, archives, adoption, governance, and CI selection |

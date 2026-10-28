@@ -33,6 +33,20 @@ describe('SiteRoot', () => {
 		expect(quietMode.enabled).toBe(true);
 	});
 
+	it('restores a remembered quiet mode before its children render', () => {
+		localStorage.setItem('quiet-mode', 'true');
+		const probe = createRawSnippet(() => ({ render: () => `<p>${quietMode.enabled}</p>` }));
+		const { container } = render(SiteRoot, { props: { children: probe } });
+		expect(container.textContent).toBe('true');
+	});
+
+	it('keeps <html lang> on the page language', async () => {
+		const view = render(SiteRoot, { props: { children: page, lang: 'fr' } });
+		expect(document.documentElement.lang).toBe('fr');
+		await view.rerender({ children: page, lang: 'en' });
+		expect(document.documentElement.lang).toBe('en');
+	});
+
 	it('starts Lenis on the window by default and destroys it on unmount', () => {
 		const { unmount } = render(SiteRoot, { props: { children: page } });
 		expect(lenis.initLenis).toHaveBeenCalledWith(undefined);
