@@ -26,12 +26,18 @@ test('blueprint strokes follow scrolling and remain fully drawn under reduced mo
 	await expect.poll(() => path.evaluate((element) => (element as SVGPathElement).style.strokeDasharray)).toBe('');
 });
 
-test('every header drawing renders at the frame ink in both themes', async ({ page }) => {
+test('every header drawing renders at the frame ink in each theme', async ({ page }) => {
 	await page.goto('/listing-frame');
 	const art = page.locator('[data-slot="blueprint-listing-art"]');
-	for (const theme of ['dark', 'light'] as const) {
+	const inks = new Map<string, number>();
+	// No stored theme: the system's light scheme must pick the light ink, as it picks the light palette.
+	for (const theme of ['dark', 'light', 'system light'] as const) {
+		if (theme === 'system light') await page.emulateMedia({ colorScheme: 'light' });
 		const { ink, drawings } = await art.evaluate((slot, theme) => {
-			document.documentElement.dataset.theme = theme;
+			if (theme === 'system light') delete document.documentElement.dataset.theme;
+			else document.documentElement.dataset.theme = theme;
+			// An app's own opacity on a detail drawing must not count.
+			for (const detail of slot.querySelectorAll<SVGElement>('.edge-detail')) detail.style.opacity = '0.9';
 			// What a drawing shows: its own opacity times its wrappers' inside the slot.
 			const rendered = (drawing: Element) => {
 				let opacity = 1;
@@ -48,7 +54,9 @@ test('every header drawing renders at the frame ink in both themes', async ({ pa
 		expect(ink, theme).toBeGreaterThan(0);
 		expect(drawings.length, theme).toBeGreaterThan(1);
 		for (const opacity of drawings) expect(opacity, theme).toBeCloseTo(ink, 3);
+		inks.set(theme, ink);
 	}
+	expect(inks.get('system light')).toBe(inks.get('light'));
 });
 
 test('the lowest header copy rests on the band floor, with or without an aside', async ({ page }) => {

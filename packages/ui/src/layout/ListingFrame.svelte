@@ -200,7 +200,7 @@
 		padding-top: var(--chrome-offset, 0px);
 	}
 
-	/* Every drawing in the header takes this ink, whatever opacity the app or drawing sets. */
+	/* Every drawing in the header takes this ink, over the opacity BlueprintShell or inline styles give it. */
 	.listing-blueprint-art {
 		--blueprint-ink: 0.32;
 		position: absolute;
@@ -212,12 +212,19 @@
 		--blueprint-ink: 0.5;
 	}
 
+	/* The tokens' light palette also applies with no stored theme when the system is light. */
+	@media (prefers-color-scheme: light) {
+		:global(:root:not([data-theme='dark'])) .listing-blueprint-art {
+			--blueprint-ink: 0.5;
+		}
+	}
+
 	.listing-blueprint-art :global(.blueprint-bg .hero-svg),
 	.listing-blueprint-art :global(.blueprint-bg .edge-details .edge-detail) {
 		opacity: var(--blueprint-ink) !important;
 	}
 
-	/* The halo keeps the copy clear of the strokes behind it. */
+	/* A halo in the page colour behind the copy, where strokes cross it. */
 	.listing-header-content {
 		position: relative;
 		z-index: calc(var(--z-content) + 10);
