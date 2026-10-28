@@ -26,6 +26,9 @@ import {
 	type AcquiredSource,
 } from '../../../tools/adopt/acquisition.js';
 
+// Every test builds real Git repositories and worktrees; Windows CI runners take 5–9s per test.
+vi.setConfig({ testTimeout: 30_000 });
+
 const REPOSITORY_NUMERIC_ID = 1_303_136_912;
 const ADOPT_TOOL = fileURLToPath(new URL('../../../tools/adopt.ts', import.meta.url));
 const TAG = 'v1.2.3';
