@@ -2213,7 +2213,6 @@ type MetroStationProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
     index: number;
     showLine?: boolean;
     pulseDelay?: number;
-    roundel?: Snippet<[stationNo: string]>;
 };
 
 // @public
@@ -2494,12 +2493,6 @@ interface QuietModeButtonProps {
     remembered?: boolean;
 }
 
-// @public (undocumented)
-interface QuietModeInit {
-    // @deprecated (undocumented)
-    readonly storageKey?: string;
-}
-
 // @public
 interface QuietModeStore {
     // (undocumented)
@@ -2509,7 +2502,7 @@ interface QuietModeStore {
     // (undocumented)
     forgetDefault(): void;
     // (undocumented)
-    init(options?: QuietModeInit): void;
+    init(): void;
     // (undocumented)
     readonly openSignal: number;
     // (undocumented)
@@ -3008,8 +3001,6 @@ interface SiteRootProps {
     // (undocumented)
     children: Snippet;
     lang?: string;
-    // @deprecated (undocumented)
-    quietModeKey?: string;
     // (undocumented)
     scroller?: SiteRootScroller;
     // (undocumented)
@@ -3034,7 +3025,6 @@ declare namespace State {
     export {
         Theme,
         ThemeStore,
-        QuietModeInit,
         QuietModeStore,
         LocaleFree,
         Widen,

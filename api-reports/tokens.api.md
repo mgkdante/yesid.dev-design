@@ -49,11 +49,6 @@
 - `types` → `./src/generators/theme-css.ts`
 - `default` → `./src/generators/theme-css.ts`
 
-### `./generators/theme-block`
-
-- `types` → `./src/generators/theme-block.ts`
-- `default` → `./src/generators/theme-block.ts`
-
 ### `./generators/motion-ts`
 
 - `types` → `./src/generators/motion-ts.ts`
@@ -73,11 +68,6 @@
 
 - `types` → `./src/generators/tokens-css.ts`
 - `default` → `./src/generators/tokens-css.ts`
-
-### `./src/generators/theme-block.ts`
-
-- `types` → `./src/generators/theme-block.ts`
-- `default` → `./src/generators/theme-block.ts`
 
 ### `./src/generators/motion-ts.ts`
 
@@ -99,7 +89,6 @@
 - `Types` → `./src/types.ts` (`./types`)
 - `GeneratorsTokensCss` → `./src/generators/tokens-css.ts` (`./generators/tokens-css`, `./src/generators/tokens-css.ts`)
 - `GeneratorsThemeCss` → `./src/generators/theme-css.ts` (`./generators/theme-css`)
-- `GeneratorsThemeBlock` → `./src/generators/theme-block.ts` (`./generators/theme-block`, `./src/generators/theme-block.ts`)
 - `GeneratorsMotionTs` → `./src/generators/motion-ts.ts` (`./generators/motion-ts`, `./src/generators/motion-ts.ts`)
 - `GeneratorsDesignMd` → `./src/generators/design-md.ts` (`./generators/design-md`)
 
@@ -141,9 +130,6 @@ function generateDesignMd(tree: TokenTree, opts?: DesignMdOptions): string;
 // @public (undocumented)
 function generateMotionTs(tree: TokenTree): string;
 
-// @public @deprecated (undocumented)
-function generateThemeBlock(tree: TokenTree): string;
-
 // @public
 function generateThemeCss(tree: TokenTree): string;
 
@@ -160,13 +146,6 @@ declare namespace GeneratorsDesignMd {
 declare namespace GeneratorsMotionTs {
     export {
         generateMotionTs
-    }
-}
-
-declare namespace GeneratorsThemeBlock {
-    export {
-        generateThemeBlock,
-        replaceThemeRegion
     }
 }
 
@@ -205,9 +184,6 @@ function parseTokens(input: unknown): TokenTree;
 
 // @public
 function preloadFont(path: string): boolean;
-
-// @public @deprecated (undocumented)
-function replaceThemeRegion(fileContent: string, freshRegion: string): string;
 
 declare namespace Serialize {
     export {

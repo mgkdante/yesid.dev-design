@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Badge } from '@yesid/ui/badge';
 	import * as Card from '@yesid/ui/card';
 	import {
 		BlueprintShell,
@@ -114,17 +113,6 @@
 	<span class="font-mono text-caption text-muted-foreground">7-day median</span>
 {/snippet}
 
-{#snippet customRoundel(stationNo: string)}
-	<Badge
-		variant="number"
-		class="station-number-badge"
-		style="background-color: var(--signage-bg); color: var(--signage-text);"
-		aria-hidden="true"
-	>
-		{stationNo}
-	</Badge>
-{/snippet}
-
 <section class="mt-10" aria-labelledby="gallery-brand-components">
 	<h2 id="gallery-brand-components" class="font-heading text-title font-semibold">
 		Brand components
@@ -209,17 +197,10 @@
 		<Card.Root data-gallery-family="brand:MetroStation">
 			<Card.Header>
 				<Card.Title>MetroStation</Card.Title>
-				<Card.Description>Self-contained and caller-supplied roundels.</Card.Description>
+				<Card.Description>A zero-padded station number in a signage roundel.</Card.Description>
 			</Card.Header>
-			<Card.Content class="grid grid-cols-2 gap-6 text-center">
-				<div class="flex flex-col items-center gap-2">
-					<SectionLabel text="DEFAULT" variant="metric" />
-					<MetroStation index={3} showLine class="h-24" />
-				</div>
-				<div class="flex flex-col items-center gap-2">
-					<SectionLabel text="CUSTOM ROUNDEL" variant="metric" />
-					<MetroStation index={3} showLine roundel={customRoundel} class="h-24" />
-				</div>
+			<Card.Content class="flex justify-center">
+				<MetroStation index={3} showLine class="h-24" />
 			</Card.Content>
 		</Card.Root>
 

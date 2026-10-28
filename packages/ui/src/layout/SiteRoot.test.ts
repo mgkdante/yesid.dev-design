@@ -27,8 +27,8 @@ describe('SiteRoot', () => {
 
 	it('adopts the document theme and restores quiet mode on mount', () => {
 		document.documentElement.dataset.theme = 'light';
-		localStorage.setItem('transit:quiet-mode', 'true');
-		render(SiteRoot, { props: { children: page, quietModeKey: 'transit:quiet-mode' } });
+		localStorage.setItem('quiet-mode', 'true');
+		render(SiteRoot, { props: { children: page } });
 		expect(theme.current).toBe('light');
 		expect(quietMode.enabled).toBe(true);
 	});

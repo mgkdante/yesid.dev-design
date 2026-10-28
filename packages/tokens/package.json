@@ -34,10 +34,6 @@
       "types": "./src/generators/theme-css.ts",
       "default": "./src/generators/theme-css.ts"
     },
-    "./generators/theme-block": {
-      "types": "./src/generators/theme-block.ts",
-      "default": "./src/generators/theme-block.ts"
-    },
     "./generators/motion-ts": {
       "types": "./src/generators/motion-ts.ts",
       "default": "./src/generators/motion-ts.ts"
@@ -53,10 +49,6 @@
     "./src/generators/tokens-css.ts": {
       "types": "./src/generators/tokens-css.ts",
       "default": "./src/generators/tokens-css.ts"
-    },
-    "./src/generators/theme-block.ts": {
-      "types": "./src/generators/theme-block.ts",
-      "default": "./src/generators/theme-block.ts"
     },
     "./src/generators/motion-ts.ts": {
       "types": "./src/generators/motion-ts.ts",

@@ -140,12 +140,10 @@ const TOKEN_TYPESCRIPT_EXPORTS = {
 	'./fonts': './src/fonts.ts',
 	'./generators/tokens-css': './src/generators/tokens-css.ts',
 	'./generators/theme-css': './src/generators/theme-css.ts',
-	'./generators/theme-block': './src/generators/theme-block.ts',
 	'./generators/motion-ts': './src/generators/motion-ts.ts',
 	'./generators/design-md': './src/generators/design-md.ts',
 	'./src/parse.ts': './src/parse.ts',
 	'./src/generators/tokens-css.ts': './src/generators/tokens-css.ts',
-	'./src/generators/theme-block.ts': './src/generators/theme-block.ts',
 	'./src/generators/motion-ts.ts': './src/generators/motion-ts.ts',
 } as const;
 
