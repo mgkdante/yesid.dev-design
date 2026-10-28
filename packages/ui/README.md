@@ -337,7 +337,10 @@ the caller sets `pressed` (rendered as `aria-pressed`) and changes it in `onclic
 `@yesid/ui/layout` exports `ListingFrame`, the listing page template. From 1024px it adds a
 vertical edge title (`edgeTitle`, default `heading`) and an accent rail beside the page and hides
 the `heading` h1 visually. The header renders the `blueprint` snippet behind `heading`,
-`subtitle` and an optional `description`, with an optional `aside` beside them on desktop.
+`subtitle` and an optional `description`, with an optional `aside` beside them on desktop. The
+copy rests on the bottom of the band. Every drawing in the header renders at the frame's
+`--blueprint-ink`, one value per theme that overrides the opacity `BlueprintShell` and inline styles
+give the drawings.
 `onHeaderMount(header, frame)` runs once on mount for header motion such as a scroll scrub; return
 its cleanup.
 

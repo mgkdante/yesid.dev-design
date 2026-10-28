@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import {
 		BlueprintShell,
 		FilterGroup,
@@ -23,6 +25,9 @@
 		{ title: 'Refonte du tableau de bord', mode: 'travaux', year: '2026' },
 		{ title: 'Audit des horaires', mode: 'recherches', year: '2026' },
 	];
+
+	let params = $state(new URLSearchParams());
+	onMount(() => (params = page.url.searchParams));
 
 	let query = $state('');
 	let mode = $state<string | null>(null);
@@ -52,7 +57,20 @@
 {/snippet}
 
 {#snippet details()}
-	<BlueprintSignal class="edge-detail" style="top:0;right:8%;width:10%;height:58%;opacity:0.2;" />
+	<BlueprintSignal class="edge-detail" style="top:0;right:8%;width:10%;height:58%;" />
+{/snippet}
+
+{#snippet totals()}
+	<dl aria-label="Totaux du catalogue" class="grid grid-cols-2 gap-4 text-small">
+		<div>
+			<dt class="text-muted-foreground">Travaux</dt>
+			<dd class="font-mono">12</dd>
+		</div>
+		<div>
+			<dt class="text-muted-foreground">Recherches</dt>
+			<dd class="font-mono">7</dd>
+		</div>
+	</dl>
 {/snippet}
 
 <ListingFrame
@@ -63,22 +81,10 @@
 	filterLabel="Filtres"
 	filterPersistKey="gallery-listing-filters"
 	onHeaderMount={blueprintScrub}
+	aside={params.get('aside') === '0' ? undefined : totals}
 >
 	{#snippet blueprint()}
 		<BlueprintShell {hero} {details} labels={['GRID 02', 'AXIS 17', 'REV 04']} />
-	{/snippet}
-
-	{#snippet aside()}
-		<dl aria-label="Totaux du catalogue" class="grid grid-cols-2 gap-4 text-small">
-			<div>
-				<dt class="text-muted-foreground">Travaux</dt>
-				<dd class="font-mono">12</dd>
-			</div>
-			<div>
-				<dt class="text-muted-foreground">Recherches</dt>
-				<dd class="font-mono">7</dd>
-			</div>
-		</dl>
 	{/snippet}
 
 	{#snippet search()}
