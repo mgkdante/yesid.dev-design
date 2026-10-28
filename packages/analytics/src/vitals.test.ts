@@ -173,12 +173,15 @@ describe('startVitals', () => {
 		);
 	});
 
-	it('stays quiet when web-vitals fails to load', async () => {
+	it('stays quiet when the loader throws', async () => {
 		const page = browser({ sendBeacon: vi.fn(() => true) });
 		const startVitals = await freshStartVitals();
 
-		const dispose = startVitals({ endpoint: '/api/vitals', load: () => Promise.reject(new Error('offline')) });
-		await Promise.resolve();
+		const load = (): Promise<WebVitalsModule> => {
+			throw new Error('offline');
+		};
+		const dispose = startVitals({ endpoint: '/api/vitals', load });
+		await new Promise((resolve) => setTimeout(resolve));
 		page.hide();
 
 		expect(page.fetch).not.toHaveBeenCalled();

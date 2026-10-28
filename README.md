@@ -15,7 +15,7 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 | [`packages/gates`](packages/gates/README.md) | `@yesid/gates` — pure parameterized quality engines; consumers own policy and pass/fail doctrine. |
 | [`packages/seo-kit`](packages/seo-kit/README.md) | `@yesid/seo-kit` — framework-neutral JSON-LD, sitemap, and injected-rasterizer mechanics. |
 | [`packages/ui`](packages/ui/README.md) | `@yesid/ui` — source-shipped Svelte primitives and promoted brand components. |
-| [`packages/analytics`](packages/analytics/README.md) | `@yesid/analytics` — consent, policy, sanitization, ordered clients, and injected transport. |
+| [`packages/analytics`](packages/analytics/README.md) | `@yesid/analytics` — consent, policy, sanitization, ordered clients, injected transport, and web-vitals collection. |
 | [`packages/i18n-core`](packages/i18n-core/README.md) | `@yesid/i18n-core` — pure consumer-configured locale routing, Intl formatting and copy typing. |
 | [`packages/config`](packages/config/README.md) | `@yesid/config` — independently released compiler/task configuration; outside coordinated lockstep. |
 | [`apps/gallery`](apps/gallery/README.md) | Private rendered dogfood and browser authority; not consumer proof. |

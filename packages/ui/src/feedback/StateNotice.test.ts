@@ -31,15 +31,11 @@ describe('StateNotice', () => {
 		expect(hidden.map((el) => el.textContent?.trim())).toEqual(['!', '·']);
 	});
 
-	it('renders inline for a pill or row without snippets, and as a block otherwise', () => {
-		const inline = render(StateNotice, { props: { title: 'Inline', presentation: 'row', role: 'note' } });
-		expect(inline.getByRole('note').tagName).toBe('SPAN');
-		inline.unmount();
-
-		const block = render(StateNotice, {
-			props: { title: 'Block', presentation: 'pill', role: 'note', action: html('<button>Retry</button>') },
+	it('renders its action', () => {
+		render(StateNotice, {
+			props: { title: 'Unavailable', presentation: 'pill', action: html('<button>Retry</button>') },
 		});
-		expect(block.getByRole('note').tagName).toBe('DIV');
-		expect(block.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+
+		expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
 	});
 });

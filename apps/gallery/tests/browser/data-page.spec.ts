@@ -45,6 +45,8 @@ test('tables stack or scroll to fit this width', async ({ page }) => {
 		await expect(region).toHaveCount(0);
 	}
 	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+	await expect(page.getByText('Headway on the night route:')).toContainText('no feed');
 });
 
 test('filter chips narrow the table and say so when nothing matches', async ({ page }) => {
@@ -103,7 +105,7 @@ test('the rail is a landmark on desktop and a sheet on phones that keeps its sta
 	await expect(landmark.locator(':focus')).toHaveCount(1);
 });
 
-test('consent asks, steps aside after a choice and comes back as settings', async ({ page }) => {
+test('consent asks, steps aside after a choice and comes back as settings with tap-size actions', async ({ page }) => {
 	await open(page);
 	const prompt = page.getByRole('region', { name: copy.consent.title });
 
@@ -121,6 +123,19 @@ test('consent asks, steps aside after a choice and comes back as settings', asyn
 	const box = (await settings.boundingBox())!;
 	expect(box.x).toBeGreaterThanOrEqual(0);
 	expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+	const tapMin = await page.evaluate(() => {
+		const probe = document.body.appendChild(document.createElement('div'));
+		probe.style.height = 'var(--size-tap-min)';
+		const height = probe.getBoundingClientRect().height;
+		probe.remove();
+		return height;
+	});
+	for (const button of await settings.getByRole('button').all()) {
+		const { x, width, height } = (await button.boundingBox())!;
+		expect(height).toBeGreaterThanOrEqual(tapMin);
+		expect(x).toBeGreaterThanOrEqual(box.x);
+		expect(x + width).toBeLessThanOrEqual(box.x + box.width);
+	}
 });
 
 test('no blocking axe violations with the prompt and the sheet open', async ({ page }, testInfo) => {

@@ -195,6 +195,7 @@
 	.state-notice--row .state-notice-copy {
 		display: inline-block;
 		max-width: 100%;
+		max-inline-size: 34ch;
 		font-weight: 500;
 		vertical-align: top;
 	}

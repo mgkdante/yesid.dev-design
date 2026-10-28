@@ -167,7 +167,8 @@ export function startVitals({ endpoint, load }: StartVitalsOptions): () => void 
 		}
 	};
 
-	void load()
+	void Promise.resolve()
+		.then(load)
 		.then(({ onCLS, onFCP, onINP, onLCP, onTTFB }) => {
 			const opts = { reportAllChanges: true };
 			for (const report of [onCLS, onFCP, onINP, onLCP, onTTFB]) report(record, opts);
