@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.23.0
+
+<!-- release-fragment: ds6-foundation-primitives -->
+- `@yesid/ui` (minor), `@yesid/analytics` (minor): `@yesid/ui` adds the parts of a data page. `@yesid/ui/feedback` (new) exports `StateNotice`, a quiet empty, error or status notice in five presentations and four tones, and `AnalyticsConsent`, the consent rail for an `@yesid/analytics/consent` store with the product's copy, controls and privacy link. `@yesid/ui/table` (new) exports `DataTable`, a captioned table from column definitions that stacks into label and value pairs or scrolls sideways on narrow screens; a scrolling table that overflows becomes a focusable region named by its caption. `@yesid/ui/layout` adds `Surface`, `Masthead`, `Breadcrumb` (a named trail with the current page last), `ControlsRail`, `DashboardGrid` and `SurfaceRail` (a sticky rail from 1024px, a pill and bottom sheet below). `@yesid/ui/brand` adds `CornerMeta`, `SegmentedChoice` (a single choice with radio-group keyboard behavior) and `ToggleChip` (a controlled `aria-pressed` pill). `@yesid/ui` now depends on `@yesid/analytics`. `@yesid/analytics/vitals` (new) holds the web-vitals beacon schema and `startVitals({ endpoint, load })`, which collects Core Web Vitals once per page and sends one beacon when the page is hidden; `load` supplies the `web-vitals` module. To migrate, delete local copies of these parts and import them from the packages; static pills use `Badge variant="tag"`.
+
 ## 0.22.0
 
 <!-- release-fragment: ds5-i18n-and-format -->
