@@ -13,6 +13,7 @@ describe('createIntl', () => {
 		const options = { dateStyle: 'medium', timeZone: 'UTC' } as const;
 		expect(intl.dateTime(locale, options).format(date)).toBe(new Intl.DateTimeFormat(tags[locale], options).format(date));
 		expect(['b', 'a'].sort(intl.collator(locale).compare)).toEqual(['a', 'b']);
+		expect([0, 1, 2].map((n) => intl.plural(locale).select(n))).toEqual([0, 1, 2].map((n) => new Intl.PluralRules(tags[locale]).select(n)));
 		expect(intl.number(locale, { maximumFractionDigits: 0 })).toBe(intl.number(locale, { maximumFractionDigits: 0 }));
 		expect(intl.number(locale, { maximumFractionDigits: 0 })).not.toBe(intl.number(locale));
 	});

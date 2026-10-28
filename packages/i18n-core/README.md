@@ -19,7 +19,7 @@ intl.dateTime(locale, { dateStyle: 'medium' }).format(date);
 intl.relativeTime(locale, -180); // "3 minutes ago", "il y a 3 minutes"
 ```
 
-`number`, `dateTime` and `collator` return Intl objects cached per locale and options, so a
+`number`, `dateTime`, `collator` and `plural` return Intl objects cached per locale and options, so a
 component can ask for one on every render. `relativeTime` takes a signed offset in seconds
 (negative is past), picks the largest whole unit, and reads anything under 5 seconds as Intl's own
 "now". `defineCopy` returns its argument unchanged; at compile time every locale must have the

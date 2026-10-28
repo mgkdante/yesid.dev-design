@@ -64,6 +64,8 @@ interface LocaleIntl<Locale extends string> {
     dateTime(locale: Locale, options?: Intl.DateTimeFormatOptions): Intl.DateTimeFormat;
     // (undocumented)
     number(locale: Locale, options?: Intl.NumberFormatOptions): Intl.NumberFormat;
+    // (undocumented)
+    plural(locale: Locale, options?: Intl.PluralRulesOptions): Intl.PluralRules;
     relativeTime(locale: Locale, seconds: number): string;
 }
 

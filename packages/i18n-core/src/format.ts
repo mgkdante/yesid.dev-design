@@ -2,6 +2,7 @@ export interface LocaleIntl<Locale extends string> {
 	number(locale: Locale, options?: Intl.NumberFormatOptions): Intl.NumberFormat;
 	dateTime(locale: Locale, options?: Intl.DateTimeFormatOptions): Intl.DateTimeFormat;
 	collator(locale: Locale, options?: Intl.CollatorOptions): Intl.Collator;
+	plural(locale: Locale, options?: Intl.PluralRulesOptions): Intl.PluralRules;
 	/**
 	 * Reads `seconds` from now (negative is past) in its largest whole unit, rounding half away from
 	 * zero; under 5 seconds is "now". A non-finite offset throws a RangeError, as Intl does.
@@ -36,6 +37,7 @@ export function createIntl<Locale extends string>(tags: Readonly<Record<Locale, 
 		number: (locale, options) => cached('number', locale, options, (tag) => new Intl.NumberFormat(tag, options)),
 		dateTime: (locale, options) => cached('dateTime', locale, options, (tag) => new Intl.DateTimeFormat(tag, options)),
 		collator: (locale, options) => cached('collator', locale, options, (tag) => new Intl.Collator(tag, options)),
+		plural: (locale, options) => cached('plural', locale, options, (tag) => new Intl.PluralRules(tag, options)),
 		relativeTime(locale, seconds) {
 			const format = cached('relative', locale, undefined, (tag) => new Intl.RelativeTimeFormat(tag, { numeric: 'auto' }));
 			const distance = Math.abs(seconds);
