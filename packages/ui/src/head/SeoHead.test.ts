@@ -37,7 +37,8 @@ describe('SeoHead', () => {
 		expect(meta('property', 'og:image')).toBe(page.image.url);
 		expect(meta('name', 'twitter:image')).toBe(page.image.url);
 		expect(meta('property', 'og:locale')).toBe(page.ogLocale);
-		expect( [...head().querySelectorAll('meta[property="og:locale:alternate"]')].map((tag) => tag.getAttribute('content')), ).toEqual(page.ogLocaleAlternates);
+		const localeAlternates = [...head().querySelectorAll('meta[property="og:locale:alternate"]')];
+		expect(localeAlternates.map((tag) => tag.getAttribute('content'))).toEqual(page.ogLocaleAlternates);
 		expect(head().querySelector('meta[name="robots"]')).toBeNull();
 	});
 

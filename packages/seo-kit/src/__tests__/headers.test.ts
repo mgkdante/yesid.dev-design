@@ -9,6 +9,7 @@ describe('security headers', () => {
 	});
 
 	it('writes directives in order and sourceless ones alone', () => {
-		expect( contentSecurityPolicy({ 'default-src': ["'self'"], 'img-src': ["'self'", 'data:'], 'upgrade-insecure-requests': [], }), ).toBe("default-src 'self'; img-src 'self' data:; upgrade-insecure-requests");
+		const directives = { 'default-src': ["'self'"], 'img-src': ["'self'", 'data:'], 'upgrade-insecure-requests': [] };
+		expect(contentSecurityPolicy(directives)).toBe("default-src 'self'; img-src 'self' data:; upgrade-insecure-requests");
 	});
 });

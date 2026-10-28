@@ -14,15 +14,33 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 // What a reader or assistive technology sees on each element.
 const STATE = ['data-state', 'aria-expanded', 'inert', 'aria-hidden'];
 const stateOf = (root: Element) =>
-	[...root.querySelectorAll(STATE.map((name) => `[${name}]`).join(', '))].map((element) => STATE.map((name) => element.getAttribute(name)), );
+	[...root.querySelectorAll(STATE.map((name) => `[${name}]`).join(', '))].map((element) =>
+		STATE.map((name) => element.getAttribute(name)),
+	);
 const children = createRawSnippet(() => ({ render: () => '<p>Body</p>' }));
 
+const notes = { title: 'Notes', subtitle: 'Weekday', children };
 const cases = [
-	{ name: 'CollapsibleSection', toggle: 'Notes', mount: () => render(CollapsibleSection, { props: { title: 'Notes', subtitle: 'Weekday', sectionKey: 'notes', children } }), },
-	{ name: 'CollapsibleSection closed by default', toggle: 'Notes', mount: () => render(CollapsibleSection, { props: { title: 'Notes', open: false, sectionKey: 'closed-notes', children } }), },
-	{ name: 'CollapsibleSection article summary', toggle: 'Notes', mount: () => render(CollapsibleSection, { props: { title: 'Notes', subtitle: 'Weekday', headerVariant: 'article-summary', sectionKey: 'summary', children }, }), },
-	{ name: 'FilterGroup', toggle: 'Lines', mount: () => render(FilterGroup, { props: { label: 'Lines', allLabel: 'All', items: [{ key: 'a', label: 'A' }], collapsible: true, persistKey: 'lines', onSelect: () => {} }, }), },
-	{ name: 'ListingFrame', toggle: 'Filters', mount: () => render(ListingFrame, { props: { filterPersistKey: 'filters' } }), },
+	{ name: 'CollapsibleSection', toggle: 'Notes', mount: () => render(CollapsibleSection, { props: { ...notes, sectionKey: 'notes' } }) },
+	{
+		name: 'CollapsibleSection closed by default',
+		toggle: 'Notes',
+		mount: () => render(CollapsibleSection, { props: { ...notes, open: false, sectionKey: 'closed-notes' } }),
+	},
+	{
+		name: 'CollapsibleSection article summary',
+		toggle: 'Notes',
+		mount: () => render(CollapsibleSection, { props: { ...notes, headerVariant: 'article-summary', sectionKey: 'summary' } }),
+	},
+	{
+		name: 'FilterGroup',
+		toggle: 'Lines',
+		mount: () =>
+			render(FilterGroup, {
+				props: { label: 'Lines', allLabel: 'All', items: [{ key: 'a', label: 'A' }], collapsible: true, persistKey: 'lines', onSelect: () => {} },
+			}),
+	},
+	{ name: 'ListingFrame', toggle: 'Filters', mount: () => render(ListingFrame, { props: { filterPersistKey: 'filters' } }) },
 ];
 
 afterEach(() => {
