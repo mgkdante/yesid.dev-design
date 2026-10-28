@@ -62,10 +62,11 @@ source.
 ## D8: Locale mechanics are shared; locale policy is local
 
 `@yesid/i18n-core` owns pure configured prefix parsing, path localization and delocalization,
-URL-state preservation, locale-switch detection, and route-id normalization. Consumers own their
-locale type and supported, default, prefixed, and published values; copy and fallback policy;
-route exemptions; Svelte context; SvelteKit adapters; request fallback; and runtime flags. The
-package contains no framework virtual-module imports or product locale registry.
+URL-state preservation, locale-switch detection, route-id normalization, cached Intl formatting with
+relative time, and copy typing. `@yesid/ui` owns the Svelte locale context and `<html lang>` sync.
+Consumers own their locale type and supported, default, prefixed, and published values; Intl tags;
+copy and fallback policy; route exemptions; SvelteKit adapters; request fallback; and runtime
+flags. i18n-core contains no framework import, virtual module or product locale registry.
 
 ## D9: Global ripple is explicit and optional
 

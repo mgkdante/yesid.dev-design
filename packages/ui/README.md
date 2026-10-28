@@ -386,15 +386,19 @@ with `role="alert"`. The app keeps its copy and `<svelte:head>`.
 
 ## Site root and shared state
 
-`@yesid/ui/layout` exports `SiteRoot`, the app root. On mount it adopts the theme applied by the
-head boot script (see [Head](#head)), restores quiet mode, and starts Lenis through `@yesid/motion`; it cleans
-up on unmount and renders no element of its own. Props:
+`@yesid/ui/layout` exports `SiteRoot`, the app root. Before its children render it restores quiet
+mode, so sections hydrate in the state the head boot script painted (see [Head](#head)). On mount it
+adopts the theme the boot script applied and starts Lenis through `@yesid/motion`; it cleans up on
+unmount and renders no element of its own. Props:
 
 - `smoothScroll` (default `true`): `false` leaves native scrolling.
 - `scroller`: `{ wrapper, content }` selectors for an element scroller. `content` must wrap the
   whole scrolling flow. Omit it to scroll the window.
-- `quietModeKey`: the localStorage key for the remembered quiet-mode default, `quiet-mode` by
-  default.
+- `lang`: the page's language. The server fills `<html lang>` (for example by replacing `%lang%`
+  in `transformPageChunk`); `SiteRoot` keeps it current after client navigation.
+- `quietModeKey` (deprecated since v0.22.0; removal no earlier than 90 days and one minor after
+  v0.22.0): a custom localStorage key for the remembered quiet-mode default. The head boot script only reads
+  the standard `quiet-mode` key, so a custom key paints sections open until hydration.
 
 The app keeps its own navigation, scroll-restoration, and analytics handling.
 
@@ -410,6 +414,18 @@ The app keeps its own navigation, scroll-restoration, and analytics handling.
 - `desktop`: a Svelte `MediaQuery` at the `breakpoint.desktop-min` token (1024px). It is false
   during SSR.
 
+It also exports two helpers that `SiteRoot` doesn't initialize:
+
+- `clock`: one shared wall clock for live timestamps. `now` ticks every second while anything
+  holds a subscription (`$effect(() => clock.subscribe())`), every 30 s under reduced motion, and
+  pauses in hidden tabs. `noteServerEpochMs(ms)` anchors `serverNow` to a server timestamp such as a
+  response's `Date` header; `serverNowContinuousMs()` reads it without stepping back by less
+  than 2 s, for animation.
+- `createLocaleContext<Locale>(fallback)`: `{ provide(read), get() }`. The root layout calls
+  `provide(() => data.locale)` once; components call `get()`, which returns `fallback` where
+  nothing provides a locale, such as a unit test. Formatting and copy typing live in
+  `@yesid/i18n-core`.
+
 `persisted(key, initial)` is not initialized by `SiteRoot`. It returns tab-scoped state in
 `sessionStorage` under `persisted:<key>`: it survives reloads and navigation within the tab and
 resets in a new tab. `bind:value={state.value}` works directly. Values must be `LocaleFree`
@@ -419,7 +435,9 @@ text. During SSR it returns the seed.
 A persisted boolean that opens and closes something can paint right on reload: mark each element
 that mirrors the state with `data-persisted-key="<key>"` (it gets `data-state` and, if present,
 `aria-expanded`) and each body that hides with `data-persisted-body="<key>"` (it also gets `inert`
-and `aria-hidden`). `CollapsibleSection`, `FilterGroup` and `ListingFrame` already do.
+and `aria-hidden`). Elements that follow quiet mode also carry `data-quiet` (a body with no key
+takes an empty `data-persisted-body`), and a remembered quiet mode paints them closed whatever
+their stored choice. `CollapsibleSection`, `FilterGroup` and `ListingFrame` already do.
 
 ## Head
 
@@ -434,8 +452,9 @@ and `aria-hidden`). `CollapsibleSection`, `FilterGroup` and `ListingFrame` alrea
 
 `injectThemeBoot(html)` replaces `%yesid.themeBoot%` with the boot script. Put the placeholder in
 `app.html` before `%sveltekit.head%` and call it from `transformPageChunk`. Before first paint the
-script sets `data-theme` from the `theme` key (dark otherwise) and applies stored `persisted:`
-booleans to marked elements as the parser adds them. A hash-based CSP allows it with the source in
+script sets `data-theme` from the `theme` key (dark otherwise) and, as the parser adds marked
+elements, applies stored `persisted:` booleans and closes the ones that follow a remembered quiet
+mode (`quiet-mode` key, which also sets `data-quiet-mode` on `<html>`). A hash-based CSP allows it with the source in
 `@yesid/ui/boot.json` (`{ "hash": "sha256-…" }`), which Node config files can import. A CSP that
 relies on `'unsafe-inline'` must not add the hash, because any hash switches `'unsafe-inline'` off.
 

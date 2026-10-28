@@ -133,7 +133,7 @@
 ## Direct public assets
 
 - `./base.css` — direct asset `./base.css` (`default`), sha256 `edee6536749c9a1aa0eb6e4b72ac8aabf15d2f2d35725e30b2a33943637e5e6c`
-- `./boot.json` — direct asset `./src/head/boot.json` (`default`), sha256 `3e4f6f29e0119c7e465ddf93a76849f4b7bf41cb04b939078e291eeb336403b5`
+- `./boot.json` — direct asset `./src/head/boot.json` (`default`), sha256 `430847054f7b4c36c8328ad5646fa59a8625398e332f774be22baa23254c7578`
 
 ## Declaration namespaces
 
@@ -632,6 +632,18 @@ type ChevronToggleProps = Omit<SVGAttributes<SVGSVGElement>, 'children' | 'class
 };
 
 // @public (undocumented)
+const clock: ClockStore;
+
+// @public
+interface ClockStore {
+    noteServerEpochMs(serverEpochMs: number): void;
+    readonly now: number;
+    readonly serverNow: number;
+    serverNowContinuousMs(): number;
+    subscribe(): () => void;
+}
+
+// @public (undocumented)
 const Close: Component<Dialog.TriggerProps, {}, "ref">;
 
 declare namespace Cn {
@@ -761,6 +773,9 @@ function createCn(vocab?: {
     text?: string[];
     colors?: string[];
 }): (...inputs: ClassValue[]) => string;
+
+// @public (undocumented)
+function createLocaleContext<Locale extends string>(fallback: Locale): LocaleContext<Locale>;
 
 // @public (undocumented)
 function createTwMergeConfig(vocab?: {
@@ -1186,6 +1201,12 @@ interface ListingFrameProps {
     subtitle: string;
 }
 
+// @public (undocumented)
+interface LocaleContext<Locale extends string> {
+    get(): Locale;
+    provide(read: () => Locale): void;
+}
+
 // @public
 type LocaleFree = string | number | boolean | null | LocaleFree[];
 
@@ -1507,7 +1528,7 @@ interface QuietModeButtonProps {
 
 // @public (undocumented)
 interface QuietModeInit {
-    // (undocumented)
+    // @deprecated (undocumented)
     readonly storageKey?: string;
 }
 
@@ -1981,7 +2002,8 @@ type SiteRoot = ReturnType<typeof SiteRoot>;
 interface SiteRootProps {
     // (undocumented)
     children: Snippet;
-    // (undocumented)
+    lang?: string;
+    // @deprecated (undocumented)
     quietModeKey?: string;
     // (undocumented)
     scroller?: SiteRootScroller;
@@ -2012,11 +2034,15 @@ declare namespace State {
         LocaleFree,
         Widen,
         Persisted,
+        ClockStore,
         theme,
+        clock,
         quietMode,
         persisted,
         desktop,
-        DESKTOP_MIN_WIDTH
+        DESKTOP_MIN_WIDTH,
+        createLocaleContext,
+        LocaleContext
     }
 }
 

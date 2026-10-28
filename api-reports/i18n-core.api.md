@@ -21,8 +21,24 @@
 
 ```ts
 
+// @public
+type CopyShape<Value> = Value extends (...args: infer Args) => infer Result ? (...args: Args) => CopyShape<Result> : Value extends readonly unknown[] ? number extends Value['length'] ? readonly CopyShape<Value[number]>[] : {
+    readonly [Key in keyof Value]: CopyShape<Value[Key]>;
+} : Value extends object ? {
+    readonly [Key in keyof Value]: CopyShape<Value[Key]>;
+} : Value extends string ? string : Value extends number ? number : Value extends boolean ? boolean : Value;
+
+// @public
+function createCopy<Locale extends string, Source extends Locale>(): DefineCopy<Locale, Source>;
+
+// @public
+function createIntl<Locale extends string>(tags: Readonly<Record<Locale, string>>): LocaleIntl<Locale>;
+
 // @public (undocumented)
 function createLocaleRouting<Locale extends string>(config: LocaleRoutingConfig<Locale>): LocaleRouting<Locale>;
+
+// @public (undocumented)
+type DefineCopy<Locale extends string, Source extends Locale> = <Canonical extends object>(copy: LocalizedCopy<Canonical, Locale, Source>) => Readonly<Record<Locale, CopyShape<Canonical>>>;
 
 declare namespace Index {
     export {
@@ -30,8 +46,25 @@ declare namespace Index {
         PathExemptionPredicate,
         LocaleRoutingConfig,
         UrlParts,
-        LocaleRouting
+        LocaleRouting,
+        createIntl,
+        LocaleIntl,
+        createCopy,
+        CopyShape,
+        LocalizedCopy,
+        DefineCopy
     }
+}
+
+// @public (undocumented)
+interface LocaleIntl<Locale extends string> {
+    // (undocumented)
+    collator(locale: Locale, options?: Intl.CollatorOptions): Intl.Collator;
+    // (undocumented)
+    dateTime(locale: Locale, options?: Intl.DateTimeFormatOptions): Intl.DateTimeFormat;
+    // (undocumented)
+    number(locale: Locale, options?: Intl.NumberFormatOptions): Intl.NumberFormat;
+    relativeTime(locale: Locale, seconds: number): string;
 }
 
 // @public (undocumented)
@@ -65,6 +98,11 @@ interface LocaleRoutingConfig<Locale extends string> {
     // (undocumented)
     readonly preserveSearchAndHash: boolean;
 }
+
+// @public
+type LocalizedCopy<Canonical extends object, Locale extends string, Source extends Locale> = {
+    readonly [Key in Locale]: Key extends Source ? Canonical : CopyShape<NoInfer<Canonical>>;
+};
 
 // @public (undocumented)
 type PathExemptionPredicate = (pathname: string) => boolean;

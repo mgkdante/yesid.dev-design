@@ -4,7 +4,9 @@ import { createRawSnippet, tick } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import CollapsibleSection from '../brand/CollapsibleSection.svelte';
 import FilterGroup from '../brand/FilterGroup.svelte';
+import TocNav from '../brand/TocNav.svelte';
 import ListingFrame from '../layout/test-fixtures/ListingFrameSsr.svelte';
+import { quietMode } from '../state/quiet-mode.svelte.js';
 import { theme } from '../state/theme.svelte.js';
 import boot from './boot.json';
 import { injectThemeBoot, themeBootScript } from './boot.js';
@@ -18,6 +20,16 @@ const stateOf = (root: Element) =>
 		STATE.map((name) => element.getAttribute(name)),
 	);
 const children = createRawSnippet(() => ({ render: () => '<p>Body</p>' }));
+
+// Runs the boot script, then parses `server` markup as a page load would, and returns what it shows.
+async function booted(server: string) {
+	runBoot();
+	const host = document.createElement('div');
+	document.body.append(host);
+	host.innerHTML = server;
+	await flush();
+	return stateOf(host);
+}
 
 const notes = { title: 'Notes', subtitle: 'Weekday', children };
 const cases = [
@@ -43,7 +55,32 @@ const cases = [
 	{ name: 'ListingFrame', toggle: 'Filters', mount: () => render(ListingFrame, { props: { filterPersistKey: 'filters' } }) },
 ];
 
+// Every kind of collapsible a page holds: quiet mode closes the ones that follow it and leaves the rest.
+const quietCases = [
+	...cases,
+	{ name: 'CollapsibleSection without a key', mount: () => render(CollapsibleSection, { props: notes }) },
+	{
+		name: 'CollapsibleSection that opts out of quiet mode',
+		mount: () => render(CollapsibleSection, { props: { ...notes, quiet: false, sectionKey: 'loud' } }),
+	},
+	{ name: 'static CollapsibleSection', mount: () => render(CollapsibleSection, { props: { ...notes, collapsible: false } }) },
+	{
+		name: 'TocNav',
+		mount: () =>
+			render(TocNav, {
+				props: {
+					entries: [{ id: 'intro', title: 'Intro', level: 2, children: [] }],
+					activeId: 'intro',
+					onNavigate: () => {},
+					heading: 'On this page',
+					sectionKey: 'toc',
+				},
+			}),
+	},
+];
+
 afterEach(() => {
+	quietMode.resetForTest();
 	// The script disconnects its observer at DOMContentLoaded; end every run here.
 	document.dispatchEvent(new Event('DOMContentLoaded'));
 	document.body.innerHTML = '';
@@ -75,12 +112,7 @@ describe('theme boot script', () => {
 		expect(expected).not.toEqual(stateOf(Object.assign(document.createElement('div'), { innerHTML: server })));
 		view.unmount();
 
-		runBoot();
-		const host = document.createElement('div');
-		document.body.append(host);
-		host.innerHTML = server;
-		await flush();
-		expect(stateOf(host)).toEqual(expected);
+		expect(await booted(server)).toEqual(expected);
 	});
 
 	it('leaves a section without a stored choice as the server rendered it', async () => {
@@ -92,12 +124,31 @@ describe('theme boot script', () => {
 		const before = stateOf(other.container);
 		other.unmount();
 
-		runBoot();
-		const host = document.createElement('div');
-		document.body.append(host);
-		host.innerHTML = server;
-		await flush();
-		expect(stateOf(host)).toEqual(before);
+		expect(await booted(server)).toEqual(before);
+	});
+
+	it.each(quietCases)('paints $name the way a remembered quiet mode renders it', async ({ mount }) => {
+		const view = mount();
+		const server = view.container.innerHTML;
+		quietMode.rememberCurrent();
+		await tick();
+		const expected = stateOf(view.container);
+		view.unmount();
+		expect(await booted(server)).toEqual(expected);
+	});
+
+	it('closes a quiet section over the reader\'s stored open choice', async () => {
+		const view = render(CollapsibleSection, { props: { ...notes, sectionKey: 'reopened' } });
+		const toggle = within(view.container).getByRole('button', { name: /Notes/ });
+		await fireEvent.click(toggle);
+		await fireEvent.click(toggle);
+		const server = view.container.innerHTML;
+		quietMode.rememberCurrent();
+		await tick();
+		const expected = stateOf(view.container);
+		expect(expected).not.toEqual(stateOf(Object.assign(document.createElement('div'), { innerHTML: server })));
+		view.unmount();
+		expect(await booted(server)).toEqual(expected);
 	});
 
 	it('ships its CSP hash in boot.json and replaces the app.html placeholder', () => {

@@ -2,7 +2,7 @@
 
 The yesid brand's shared foundation as a standalone bun+turbo monorepo — design
 tokens, pure motion actions, UI primitives, quality gates, neutral SEO infrastructure,
-consent-aware analytics primitives, and consumer-configured locale-routing mechanics, extracted from
+consent-aware analytics primitives, and consumer-configured locale and formatting mechanics, extracted from
 **yesid.dev @ `2bdb611d91749dc437c07586cb82129eabe9dfec`** (the **parity
 anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 
@@ -16,7 +16,7 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 | [`packages/seo-kit`](packages/seo-kit/README.md) | `@yesid/seo-kit` — framework-neutral JSON-LD, sitemap, and injected-rasterizer mechanics. |
 | [`packages/ui`](packages/ui/README.md) | `@yesid/ui` — source-shipped Svelte primitives and promoted brand components. |
 | [`packages/analytics`](packages/analytics/README.md) | `@yesid/analytics` — consent, policy, sanitization, ordered clients, and injected transport. |
-| [`packages/i18n-core`](packages/i18n-core/README.md) | `@yesid/i18n-core` — pure consumer-configured locale-routing mechanics. |
+| [`packages/i18n-core`](packages/i18n-core/README.md) | `@yesid/i18n-core` — pure consumer-configured locale routing, Intl formatting and copy typing. |
 | [`packages/config`](packages/config/README.md) | `@yesid/config` — independently released compiler/task configuration; outside coordinated lockstep. |
 | [`apps/gallery`](apps/gallery/README.md) | Private rendered dogfood and browser authority; not consumer proof. |
 | [`tests/repository`](tests/repository/README.md) | Root-owned tooling and cross-package contract authority; separate from Gallery. |
