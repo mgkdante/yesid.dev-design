@@ -291,7 +291,6 @@
 						<nav class="menu-content" aria-label={labels.menu}>
 							{#each menuItems as item, i (item.href)}
 								<a
-									data-menu-item
 									href={item.href}
 									target={item.external ? '_blank' : undefined}
 									rel={item.external ? 'noopener noreferrer' : undefined}
