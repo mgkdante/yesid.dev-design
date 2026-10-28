@@ -5,8 +5,9 @@ export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
 	'Referrer-Policy': 'strict-origin-when-cross-origin',
 	'X-Frame-Options': 'DENY',
 	'Cross-Origin-Opener-Policy': 'same-origin',
+	// No browsing-topics or interest-cohort: browsers log them as unrecognised features.
 	'Permissions-Policy':
-		'accelerometer=(), bluetooth=(), browsing-topics=(), camera=(), geolocation=(), gyroscope=(), hid=(), magnetometer=(), microphone=(), payment=(), serial=(), usb=()',
+		'accelerometer=(), bluetooth=(), camera=(), geolocation=(), gyroscope=(), hid=(), magnetometer=(), microphone=(), payment=(), serial=(), usb=()',
 };
 
 /** A directive without sources, such as `upgrade-insecure-requests`, is written on its own. */
