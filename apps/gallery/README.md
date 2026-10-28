@@ -17,8 +17,6 @@ it does not create new package exports.
 ## Invariants and generated content
 
 - Gallery remains versioned separately from the seven coordinated packages.
-- `src/app.css` has hand-maintained regions and one token-generator-owned sentinel region. Edit
-  token source/generators, not the generated region.
 - Browser authority is pinned to Chromium, UTC, `en-CA`, reduced motion, desktop/mobile projects,
   one worker, no retries, and exact screenshots.
 - Snapshot updates require an explained rendered change and visual review. Host-specific local
