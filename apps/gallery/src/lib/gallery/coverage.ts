@@ -24,6 +24,7 @@ export const GALLERY_COVERAGE = {
 		'FilterGroup',
 		'FilterSection',
 		'FilterSummary',
+		'LanguageToggle',
 		'MetricDisplay',
 		'MetroStation',
 		'QuietModeButton',
@@ -39,6 +40,7 @@ export const GALLERY_COVERAGE = {
 		'TocBadge',
 		'TocNav',
 		'TocPill',
+		'Wordmark',
 	],
 	motion: [
 		'boop',

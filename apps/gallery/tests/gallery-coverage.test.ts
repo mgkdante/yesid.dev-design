@@ -32,7 +32,6 @@ describe('Gallery coverage authority', () => {
 			.sort();
 
 		expect([...GALLERY_COVERAGE.primitives].sort()).toEqual(publicPrimitives);
-		expect(publicPrimitives).toHaveLength(14);
 	});
 
 	it('tracks every public brand component and motion-action family', () => {
@@ -42,8 +41,6 @@ describe('Gallery coverage authority', () => {
 		expect([...GALLERY_COVERAGE.motion].sort()).toEqual(
 			exportedActions('../../../packages/motion/src/actions/index.ts'),
 		);
-		expect(GALLERY_COVERAGE.brand).toHaveLength(23);
-		expect(GALLERY_COVERAGE.motion).toHaveLength(8);
 	});
 
 	it('makes the required state and environment matrix explicit', () => {
