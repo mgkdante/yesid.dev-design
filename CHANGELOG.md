@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.0
+
+<!-- release-fragment: ds2-adoption-sweep -->
+- `@yesid/motion` (minor), `@yesid/ui` (minor): The package defaults take the settled looks, so consumers can delete their adapters. `Card` has a lit top bevel and adds `shadow-section` on hover. `Button` adds the `conversion` variant (yellow signage CTA with an amber lift at cta sizes) and the 44px `icon-tap` size, uses `text-sm`/`text-xs`, and keeps a caller's `data-slot`. The resizable handle is neutral, the hazard `Separator` is full width by default, `StickyPanel` is `surface-3` with no shadow and chains wheel scrolling through `scrollChain`, `TerminalCursor` is `accent` in dark, and the `MetroStation` default roundel matches the signage Badge, so its `roundel` snippet is deprecated: omit it to get the default. It keeps working, and the earliest removal is the later of 90 days after the v0.19.0 publish date and v0.21.0. `ArticleHeader`'s subtitle now uses the meta row's mono type, and both use the larger `--article-meta-size`. `@yesid/ui/base.css` adds the View Transitions route crossfade, off under reduced motion. `@yesid/motion/utils/gsap` adds `loadDrawSVG`, `loadMorphSVG` and `loadCustomEase`; `@yesid/motion/utils/viewTransition` exports `viewTransition` for `onNavigate`. To migrate, delete local Card, Button, resizable handle, StickyPanel, TerminalCursor, MetroStation and hazard-separator adapters, local GSAP loaders and route fades, and call `onNavigate(viewTransition)` from the root layout.
+
 ## 0.18.0
 
 <!-- release-fragment: tokens-one-source -->
