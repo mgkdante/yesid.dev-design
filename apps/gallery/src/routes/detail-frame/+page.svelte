@@ -18,6 +18,8 @@
 	onMount(() => (params = page.url.searchParams));
 	const layout = $derived(params.get('layout'));
 	const railTop = $derived(Number(params.get('railTop')));
+	// Space an app leaves under its chrome inside --chrome-offset.
+	const chromeGap = $derived(Number(params.get('chromeGap')));
 </script>
 
 <svelte:head>
@@ -26,7 +28,7 @@
 
 <div data-testid="fixture-nav" class="fixed inset-x-0 top-0 z-[60] h-[88px] border-b border-border bg-background"></div>
 
-<div class="ml-[calc(50%-50vw)] w-screen pt-[var(--chrome-offset)]" style="--chrome-offset: 88px">
+<div class="ml-[calc(50%-50vw)] w-screen pt-[var(--chrome-offset)]" style="--chrome-offset: {88 + chromeGap}px; --chrome-gap: {chromeGap}px">
 	<DetailFrame
 		left={layout === 'right' ? undefined : leftRail}
 		right={layout === 'two' ? undefined : rightRail}

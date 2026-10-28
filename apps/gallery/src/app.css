@@ -4,3 +4,4 @@
 /* Tailwind CSS v4 (CSS-first config, no tailwind.config.js needed) */
 @import 'tailwindcss';
 @import '@yesid/ui/base.css';
+@import 'tw-animate-css';

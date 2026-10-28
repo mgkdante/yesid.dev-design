@@ -46,19 +46,25 @@ test('detail frame layout at this width', async ({ page }) => {
 });
 
 test('the back link sits midway between the chrome and the next line', async ({ page }) => {
-	await page.goto('/detail-frame');
-	await page.evaluate(() => document.fonts.ready);
-	// The header pads itself by --chrome-offset, so the chrome ends that far below its top.
-	const gapDifference = await page.evaluate((link) => {
-		const header = link!.closest('[data-slot="article-header"]')!;
-		const chromeBottom = header.getBoundingClientRect().top + parseFloat(getComputedStyle(header).paddingTop);
-		const range = document.createRange();
-		range.selectNodeContents(link!);
-		const text = range.getBoundingClientRect();
-		const nextTop = link!.nextElementSibling!.getBoundingClientRect().top;
-		return Math.abs((text.top - chromeBottom) - (nextTop - text.bottom));
-	}, await page.getByRole('link', { name: 'All notes' }).elementHandle());
-	expect(gapDifference).toBeLessThanOrEqual(1);
+	const { height } = page.viewportSize()!;
+	for (const width of [page.viewportSize()!.width, 820])
+		for (const chromeGap of [0, 8]) {
+			await page.setViewportSize({ width, height });
+			await page.goto(`/detail-frame?chromeGap=${chromeGap}`);
+			await page.evaluate(() => document.fonts.ready);
+			const link = page.getByRole('link', { name: 'All notes' });
+			const gaps = await link.evaluate((element) => {
+				// An app's header starts at the top of the page, under the fixed chrome.
+				const header = element.closest('[data-slot="article-header"]')!;
+				window.scrollTo(0, header.getBoundingClientRect().top + scrollY);
+				const chromeBottom = document.querySelector('[data-testid="fixture-nav"]')!.getBoundingClientRect().bottom;
+				const range = document.createRange();
+				range.selectNodeContents(element);
+				const text = range.getBoundingClientRect();
+				return { above: text.top - chromeBottom, below: element.nextElementSibling!.getBoundingClientRect().top - text.bottom };
+			});
+			expect(Math.abs(gaps.above - gaps.below), `${width}px, --chrome-gap ${chromeGap}px`).toBeLessThanOrEqual(1);
+		}
 });
 
 test('detail frame layout variants', async ({ page }) => {

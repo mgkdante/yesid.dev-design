@@ -108,23 +108,30 @@ test('the rail is a landmark on desktop and a sheet on phones that keeps its sta
 test.describe('with motion on', () => {
 	test.use({ contextOptions: { reducedMotion: 'no-preference' } });
 
-	test('the rail sheet opens centred on phones', async ({ page }) => {
+	test('the rail sheet stays centred while it opens on phones', async ({ page }) => {
 		test.skip(!isPhone(page), 'the rail sheet is only shown on phones');
 		await open(page);
 		await dismissConsent(page);
-		await page.getByRole('button', { name: new RegExp(`^${copy.rail.label}`) }).click();
-		const dialog = await page.getByRole('dialog', { name: copy.rail.label }).elementHandle();
-		const offsets = await page.evaluate((dialog) => new Promise<number[]>((resolve) => {
-			const samples: number[] = [];
-			const start = performance.now();
-			function sample(now: number) {
-				const rect = dialog!.getBoundingClientRect();
-				samples.push(Math.abs(rect.x + rect.width / 2 - innerWidth / 2));
-				if (now - start < 400) requestAnimationFrame(sample);
-				else resolve(samples);
-			}
+		// Samples every frame in which the sheet is animating, from before the click until it settles.
+		await page.evaluate((label) => {
+			const offsets: number[] = [];
+			(window as unknown as { railOffsets: number[] }).railOffsets = offsets;
+			const sample = () => {
+				const sheet = document.querySelector(`[role="dialog"][aria-label="${label}"]`);
+				const animating = sheet ? sheet.getAnimations().length > 0 : false;
+				if (sheet && animating) {
+					const rect = sheet.getBoundingClientRect();
+					offsets.push(Math.abs(rect.x + rect.width / 2 - innerWidth / 2));
+				}
+				if (!sheet || animating || offsets.length === 0) requestAnimationFrame(sample);
+			};
 			requestAnimationFrame(sample);
-		}), dialog);
+		}, copy.rail.label);
+		await page.getByRole('button', { name: new RegExp(`^${copy.rail.label}`) }).click();
+		const sheet = page.getByRole('dialog', { name: copy.rail.label });
+		await expect(sheet).toBeVisible();
+		await expect.poll(() => sheet.evaluate((element) => element.getAnimations().length)).toBe(0);
+		const offsets = await page.evaluate(() => (window as unknown as { railOffsets: number[] }).railOffsets);
 		expect(offsets.length).toBeGreaterThanOrEqual(5);
 		for (const offset of offsets) expect(offset).toBeLessThanOrEqual(1);
 	});
