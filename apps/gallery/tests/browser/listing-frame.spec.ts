@@ -26,14 +26,14 @@ test('blueprint strokes follow scrolling and remain fully drawn under reduced mo
 	await expect.poll(() => path.evaluate((element) => (element as SVGPathElement).style.strokeDasharray)).toBe('');
 });
 
-test('every header drawing renders at the frame ink in each theme', async ({ page }) => {
+test('header drawings keep the frame ink and copy has solid page-colour protection in each theme', async ({ page }) => {
 	await page.goto('/listing-frame');
 	const art = page.locator('[data-slot="blueprint-listing-art"]');
 	const inks = new Map<string, number>();
 	// No stored theme: the system's light scheme must pick the light ink, as it picks the light palette.
 	for (const theme of ['dark', 'light', 'system light'] as const) {
 		if (theme === 'system light') await page.emulateMedia({ colorScheme: 'light' });
-		const { ink, drawings } = await art.evaluate((slot, theme) => {
+		const { ink, drawings, background, shadows } = await art.evaluate((slot, theme) => {
 			if (theme === 'system light') delete document.documentElement.dataset.theme;
 			else document.documentElement.dataset.theme = theme;
 			// An app's own opacity on a detail drawing must not count.
@@ -46,14 +46,24 @@ test('every header drawing renders at the frame ink in each theme', async ({ pag
 				}
 				return opacity;
 			};
+			const content = slot.parentElement!.querySelector('[data-slot="blueprint-listing-content"]')!;
+			const probe = document.createElement('span');
+			probe.style.color = 'var(--background)';
+			content.append(probe);
+			const background = getComputedStyle(probe).color;
+			probe.remove();
 			return {
 				ink: Number(getComputedStyle(slot).getPropertyValue('--blueprint-ink')),
 				drawings: [...slot.querySelectorAll('svg')].map(rendered),
+				background,
+				shadows: [...content.querySelectorAll('h1, p, dt, dd')].map((copy) => getComputedStyle(copy).textShadow),
 			};
 		}, theme);
 		expect(ink, theme).toBeGreaterThan(0);
 		expect(drawings.length, theme).toBeGreaterThan(1);
 		for (const opacity of drawings) expect(opacity, theme).toBeCloseTo(ink, 3);
+		expect(shadows.length, theme).toBeGreaterThan(0);
+		for (const shadow of shadows) expect(shadow, theme).toContain(`${background} 0px 0px 0px`);
 		inks.set(theme, ink);
 	}
 	expect(inks.get('system light')).toBe(inks.get('light'));
