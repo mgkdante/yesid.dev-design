@@ -114,13 +114,13 @@ test.describe('in a short viewport', () => {
 
 	test('the wheel scrolls the menu while the page stays put', async ({ page }) => {
 		await page.goto(HOME);
-		const scrollY = await page.evaluate(() => scrollY);
+		const pageScroll = await page.evaluate(() => window.scrollY);
 		await toggle(page).click();
 		const list = menuLinks(page);
 		await list.hover();
 		await page.mouse.wheel(0, 400);
 
 		await expect.poll(() => list.evaluate((nav) => nav.parentElement!.scrollTop)).toBeGreaterThan(0);
-		expect(await page.evaluate(() => scrollY)).toBe(scrollY);
+		expect(await page.evaluate(() => window.scrollY)).toBe(pageScroll);
 	});
 });
