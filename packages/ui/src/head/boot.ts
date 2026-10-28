@@ -27,7 +27,7 @@ export const themeBootScript = `(() => {
 		if (element.hasAttribute('data-state')) element.dataset.state = open ? 'open' : 'closed';
 		if (element.hasAttribute('aria-expanded')) element.setAttribute('aria-expanded', String(open));
 		if (!body) return;
-		element.inert = !open;
+		element.toggleAttribute('inert', !open);
 		if (open) element.removeAttribute('aria-hidden');
 		else element.setAttribute('aria-hidden', 'true');
 	};

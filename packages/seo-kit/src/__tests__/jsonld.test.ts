@@ -6,6 +6,8 @@ import {
 	buildOrganizationJsonLd,
 	buildProfilePageJsonLd,
 	buildWebSiteJsonLd,
+	serializeJsonLd,
+	SCHEMA_ORG_CONTEXT,
 } from '../jsonld.js';
 
 describe('JSON-LD byte contracts', () => {
@@ -89,5 +91,14 @@ describe('JSON-LD byte contracts', () => {
 			description: 'Selected work.',
 			url: 'https://example.com/work',
 		});
+	});
+});
+
+describe('serializeJsonLd', () => {
+	it('wraps the nodes in one schema.org graph that cannot close its script element', () => {
+		const nodes = [{ '@type': 'WebSite', name: 'Close </script> early' }];
+		const body = serializeJsonLd(nodes);
+		expect(body).not.toContain('<');
+		expect(JSON.parse(body)).toEqual({ '@context': SCHEMA_ORG_CONTEXT, '@graph': nodes });
 	});
 });

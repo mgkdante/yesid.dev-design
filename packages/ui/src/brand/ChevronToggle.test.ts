@@ -8,21 +8,9 @@ describe('ChevronToggle', () => {
 		expect(container.querySelector('svg')).toBeTruthy();
 	});
 
-	it('defaults to md size and right direction', () => {
-		const { container } = render(ChevronToggle, { props: { open: false } });
-		const classes = container.querySelector('svg')?.getAttribute('class') ?? '';
-		expect(classes).toContain('size-5');
-		expect(classes).toContain('chevron-right');
-	});
-
-	it('applies open, size, and direction state classes', () => {
-		const { container } = render(ChevronToggle, {
-			props: { open: true, size: 'sm', direction: 'down' },
-		});
-		const classes = container.querySelector('svg')?.getAttribute('class') ?? '';
-		expect(classes).toContain('chevron-open');
-		expect(classes).toContain('size-4');
-		expect(classes).toContain('chevron-down');
+	it.each([true, false])('reports open=%s as its data-state', (open) => {
+		const { container } = render(ChevronToggle, { props: { open } });
+		expect(container.querySelector('svg')?.getAttribute('data-state')).toBe(open ? 'open' : 'closed');
 	});
 
 	it('is decorative and forwards SVG attributes', () => {

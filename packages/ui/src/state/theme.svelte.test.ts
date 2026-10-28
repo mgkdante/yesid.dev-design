@@ -62,4 +62,22 @@ describe('theme', () => {
 		expect(meta.getAttribute('content')).toBe('#f3f6fb');
 		document.documentElement.style.removeProperty('--background');
 	});
+
+	it('repaints every icon link with the brand mark in --primary', () => {
+		const frames: FrameRequestCallback[] = [];
+		vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => frames.push(callback));
+		const link = document.createElement('link');
+		link.rel = 'icon';
+		link.href = '/favicon.svg';
+		document.head.append(link);
+		document.documentElement.style.setProperty('--primary', '#123456');
+
+		theme.set('light');
+		frames[0](0);
+		const href = link.getAttribute('href') ?? '';
+		expect(href.startsWith('data:image/svg+xml,')).toBe(true);
+		expect(decodeURIComponent(href)).toContain('#123456');
+		link.remove();
+		document.documentElement.style.removeProperty('--primary');
+	});
 });
