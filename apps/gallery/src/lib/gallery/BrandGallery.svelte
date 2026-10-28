@@ -292,7 +292,7 @@
 				<Card.Description>Toggle header with an index badge; follows quiet mode by default.</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<CollapsibleSection title="Service notes" subtitle="Weekday timetable" index={0}>
+				<CollapsibleSection title="Service notes" subtitle="Weekday timetable" index={0} sectionKey="gallery-service-notes">
 					<p class="text-small">Trains run every six minutes between 06:00 and 22:00.</p>
 				</CollapsibleSection>
 			</Card.Content>

@@ -23,6 +23,31 @@
 - `types` → `./src/satori.ts`
 - `default` → `./src/satori.ts`
 
+### `./og`
+
+- `types` → `./src/og.ts`
+- `default` → `./src/og.ts`
+
+### `./og/fonts`
+
+- `types` → `./src/og-fonts.ts`
+- `default` → `./src/og-fonts.ts`
+
+### `./og/files`
+
+- `types` → `./src/og-files.ts`
+- `default` → `./src/og-files.ts`
+
+### `./icons`
+
+- `types` → `./src/icons.ts`
+- `default` → `./src/icons.ts`
+
+### `./headers`
+
+- `types` → `./src/headers.ts`
+- `default` → `./src/headers.ts`
+
 ## Direct public assets
 
 
@@ -32,6 +57,11 @@
 - `Jsonld` → `./src/jsonld.ts` (`./jsonld`)
 - `Sitemap` → `./src/sitemap.ts` (`./sitemap`)
 - `Satori` → `./src/satori.ts` (`./satori`)
+- `Og` → `./src/og.ts` (`./og`)
+- `OgFonts` → `./src/og-fonts.ts` (`./og/fonts`)
+- `OgFiles` → `./src/og-files.ts` (`./og/files`)
+- `Icons` → `./src/icons.ts` (`./icons`)
+- `Headers` → `./src/headers.ts` (`./headers`)
 
 ## API Report File for "@yesid/seo-kit"
 
@@ -52,6 +82,9 @@ interface AlternateSitemapEntriesInput {
     // (undocumented)
     xDefaultHref?: string;
 }
+
+// @public
+function brandMarkSvg(color: string): string;
 
 // @public (undocumented)
 interface BreadcrumbJsonLdItem {
@@ -106,6 +139,9 @@ interface CollectionPageJsonLdInput extends ContextOption {
     url: string;
 }
 
+// @public
+function contentSecurityPolicy(directives: Readonly<Record<string, readonly string[]>>): string;
+
 // @public (undocumented)
 interface ContextOption {
     // (undocumented)
@@ -138,8 +174,23 @@ function emitAlternateSitemapEntries(input: AlternateSitemapEntriesInput): strin
 // @public (undocumented)
 function emitSitemapDocument(entries: readonly string[], options?: SitemapDocumentOptions): string;
 
+declare namespace Headers_2 {
+    export {
+        contentSecurityPolicy,
+        SECURITY_HEADERS
+    }
+}
+
+declare namespace Icons {
+    export {
+        brandMarkSvg,
+        touchIconSvg
+    }
+}
+
 declare namespace Index {
     export {
+        serializeJsonLd,
         buildWebSiteJsonLd,
         buildBreadcrumbListJsonLd,
         buildOrganizationJsonLd,
@@ -159,9 +210,11 @@ declare namespace Index {
         toW3CDate,
         emitAlternateSitemapEntries,
         emitSitemapDocument,
+        robotsTxt,
         SitemapVariant,
         AlternateSitemapEntriesInput,
         SitemapDocumentOptions,
+        RobotsTxtInput,
         renderSatoriPng,
         SatoriTree,
         SatoriRenderOptions,
@@ -171,6 +224,7 @@ declare namespace Index {
 
 declare namespace Jsonld {
     export {
+        serializeJsonLd,
         buildWebSiteJsonLd,
         buildBreadcrumbListJsonLd,
         buildOrganizationJsonLd,
@@ -207,6 +261,73 @@ interface JsonLdReference {
     '@id': string;
 }
 
+declare namespace Og {
+    export {
+        renderOgPng,
+        OG_WIDTH,
+        OG_HEIGHT,
+        OG_PALETTE,
+        OgFont,
+        OgCardInput
+    }
+}
+
+// @public (undocumented)
+const OG_HEIGHT = 630;
+
+// @public
+const OG_PALETTE: {
+    readonly background: string;
+    readonly foreground: string;
+    readonly muted: string;
+    readonly accent: string;
+    readonly accentText: string;
+};
+
+// @public (undocumented)
+const OG_WIDTH = 1200;
+
+// @public (undocumented)
+interface OgCardInput {
+    eyebrow: string;
+    handle: string;
+    location: string;
+    // (undocumented)
+    title: string;
+    wordmark: string;
+}
+
+declare namespace OgFiles {
+    export {
+        readOgFonts,
+        ogFontFiles
+    }
+}
+
+// @public (undocumented)
+interface OgFont {
+    // (undocumented)
+    data: ArrayBuffer;
+    // (undocumented)
+    name: 'Inter' | 'JetBrains Mono';
+    // (undocumented)
+    style: 'normal';
+    // (undocumented)
+    weight: 500 | 900;
+}
+
+// @public
+const ogFontFiles: readonly string[];
+
+declare namespace OgFonts {
+    export {
+        ogFonts
+    }
+}
+
+// @public
+const ogFonts: readonly OgFont[];
+
 // @public (undocumented)
 interface OrganizationJsonLdInput extends ContextOption {
     // (undocumented)
@@ -229,8 +350,26 @@ interface ProfilePageJsonLdInput extends ContextOption {
     mainEntity: JsonLdReference;
 }
 
+// @public
+function readOgFonts(): OgFont[];
+
+// @public
+function renderOgPng<Bytes extends Uint8Array = Uint8Array>(card: OgCardInput, fonts: readonly OgFont[], rasterize: SvgRasterizer<Bytes>): Promise<Bytes>;
+
 // @public (undocumented)
 function renderSatoriPng<Bytes extends Uint8Array = Uint8Array>(tree: unknown, options: SatoriRenderOptions, rasterize: SvgRasterizer<Bytes>): Promise<Bytes>;
+
+// @public (undocumented)
+function robotsTxt(input: RobotsTxtInput): string;
+
+// @public (undocumented)
+interface RobotsTxtInput {
+    // (undocumented)
+    disallow?: readonly string[];
+    indexing: boolean;
+    notes?: readonly string[];
+    sitemap?: string;
+}
 
 declare namespace Satori {
     export {
@@ -250,15 +389,23 @@ type SatoriTree = Parameters<typeof satori>[0];
 // @public (undocumented)
 const SCHEMA_ORG_CONTEXT: "https://schema.org";
 
+// @public
+const SECURITY_HEADERS: Readonly<Record<string, string>>;
+
+// @public
+function serializeJsonLd(nodes: readonly object[]): string;
+
 declare namespace Sitemap {
     export {
         xmlEscape,
         toW3CDate,
         emitAlternateSitemapEntries,
         emitSitemapDocument,
+        robotsTxt,
         SitemapVariant,
         AlternateSitemapEntriesInput,
-        SitemapDocumentOptions
+        SitemapDocumentOptions,
+        RobotsTxtInput
     }
 }
 
@@ -278,6 +425,9 @@ interface SitemapVariant {
 
 // @public (undocumented)
 type SvgRasterizer<Bytes extends Uint8Array = Uint8Array> = (svg: string) => Bytes | Promise<Bytes>;
+
+// @public
+function touchIconSvg(ground: string, color: string, size?: number): string;
 
 // @public (undocumented)
 function toW3CDate(stamp: string | null | undefined): string | null;

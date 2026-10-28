@@ -176,6 +176,26 @@ configuration is deferred and is not part of the current public API.
 `ConfigureUiResult = 'initialized' | 'unchanged'` is observable public API, not
 an internal diagnostic.
 
+### Boot the theme and write the head
+
+Put `%yesid.themeBoot%` in `src/app.html` before `%sveltekit.head%`, and swap it
+in the server hook so the stored theme and section states paint first:
+
+```ts
+import { injectThemeBoot } from '@yesid/ui/head';
+
+export const handle: Handle = ({ event, resolve }) =>
+  resolve(event, { transformPageChunk: ({ html }) => injectThemeBoot(html) });
+```
+
+A hash-based CSP adds the hash from `@yesid/ui/boot.json` to `script-src`.
+List `@yesid/tokens` and `@yesid/seo-kit` in Vite's `ssr.noExternal`: they ship
+TypeScript, and the Svelte plugin otherwise externalizes `@yesid/ui`'s
+dependencies in dev and tests, where Node can't load them.
+Render `SeoHead` from `@yesid/ui/head` once in the root layout with the page's
+resolved title, description, canonical and alternates. The share card, favicon
+mark, robots and security headers come from `@yesid/seo-kit`.
+
 ## 5. Apply the motion policy
 
 Read `vendor/design/motion/src/policy.ts` before adding an animation. Use `shouldAnimate('motion-gated')` for scroll scrubs, parallax, pointer translation, large scale changes, rotation, ambient loops, and smooth scrolling. Small feedback in the `safe-always` tier can still run under reduced motion.

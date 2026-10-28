@@ -116,13 +116,24 @@
 - `svelte` → `./src/state/index.ts`
 - `default` → `./src/state/index.ts`
 
+### `./head`
+
+- `types` → `./src/head/index.ts`
+- `svelte` → `./src/head/index.ts`
+- `default` → `./src/head/index.ts`
+
 ### `./base.css`
 
 - `default` → `./base.css`
 
+### `./boot.json`
+
+- `default` → `./src/head/boot.json`
+
 ## Direct public assets
 
 - `./base.css` — direct asset `./base.css` (`default`), sha256 `edee6536749c9a1aa0eb6e4b72ac8aabf15d2f2d35725e30b2a33943637e5e6c`
+- `./boot.json` — direct asset `./src/head/boot.json` (`default`), sha256 `3e4f6f29e0119c7e465ddf93a76849f4b7bf41cb04b939078e291eeb336403b5`
 
 ## Declaration namespaces
 
@@ -145,6 +156,7 @@
 - `PrimitivesToggleGroup` → `./src/primitives/toggle-group/index.ts` (`./toggle-group`)
 - `Layout` → `./src/layout/index.ts` (`./layout`)
 - `State` → `./src/state/index.ts` (`./state`)
+- `Head` → `./src/head/index.ts` (`./head`)
 
 ## API Report File for "@yesid/ui"
 
@@ -991,6 +1003,16 @@ type ForbidProps_3<Keys extends PropertyKey> = {
 // @public (undocumented)
 type HazardSize = 'sm' | 'md' | 'lg';
 
+declare namespace Head {
+    export {
+        SeoHead,
+        SeoHeadAlternate,
+        SeoHeadImage,
+        SeoHeadProps,
+        injectThemeBoot
+    }
+}
+
 declare namespace Index {
     export {
         cn,
@@ -1079,6 +1101,9 @@ declare namespace Index {
         SiteNavigation
     }
 }
+
+// @public
+function injectThemeBoot(html: string): string;
 
 // @public
 function landTocFragments(root?: Element | Document): () => void;
@@ -1631,6 +1656,63 @@ type SectionLabelProps = Omit<HTMLAttributes<HTMLSpanElement>, 'children' | 'cla
     align?: 'left' | 'center';
     class?: string;
 };
+
+// @public (undocumented)
+const SeoHead: Component<SeoHeadProps, {}, "">;
+
+// @public (undocumented)
+type SeoHead = ReturnType<typeof SeoHead>;
+
+// @public (undocumented)
+interface SeoHeadAlternate {
+    // (undocumented)
+    href: string;
+    // (undocumented)
+    hreflang: string;
+}
+
+// @public (undocumented)
+interface SeoHeadImage {
+    // (undocumented)
+    alt: string;
+    // (undocumented)
+    height?: number;
+    // (undocumented)
+    url: string;
+    // (undocumented)
+    width?: number;
+}
+
+// @public (undocumented)
+interface SeoHeadProps {
+    alternates?: readonly SeoHeadAlternate[];
+    // (undocumented)
+    author?: string;
+    canonical?: string;
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    image: SeoHeadImage;
+    // (undocumented)
+    jsonLd?: readonly object[];
+    // (undocumented)
+    noIndex?: boolean;
+    ogLocale: string;
+    // (undocumented)
+    ogLocaleAlternates?: readonly string[];
+    // (undocumented)
+    siteName: string;
+    themeColor?: string;
+    // (undocumented)
+    title: string;
+    // (undocumented)
+    twitter?: {
+        site?: string;
+        creator?: string;
+    };
+    // (undocumented)
+    type?: string;
+}
 
 // @public (undocumented)
 const Separator_2: Component<SeparatorProps, {}, "ref">;

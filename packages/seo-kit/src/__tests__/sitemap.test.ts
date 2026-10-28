@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emitAlternateSitemapEntries, emitSitemapDocument, toW3CDate, xmlEscape } from '../sitemap.js';
+import { emitAlternateSitemapEntries, emitSitemapDocument, toW3CDate, xmlEscape, robotsTxt } from '../sitemap.js';
 
 const variants = [
 	{ hreflang: 'en', href: 'https://example.com/about' },
@@ -39,5 +39,32 @@ describe('sitemap byte contracts', () => {
 		expect(toW3CDate('2026-06-20T07:00:00Z')).toBe('2026-06-20T07:00:00.000Z');
 		expect(toW3CDate('garbage')).toBeNull();
 		expect(toW3CDate(undefined)).toBeNull();
+	});
+});
+
+describe('robotsTxt', () => {
+	it('disallows everything when the host must stay out of search', () => {
+		const robots = robotsTxt({ indexing: false, sitemap: 'https://example.com/sitemap.xml', disallow: ['/api/'] });
+		expect(robots.trim().split('\n')).toEqual(['User-agent: *', 'Disallow: /']);
+	});
+
+	it('allows the site and keeps each disallowed path, the sitemap and the notes', () => {
+		const robots = robotsTxt({
+			indexing: true,
+			sitemap: 'https://example.com/sitemap.xml',
+			disallow: ['/_app', '/api/'],
+			notes: ['https://example.com/llms.txt'],
+		});
+		const lines = robots.split('\n');
+		expect(lines.slice(0, 2)).toEqual(['User-agent: *', 'Allow: /']);
+		expect(lines).toEqual(
+			expect.arrayContaining([
+				'Disallow: /_app',
+				'Disallow: /api/',
+				'Sitemap: https://example.com/sitemap.xml',
+				'# https://example.com/llms.txt',
+			]),
+		);
+		expect(robots.endsWith('\n')).toBe(true);
 	});
 });

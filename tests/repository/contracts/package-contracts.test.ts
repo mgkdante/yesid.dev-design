@@ -74,6 +74,7 @@ const EXISTING_UI_EXPORTS = {
 	'./toggle-group': './src/primitives/toggle-group/index.ts',
 	'./layout': './src/layout/index.ts',
 	'./state': './src/state/index.ts',
+	'./head': './src/head/index.ts',
 } as const;
 
 const EXISTING_MOTION_EXPORTS = {
@@ -100,6 +101,11 @@ const SEO_KIT_EXPORTS = {
 	'./jsonld': './src/jsonld.ts',
 	'./sitemap': './src/sitemap.ts',
 	'./satori': './src/satori.ts',
+	'./og': './src/og.ts',
+	'./og/fonts': './src/og-fonts.ts',
+	'./og/files': './src/og-files.ts',
+	'./icons': './src/icons.ts',
+	'./headers': './src/headers.ts',
 } as const;
 
 const ANALYTICS_EXPORTS = {
@@ -352,6 +358,7 @@ describe('conditioned package export contract', () => {
 		expect(new Set(Object.keys(readExports(manifests['@yesid/ui'])))).toEqual(new Set([
 			...Object.keys(EXISTING_UI_EXPORTS),
 			'./base.css',
+			'./boot.json',
 		]));
 		expect(new Set(Object.keys(readExports(manifests['@yesid/motion'])))).toEqual(new Set([
 			...Object.keys(EXISTING_MOTION_EXPORTS),
