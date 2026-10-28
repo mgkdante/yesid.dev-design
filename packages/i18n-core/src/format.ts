@@ -21,7 +21,8 @@ const UNITS: readonly (readonly [Intl.RelativeTimeFormatUnit, number])[] = [
 
 /**
  * Binds each app locale to the BCP 47 tag Intl formats it with. Formatters are cached per locale
- * and options, so call sites can ask for one on every render.
+ * and options (plain option objects, compared by their JSON), so call sites can ask for one on
+ * every render.
  */
 export function createIntl<Locale extends string>(tags: Readonly<Record<Locale, string>>): LocaleIntl<Locale> {
 	const cache = new Map<string, unknown>();

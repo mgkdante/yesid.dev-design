@@ -17,7 +17,7 @@
 		scroller?: SiteRootScroller;
 		/** The page's language. The server fills `<html lang>`; this keeps it current after client navigation. */
 		lang?: string;
-		/** @deprecated since v0.22.0. Use the standard `quiet-mode` key, which the boot script paints. */
+		/** @deprecated since v0.22.0 (removal no earlier than v0.24.0). Use the standard `quiet-mode` key. */
 		quietModeKey?: string;
 	}
 </script>

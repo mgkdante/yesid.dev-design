@@ -396,9 +396,10 @@ unmount and renders no element of its own. Props:
   whole scrolling flow. Omit it to scroll the window.
 - `lang`: the page's language. The server fills `<html lang>` (for example by replacing `%lang%`
   in `transformPageChunk`); `SiteRoot` keeps it current after client navigation.
-- `quietModeKey` (deprecated since v0.22.0; removal no earlier than 90 days and one minor after
-  v0.22.0): a custom localStorage key for the remembered quiet-mode default. The head boot script only reads
-  the standard `quiet-mode` key, so a custom key paints sections open until hydration.
+- `quietModeKey` (deprecated since v0.22.0; removal no earlier than v0.24.0 and 90 days after
+  v0.22.0): a custom localStorage key for the remembered quiet-mode default. The head boot script only
+  reads the standard `quiet-mode` key, so with a custom key what it paints can disagree with what
+  hydration renders.
 
 The app keeps its own navigation, scroll-restoration, and analytics handling.
 

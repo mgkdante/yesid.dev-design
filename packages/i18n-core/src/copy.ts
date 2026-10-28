@@ -30,5 +30,5 @@ export type DefineCopy<Locale extends string, Source extends Locale> = <Canonica
  */
 export function createCopy<Locale extends string, Source extends Locale>(): DefineCopy<Locale, Source> {
 	return <Canonical extends object>(copy: LocalizedCopy<Canonical, Locale, Source>) =>
-		copy as unknown as Readonly<Record<Locale, CopyShape<Canonical>>>;
+		copy as Readonly<Record<Locale, CopyShape<Canonical>>>;
 }

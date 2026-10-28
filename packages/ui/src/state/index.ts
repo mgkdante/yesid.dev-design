@@ -19,8 +19,8 @@ export interface ThemeStore {
 
 export interface QuietModeInit {
 	/**
-	 * @deprecated since v0.22.0 (removal no earlier than 90 days and one minor later). The head boot
-	 * script only reads the standard `quiet-mode` key, so a custom key paints open until hydration.
+	 * @deprecated since v0.22.0; removal no earlier than v0.24.0 and 90 days after v0.22.0. The head
+	 * boot script only reads the standard `quiet-mode` key, so it can't paint a custom key's state.
 	 */
 	readonly storageKey?: string;
 }

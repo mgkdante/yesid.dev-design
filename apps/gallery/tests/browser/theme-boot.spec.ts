@@ -61,24 +61,26 @@ test('a remembered quiet mode paints sections closed before the app runs, and hy
 		.evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-controls')).filter(Boolean));
 	expect(closed).toContain(await section.getAttribute('aria-controls'));
 
-	// Record every expanded state an element reports from the first parse through hydration.
+	// Every value each control's aria-expanded holds from the first parse through hydration.
 	await page.unroute('**/_app/**/*.js');
 	await page.addInitScript(() => {
-		const opened: string[] = [];
-		Object.assign(window, { opened });
+		const states: Record<string, (string | null)[]> = {};
+		Object.assign(window, { states });
 		new MutationObserver((records) => {
-			for (const { target } of records) {
-				const element = target as Element;
-				if (element.getAttribute('aria-expanded') === 'true') opened.push(element.getAttribute('aria-controls') ?? '');
-			}
-		}).observe(document, { subtree: true, attributeFilter: ['aria-expanded'] });
+			for (const { target, oldValue } of records)
+				(states[(target as Element).getAttribute('aria-controls') ?? ''] ??= []).push(oldValue);
+		}).observe(document, { subtree: true, attributeFilter: ['aria-expanded'], attributeOldValue: true });
 	});
 	await page.reload();
 	// Hydration renders the store's label, so this button only exists once the app runs.
 	const expandAll = page.getByRole('button', { name: 'Expand all' });
 	await expect(expandAll).toBeVisible();
-	const opened = await page.evaluate(() => (window as unknown as { opened: string[] }).opened);
-	expect(opened.filter((id) => closed.includes(id))).toEqual([]);
+	const states = await page.evaluate(() => (window as unknown as { states: Record<string, (string | null)[]> }).states);
+	for (const id of closed) {
+		// The first value is the server markup's; nothing after it may be expanded.
+		const current = await page.locator(`[aria-controls="${id}"]`).first().getAttribute('aria-expanded');
+		expect([...(states[id!] ?? []).slice(1), current], id!).not.toContain('true');
+	}
 	await expandAll.click();
 	await expect(section).toHaveAttribute('aria-expanded', 'true');
 });
