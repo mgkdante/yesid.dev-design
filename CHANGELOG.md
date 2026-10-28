@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.25.0
+
+<!-- release-fragment: p1-polish-review -->
+- `@yesid/tokens` (patch), `@yesid/ui` (patch): `SiteHeader`'s menu line now runs from each item's icon to the next one, short viewports included. The token doctrine names conversion buttons as the only clickable yellow surface and underlined text links as yellow's second interaction.
+
+<!-- release-fragment: p1-polish -->
+- `@yesid/tokens` (patch), `@yesid/motion` (patch), `@yesid/ui` (minor), `@yesid/i18n-core` (patch): Polish from the owner's review of both sites. `SiteHeader` menu items take an optional `icon` (a Lucide icon component) that replaces the stop and lights up on the current page, and the menu footer now defaults to "Navigation · All routes" in the language's locale (en, fr, es); `labels.menuFooter` still replaces it, and an empty string hides it (before, an omitted label hid the footer). `@yesid/ui/base.css` makes every link without a class a text link: underlined, in `--accent-text` (yellow in dark, amber in light), with a thicker underline on hover; component links keep their own styles. `ArticleHeader` centers the back link between the chrome and the next line, drops its fixed minimum height and sizes the title with `--text-title` (smaller at every width, and density-aware); apps whose `--chrome-offset` leaves a gap under their chrome set `--chrome-gap`. `SurfaceRail`'s phone sheet now opens centred instead of sliding in from the right. `@yesid/i18n-core`'s `localizeHref` keeps a query or hash while switching the locale (`/fr?provider=stm` now localizes to `/?provider=stm`) and decides path exemptions without them. `@yesid/motion`'s `blueprintScrub` redraws when its trigger resizes, so content rendered after mount no longer leaves a stale first draw. The token doctrine now names underlined text links as a yellow (`accent-text`) job. To migrate, delete local text-link styles and the classes that only styled links, move any typography those rules set onto the surrounding element, pass `icon` per menu item, and drop a menu-footer label that repeats the default.
+
 ## 0.24.0
 
 <!-- release-fragment: ds7-brand-surfaces -->
