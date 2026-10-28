@@ -41,7 +41,6 @@ select {
 	--nav-padding-y: 12px;
 	--nav-border: 2px;
 	--nav-clearance: calc(var(--nav-top) + var(--nav-control) + 2 * var(--nav-padding-y) + 2 * var(--nav-border));
-	--chrome-offset: var(--nav-clearance);
 }
 @media (max-width: 767px) {
 	:root {

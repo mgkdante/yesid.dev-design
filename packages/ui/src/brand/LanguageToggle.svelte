@@ -66,6 +66,7 @@
 			const mid = yTop + PLATE_H / 2;
 			const right = k % 2 === 1;
 			return {
+				locale: loc,
 				code: loc.slice(0, 2).toUpperCase(),
 				path: right
 					? `M30 ${yTop} H49 L54 ${mid} L49 ${yTop + PLATE_H} H30 Z`
@@ -100,7 +101,7 @@
 			<circle class="finial" cx="28" cy="4" r="2"></circle>
 			{#key locale}
 				<g class="boards">
-					{#each boards as b (b.code)}
+					{#each boards as b (b.locale)}
 						<g class="board" class:active={b.active} style="--d:{b.delay}ms; transform-origin:28px {b.ty - 3.8}px;">
 							<path class="plate" d={b.path}></path>
 							{#if b.active}

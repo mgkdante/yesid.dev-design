@@ -359,8 +359,8 @@ optional `search` snippet shows from 1024px and folds away with the links while 
 `actions` render before the theme, language and menu controls. The app marks `current` links and
 items; snippets can query the header's width with `@container site-header`.
 `--site-header-inset-end` narrows the header beside a docked panel, animated over
-`--site-header-inset-duration`. The menu starts below `--chrome-offset`, and page offsets read
-`--nav-clearance`; both come from `base.css`.
+`--site-header-inset-duration`. The menu starts below the app's `--chrome-offset` (default `--nav-clearance`); page offsets read
+`--nav-clearance` from `base.css`.
 
 `Wordmark` is the name plus accent dot with the `wordmarkHover` effects (`autoPlay` plays one on
 mount). `LanguageToggle` is the signpost: one board per locale, linking to `href(next)`.
@@ -419,7 +419,7 @@ text. During SSR it returns the seed.
 
 `@yesid/ui/base.css` is the base layer both products share: resets, the dark variant, selection,
 focus ring, scrollbar, circuit grid, shared keyframes, label styles, `.glass-chrome`, the
-`SiteHeader` geometry (`--nav-top`, `--nav-padding-y`, `--nav-clearance`, `--chrome-offset`) and the
+`SiteHeader` geometry (`--nav-top`, `--nav-padding-y`, `--nav-clearance`) and the
 View Transitions route crossfade (off under reduced motion; pair it with `onNavigate(viewTransition)`
 from `@yesid/motion/utils/viewTransition`). It imports
 `@yesid/tokens/theme.css`, which provides the Tailwind theme and the semantic color utilities

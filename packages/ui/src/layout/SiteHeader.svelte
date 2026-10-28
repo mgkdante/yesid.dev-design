@@ -567,7 +567,7 @@
 	.menu-overlay {
 		position: fixed;
 		inset: 0;
-		top: calc(var(--chrome-offset) + 1rem);
+		top: calc(var(--chrome-offset, var(--nav-clearance)) + 1rem);
 		z-index: 0;
 		display: flex;
 		flex-direction: column;
@@ -604,6 +604,10 @@
 		width: fit-content;
 		max-width: 100%;
 		margin-top: auto;
+	}
+	/* Without a footer the list balances its own top margin. */
+	.menu-content:last-child {
+		margin-bottom: auto;
 	}
 	.menu-item {
 		position: relative;

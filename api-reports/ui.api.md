@@ -122,7 +122,7 @@
 
 ## Direct public assets
 
-- `./base.css` — direct asset `./base.css` (`default`), sha256 `b8860f676812666f3b9541bf80af44b8214fabdb214f6d0a31e0d9e35641d4f0`
+- `./base.css` — direct asset `./base.css` (`default`), sha256 `edee6536749c9a1aa0eb6e4b72ac8aabf15d2f2d35725e30b2a33943637e5e6c`
 
 ## Declaration namespaces
 
