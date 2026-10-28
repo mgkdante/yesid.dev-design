@@ -21,6 +21,7 @@
       "name": "@yesid/gallery",
       "version": "0.1.0",
       "dependencies": {
+        "@lucide/svelte": "^1.18.0",
         "@yesid/analytics": "workspace:*",
         "@yesid/motion": "workspace:*",
         "@yesid/tokens": "workspace:*",

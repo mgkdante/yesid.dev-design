@@ -59,6 +59,49 @@ test('the menu opens with every item, traps focus, passes axe and closes with Es
 	await expect(toggle(page)).toHaveAccessibleName(LABELS.openMenu);
 });
 
+test('menu items carry icons and only the current item\'s icon is lit', async ({ page }) => {
+	await page.goto(HOME);
+	await toggle(page).click();
+	for (const item of MENU_ITEMS) {
+		const icon = menuLinks(page).getByRole('link', { name: item.ariaLabel ?? new RegExp(`^${literal(item.label)}`) }).locator('svg');
+		await expect(icon).toBeVisible();
+		if (item.current) await expect(icon).not.toHaveCSS('fill', 'none');
+		else await expect(icon).toHaveCSS('fill', 'none');
+	}
+});
+
+test('a classless text link is underlined and readable in both themes; header links are not', async ({ page }) => {
+	await page.goto(HOME);
+	const link = page.getByRole('paragraph').getByRole('link');
+	await expect(link).toBeVisible();
+	for (const colorScheme of ['dark', 'light'] as const) {
+		const result = await page.evaluate(({ link, colorScheme }) => {
+			document.documentElement.dataset.theme = colorScheme;
+			const context = document.createElement('canvas').getContext('2d')!;
+			const rgba = (color: string) => {
+				context.clearRect(0, 0, 1, 1);
+				context.fillStyle = color;
+				context.fillRect(0, 0, 1, 1);
+				return Array.from(context.getImageData(0, 0, 1, 1).data);
+			};
+			const luminance = (rgb: number[]) => rgb.slice(0, 3).reduce((sum, value, i) => {
+				const c = value / 255;
+				return sum + (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4) * [0.2126, 0.7152, 0.0722][i]!;
+			}, 0);
+			let ancestor = link!.parentElement;
+			while (ancestor && rgba(getComputedStyle(ancestor).backgroundColor)[3] === 0) ancestor = ancestor.parentElement;
+			if (!ancestor) throw new Error('No non-transparent link background');
+			const style = getComputedStyle(link!);
+			const foreground = luminance(rgba(style.color));
+			const background = luminance(rgba(getComputedStyle(ancestor).backgroundColor));
+			return { decoration: style.textDecorationLine, contrast: (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05) };
+		}, { link: await link.elementHandle(), colorScheme });
+		expect(result.decoration).toContain('underline');
+		expect(result.contrast).toBeGreaterThanOrEqual(4.5);
+		await expect(header(page).getByRole('link', { name: LINKS[0]!.label, exact: true })).toHaveCSS('text-decoration-line', 'none');
+	}
+});
+
 test('a language switch from the open menu keeps it open', async ({ page }) => {
 	await page.goto(HOME);
 	await toggle(page).click();

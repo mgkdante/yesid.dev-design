@@ -22,6 +22,5 @@ export const LABELS = {
 	menu: 'Site menu',
 	theme: 'Dark theme',
 	nav: 'Primary',
-	menuFooter: 'Sample footer',
 } satisfies SiteHeaderLabels;
 export const languageHref = (locale: string) => `${HOME}?lang=${locale}`;

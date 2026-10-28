@@ -150,7 +150,7 @@
 
 ## Direct public assets
 
-- `./base.css` — direct asset `./base.css` (`default`), sha256 `b31ffb56ad43fa92577973957598672dd779a12167759497cba2419ca3a5e1ee`
+- `./base.css` — direct asset `./base.css` (`default`), sha256 `56e378d74f1d156d98a3ba26e020f972ee267b0373326c600a9a281612797168`
 - `./boot.json` — direct asset `./src/head/boot.json` (`default`), sha256 `430847054f7b4c36c8328ad5646fa59a8625398e332f774be22baa23254c7578`
 
 ## Declaration namespaces
@@ -2926,7 +2926,6 @@ interface SiteHeaderLabels {
     // (undocumented)
     closeMenu: string;
     menu: string;
-    // (undocumented)
     menuFooter?: string;
     nav?: string;
     // (undocumented)
@@ -2955,6 +2954,9 @@ interface SiteHeaderMenuItem {
     external?: boolean;
     // (undocumented)
     href: string;
+    icon?: Component<{
+        class?: string;
+    }>;
     // (undocumented)
     label: string;
     // (undocumented)

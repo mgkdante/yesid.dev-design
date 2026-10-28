@@ -105,6 +105,31 @@ test('the rail is a landmark on desktop and a sheet on phones that keeps its sta
 	await expect(landmark.locator(':focus')).toHaveCount(1);
 });
 
+test.describe('with motion on', () => {
+	test.use({ contextOptions: { reducedMotion: 'no-preference' } });
+
+	test('the rail sheet opens centred on phones', async ({ page }) => {
+		test.skip(!isPhone(page), 'the rail sheet is only shown on phones');
+		await open(page);
+		await dismissConsent(page);
+		await page.getByRole('button', { name: new RegExp(`^${copy.rail.label}`) }).click();
+		const dialog = await page.getByRole('dialog', { name: copy.rail.label }).elementHandle();
+		const offsets = await page.evaluate((dialog) => new Promise<number[]>((resolve) => {
+			const samples: number[] = [];
+			const start = performance.now();
+			function sample(now: number) {
+				const rect = dialog!.getBoundingClientRect();
+				samples.push(Math.abs(rect.x + rect.width / 2 - innerWidth / 2));
+				if (now - start < 400) requestAnimationFrame(sample);
+				else resolve(samples);
+			}
+			requestAnimationFrame(sample);
+		}), dialog);
+		expect(offsets.length).toBeGreaterThanOrEqual(5);
+		for (const offset of offsets) expect(offset).toBeLessThanOrEqual(1);
+	});
+});
+
 test('consent asks, steps aside after a choice and comes back as settings with tap-size actions', async ({ page }) => {
 	await open(page);
 	const prompt = page.getByRole('region', { name: copy.consent.title });

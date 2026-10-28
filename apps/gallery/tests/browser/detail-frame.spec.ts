@@ -45,6 +45,22 @@ test('detail frame layout at this width', async ({ page }) => {
 	expect((await title.boundingBox())!.y).toBeGreaterThanOrEqual((await navBottom()) + NAV_CLEARANCE);
 });
 
+test('the back link sits midway between the chrome and the next line', async ({ page }) => {
+	await page.goto('/detail-frame');
+	await page.evaluate(() => document.fonts.ready);
+	// The header pads itself by --chrome-offset, so the chrome ends that far below its top.
+	const gapDifference = await page.evaluate((link) => {
+		const header = link!.closest('[data-slot="article-header"]')!;
+		const chromeBottom = header.getBoundingClientRect().top + parseFloat(getComputedStyle(header).paddingTop);
+		const range = document.createRange();
+		range.selectNodeContents(link!);
+		const text = range.getBoundingClientRect();
+		const nextTop = link!.nextElementSibling!.getBoundingClientRect().top;
+		return Math.abs((text.top - chromeBottom) - (nextTop - text.bottom));
+	}, await page.getByRole('link', { name: 'All notes' }).elementHandle());
+	expect(gapDifference).toBeLessThanOrEqual(1);
+});
+
 test('detail frame layout variants', async ({ page }) => {
 	test.skip(page.viewportSize()!.width < DESKTOP_MIN_WIDTH, 'the rails collapse below the desktop breakpoint');
 

@@ -374,7 +374,9 @@ row share one mono type, `--article-meta-size`. A `ManifestoCanvas` fills the he
 snippet replaces it (an empty one leaves the header plain) and receives the header element once
 bound (undefined before and during SSR).
 Like `ListingFrame`, it expects the page to pad its top by `--chrome-offset` and pulls itself under
-the chrome.
+the chrome. The back link sits midway between the chrome and the next line; an app whose
+`--chrome-offset` leaves a gap under its chrome sets `--chrome-gap` to that gap. The title uses
+`--text-title`, so it follows the density mode.
 
 ## Site header
 
@@ -397,7 +399,10 @@ menu closes before a navigation lands, and a language switch from the open menu 
 Links with `priority: 2` show from 500px of header width and `priority: 3` from 1024px. The
 optional `search` snippet shows from 1024px and folds away with the links while the menu is open;
 `actions` render before the theme, language and menu controls. The app marks `current` links and
-items; snippets can query the header's width with `@container site-header`.
+items; snippets can query the header's width with `@container site-header`. A menu item's `icon`
+(any Lucide icon component, such as `@lucide/svelte/icons/map`) replaces its stop and lights up on
+the current page. The menu footer reads "Navigation · All routes" in the language's locale (en, fr
+or es); `labels.menuFooter` replaces it and an empty string hides it.
 `--site-header-inset-end` narrows the header beside a docked panel, animated over
 `--site-header-inset-duration`. The menu starts below the app's `--chrome-offset` (default `--nav-clearance`); page offsets read
 `--nav-clearance` from `base.css`.
@@ -537,7 +542,8 @@ relies on `'unsafe-inline'` must not add the hash, because any hash switches `'u
 ## Base stylesheet
 
 `@yesid/ui/base.css` is the base layer both products share: resets, the dark variant, selection,
-focus ring, scrollbar, circuit grid, shared keyframes, label styles, `.glass-chrome`, the
+focus ring, text links (a link without a class is underlined in `--accent-text`; components
+style their own), scrollbar, circuit grid, shared keyframes, label styles, `.glass-chrome`, the
 `TerminalPanel` and `CodeBlock` classes (`.terminal-*`, in the components layer), the
 `SiteHeader` geometry (`--nav-top`, `--nav-padding-y`, `--nav-clearance`) and the
 View Transitions route crossfade (off under reduced motion; pair it with `onNavigate(viewTransition)`
