@@ -26,6 +26,46 @@ test('blueprint strokes follow scrolling and remain fully drawn under reduced mo
 	await expect.poll(() => path.evaluate((element) => (element as SVGPathElement).style.strokeDasharray)).toBe('');
 });
 
+test('every header drawing renders at the frame ink in both themes', async ({ page }) => {
+	await page.goto('/listing-frame');
+	const art = page.locator('[data-slot="blueprint-listing-art"]');
+	for (const theme of ['dark', 'light'] as const) {
+		const { ink, drawings } = await art.evaluate((slot, theme) => {
+			document.documentElement.dataset.theme = theme;
+			// What a drawing shows: its own opacity times its wrappers' inside the slot.
+			const rendered = (drawing: Element) => {
+				let opacity = 1;
+				for (let node: Element | null = drawing; node && node !== slot; node = node.parentElement) {
+					opacity *= Number(getComputedStyle(node).opacity);
+				}
+				return opacity;
+			};
+			return {
+				ink: Number(getComputedStyle(slot).getPropertyValue('--blueprint-ink')),
+				drawings: [...slot.querySelectorAll('svg')].map(rendered),
+			};
+		}, theme);
+		expect(ink, theme).toBeGreaterThan(0);
+		expect(drawings.length, theme).toBeGreaterThan(1);
+		for (const opacity of drawings) expect(opacity, theme).toBeCloseTo(ink, 3);
+	}
+});
+
+test('the lowest header copy rests on the band floor, with or without an aside', async ({ page }) => {
+	for (const aside of ['1', '0']) {
+		await page.goto(`/listing-frame?aside=${aside}`);
+		await expect(page.getByLabel('Totaux du catalogue')).toHaveCount(aside === '1' ? 1 : 0);
+		await page.evaluate(() => document.fonts.ready);
+		const gap = await page.locator('[data-slot="blueprint-listing-content"]').evaluate((content) => {
+			const header = content.closest('[data-slot="blueprint-listing-header"]')!;
+			const copy = [content.firstElementChild!.lastElementChild!, ...[...content.children].slice(1)];
+			const lowest = Math.max(...copy.map((element) => element.getBoundingClientRect().bottom));
+			return header.getBoundingClientRect().bottom - parseFloat(getComputedStyle(content).paddingBottom) - lowest;
+		});
+		expect(Math.abs(gap), `aside=${aside}`).toBeLessThanOrEqual(1);
+	}
+});
+
 function listing(page: Page) {
 	return {
 		search: page.getByRole('textbox', { name: 'Rechercher' }),
