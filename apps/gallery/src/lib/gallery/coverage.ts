@@ -18,6 +18,7 @@ export const GALLERY_COVERAGE = {
 	brand: [
 		'BlueprintShell',
 		'ChevronToggle',
+		'CodeBlock',
 		'CollapsibleSection',
 		'CornerMarks',
 		'CornerMeta',
@@ -26,6 +27,7 @@ export const GALLERY_COVERAGE = {
 		'FilterSection',
 		'FilterSummary',
 		'LanguageToggle',
+		'ManifestoCanvas',
 		'MetricDisplay',
 		'MetroStation',
 		'QuietModeButton',
@@ -38,6 +40,7 @@ export const GALLERY_COVERAGE = {
 		'StickyPanel',
 		'StopLabel',
 		'TerminalCursor',
+		'TerminalPanel',
 		'ThemeToggle',
 		'TocBadge',
 		'TocNav',

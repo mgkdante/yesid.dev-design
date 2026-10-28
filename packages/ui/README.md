@@ -240,6 +240,34 @@ token differs.
 
 A blinking block cursor in `accent` (`accent-text` in light); it stops blinking under reduced motion.
 
+### TerminalPanel and CodeBlock
+
+`TerminalPanel` is the terminal window: a title bar with the three-aspect signal head, the
+`title`, an optional `tag` and `status` and an `actions` snippet, a hazard rule, the body (pass
+`noPadding` when the content pads itself) and an optional `footer` readout of label and value
+pairs. Extra attributes go to the root. Its look comes from the `.terminal-*` classes in
+`base.css`, so markup rendered on the server can wear the same chrome.
+
+`CodeBlock` puts source in a `TerminalPanel` with the `language` as its tag. Pass `copy` labels
+to show a copy button; it copies `code` and shows ✓ for two seconds, or `copy.failed` if the
+clipboard refuses. Highlighting stays in the app: render the highlighter's `<pre>` as
+`children`, colored through the `--syntax-*` tokens and focusable (`tabindex="0"`) so the keyboard
+can scroll it; give it `role="region"` and an `aria-label` if it needs a name. Without `children`
+the code shows as a plain, focusable `<pre>`.
+
+### ManifestoCanvas
+
+The circuit-node backdrop of brand headers. It fills `containerEl` (which must be positioned) and
+listens there: nodes glow and link up near the pointer, and a click sends out a ripple. Under
+reduced motion the nodes are static. It is decorative and pauses while off screen.
+
+### Blueprint drawings
+
+`@yesid/ui/blueprints` exports the brand's blueprint drawings (`BlueprintBridge`,
+`BlueprintSignal` and the rest), drawn in `currentColor`. Each takes `class`, `style` and other
+attributes, and `BlueprintBusSide` names the fleet's `operator`; compose them in a
+`BlueprintShell`. The Gallery shows every one.
+
 ### QuietModeButton
 
 `QuietModeButton` owns the shared two-button markup, icons, minimum targets, interaction geometry,
@@ -343,8 +371,9 @@ the app. The root takes ordinary attributes such as `class`, `style` and `data-t
 its `highlight` keyword in the accent, `subtitle`, `meta` (pending state included), and `actions`
 and `controls` snippets. `watermark`, `edgeLeft`, `edgeRight` and the `decorations` snippet draw
 decorative chrome; `--article-deco-opacity` sets how strongly it reads. The subtitle and the meta
-row share one mono type, `--article-meta-size`. The `canvas` snippet
-receives the header element once bound (undefined before and during SSR), for a background canvas.
+row share one mono type, `--article-meta-size`. A `ManifestoCanvas` fills the header; a `canvas`
+snippet replaces it (an empty one leaves the header plain) and receives the header element once
+bound (undefined before and during SSR).
 Like `ListingFrame`, it expects the page to pad its top by `--chrome-offset` and pulls itself under
 the chrome.
 
@@ -514,6 +543,7 @@ relies on `'unsafe-inline'` must not add the hash, because any hash switches `'u
 
 `@yesid/ui/base.css` is the base layer both products share: resets, the dark variant, selection,
 focus ring, scrollbar, circuit grid, shared keyframes, label styles, `.glass-chrome`, the
+`TerminalPanel` and `CodeBlock` classes (`.terminal-*`, in the components layer), the
 `SiteHeader` geometry (`--nav-top`, `--nav-padding-y`, `--nav-clearance`) and the
 View Transitions route crossfade (off under reduced motion; pair it with `onNavigate(viewTransition)`
 from `@yesid/motion/utils/viewTransition`). It imports

@@ -28,6 +28,11 @@
 - `types` → `./src/stores/reducedMotion.ts`
 - `default` → `./src/stores/reducedMotion.ts`
 
+### `./utils/blueprintScrub`
+
+- `types` → `./src/utils/blueprintScrub.ts`
+- `default` → `./src/utils/blueprintScrub.ts`
+
 ### `./utils/device`
 
 - `types` → `./src/utils/device.ts`
@@ -88,6 +93,7 @@
 - `Policy` → `./src/policy.ts` (`./policy`)
 - `Tokens` → `./src/tokens.ts` (`./tokens`)
 - `StoresReducedMotion` → `./src/stores/reducedMotion.ts` (`./stores/reducedMotion`)
+- `UtilsBlueprintScrub` → `./src/utils/blueprintScrub.ts` (`./utils/blueprintScrub`)
 - `UtilsDevice` → `./src/utils/device.ts` (`./utils/device`)
 - `UtilsGlobalRipple` → `./src/utils/globalRipple.ts` (`./utils/globalRipple`)
 - `UtilsGsap` → `./src/utils/gsap.ts` (`./utils/gsap`)
@@ -129,6 +135,9 @@ declare namespace Actions {
         pressBounce
     }
 }
+
+// @public
+function blueprintScrub(band: HTMLElement, trigger?: HTMLElement): (() => void) | undefined;
 
 // @public (undocumented)
 function boop(node: HTMLElement, params?: BoopParams): {
@@ -367,6 +376,12 @@ const TOUCH_TIER: MagnetTier;
 
 // @public
 function unsubscribe(id: string): void;
+
+declare namespace UtilsBlueprintScrub {
+    export {
+        blueprintScrub
+    }
+}
 
 declare namespace UtilsDevice {
     export {

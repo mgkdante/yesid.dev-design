@@ -86,8 +86,8 @@
 
 ## Direct public assets
 
-- `./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `e6999a9177e29e8def5eb9fbc112eb817713ce906cc06ea26db2124e184d607e`
-- `./tokens.css` — direct asset `./tokens.css` (`default`), sha256 `81ea7111eeea3a4d505c5f10890885bcba0cca523e73036a5fec269b0eb1e6a1`
+- `./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `3359acc455547a77451c6ad5afa87bb36399d1e4bb04b6a0dd149c86f643db66`
+- `./tokens.css` — direct asset `./tokens.css` (`default`), sha256 `6286b105eab318adb454cc688bc11a8e6de27f067f1262bd611d17163d9275ca`
 - `./theme.css` — direct asset `./theme.css` (`default`), sha256 `1aec29a2d9b5a396bd9f207266553c1ba2650a8a7ed7236edaa456e3d69d2fa6`
 - `./fonts.css` — direct asset `./fonts.css` (`default`), sha256 `86b24f9e84418fa584e8cb8ac4ecdefb0869376eb6ecc07054c5f4412d30a362`
 

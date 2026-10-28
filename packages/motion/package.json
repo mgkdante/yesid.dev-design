@@ -26,6 +26,10 @@
       "types": "./src/stores/reducedMotion.ts",
       "default": "./src/stores/reducedMotion.ts"
     },
+    "./utils/blueprintScrub": {
+      "types": "./src/utils/blueprintScrub.ts",
+      "default": "./src/utils/blueprintScrub.ts"
+    },
     "./utils/device": {
       "types": "./src/utils/device.ts",
       "default": "./src/utils/device.ts"

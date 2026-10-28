@@ -17,6 +17,11 @@
       "svelte": "./src/brand/index.ts",
       "default": "./src/brand/index.ts"
     },
+    "./blueprints": {
+      "types": "./src/blueprints/index.ts",
+      "svelte": "./src/blueprints/index.ts",
+      "default": "./src/blueprints/index.ts"
+    },
     "./cn": {
       "types": "./src/cn/index.ts",
       "default": "./src/cn/index.ts"

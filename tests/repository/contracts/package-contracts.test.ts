@@ -77,6 +77,7 @@ const EXISTING_UI_EXPORTS = {
 	'./head': './src/head/index.ts',
 	'./feedback': './src/feedback/index.ts',
 	'./table': './src/table/index.ts',
+	'./blueprints': './src/blueprints/index.ts',
 } as const;
 
 const EXISTING_MOTION_EXPORTS = {
@@ -92,6 +93,7 @@ const EXISTING_MOTION_EXPORTS = {
 	'./utils/sectionMagnet': './src/utils/sectionMagnet.ts',
 	'./utils/ticker': './src/utils/ticker.ts',
 	'./utils/viewTransition': './src/utils/viewTransition.ts',
+	'./utils/blueprintScrub': './src/utils/blueprintScrub.ts',
 } as const;
 
 const GATES_EXPORTS = {
