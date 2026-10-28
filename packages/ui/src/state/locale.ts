@@ -1,5 +1,9 @@
 import { getContext, setContext } from 'svelte';
 
+// One locale context per app, under a well-known key so a component test can provide a locale:
+// `render(Component, { context: new Map([[Symbol.for('@yesid/ui/locale'), () => 'fr']]) })`.
+const KEY = Symbol.for('@yesid/ui/locale');
+
 export interface LocaleContext<Locale extends string> {
 	/** Call once from the root layout; `read` closes over reactive data, so readers stay current. */
 	provide(read: () => Locale): void;
@@ -8,9 +12,8 @@ export interface LocaleContext<Locale extends string> {
 }
 
 export function createLocaleContext<Locale extends string>(fallback: Locale): LocaleContext<Locale> {
-	const key = Symbol('locale');
 	return {
-		provide: (read) => void setContext(key, read),
-		get: () => getContext<(() => Locale) | undefined>(key)?.() ?? fallback,
+		provide: (read) => void setContext(KEY, read),
+		get: () => getContext<(() => Locale) | undefined>(KEY)?.() ?? fallback,
 	};
 }

@@ -423,8 +423,9 @@ It also exports two helpers that `SiteRoot` doesn't initialize:
   than 2 s, for animation.
 - `createLocaleContext<Locale>(fallback)`: `{ provide(read), get() }`. The root layout calls
   `provide(() => data.locale)` once; components call `get()`, which returns `fallback` where
-  nothing provides a locale, such as a unit test. Formatting and copy typing live in
-  `@yesid/i18n-core`.
+  nothing provides a locale. One per app: the context key is `Symbol.for('@yesid/ui/locale')`, so a
+  component test provides a locale with `context: new Map([[Symbol.for('@yesid/ui/locale'), () => 'fr']])`.
+  Formatting and copy typing live in `@yesid/i18n-core`.
 
 `persisted(key, initial)` is not initialized by `SiteRoot`. It returns tab-scoped state in
 `sessionStorage` under `persisted:<key>`: it survives reloads and navigation within the tab and
