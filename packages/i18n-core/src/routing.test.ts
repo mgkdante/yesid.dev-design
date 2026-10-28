@@ -90,6 +90,17 @@ describe('localizeHref', () => {
 		expect(localizeHref('/es/about', 'fr')).toBe('/fr/about');
 	});
 
+	it('keeps the query and hash while switching the locale prefix', () => {
+		expect(localizeHref('/fr?provider=stm', 'en')).toBe('/?provider=stm');
+		expect(localizeHref('/?provider=stm', 'fr')).toBe('/fr?provider=stm');
+		expect(localizeHref('/fr#top', 'es')).toBe('/es#top');
+		expect(localizeHref('/es/about?tab=2#faq', 'en')).toBe('/about?tab=2#faq');
+	});
+
+	it('decides exemption from the path alone', () => {
+		expect(localizeHref('/status.txt?v=1', 'fr')).toBe('/status.txt?v=1');
+	});
+
 	it('passes external, special, and consumer-exempt hrefs through', () => {
 		expect(localizeHref('https://example.test/path', 'fr')).toBe(
 			'https://example.test/path',
