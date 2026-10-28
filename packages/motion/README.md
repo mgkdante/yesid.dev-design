@@ -36,7 +36,7 @@ without the API and reduced motion. The crossfade CSS lives in `@yesid/ui/base.c
 
 `./utils/blueprintScrub` exports `blueprintScrub(band, trigger = band)`: it draws the blueprint art in
 `band` (`.blueprint-bg svg path`) as `trigger` scrolls through the viewport, counting scrolls of
-inner scrollers too, and returns its cleanup. It does nothing under reduced motion or at 1023px
+inner scrollers too, redraws when `trigger` resizes, and returns its cleanup. It does nothing under reduced motion or at 1023px
 and below, where the art stays fully drawn. `ListingFrame`'s `onHeaderMount={blueprintScrub}`
 passes the header and the frame.
 
