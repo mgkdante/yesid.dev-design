@@ -305,13 +305,13 @@ describe('deterministic package API reports', () => {
 
 		const signatureRoot = createPackageScratch('tokens');
 		replaceInFile(
-			join(signatureRoot, 'packages/tokens/src/serialize.ts'),
-			'export function serializeCss(token: Token): string {',
-			'export function serializeCss(token: Token, compact?: boolean): string {',
+			join(signatureRoot, 'packages/tokens/src/parse.ts'),
+			'export function parseTokens(input: unknown): TokenTree {',
+			'export function parseTokens(input: unknown, strict?: boolean): TokenTree {',
 		);
 		const signatureReport = await createApiReport(signatureRoot, '@yesid/tokens');
 		expect(signatureReport).not.toBe(baseline);
-		expect(signatureReport).toContain('compact?: boolean');
+		expect(signatureReport).toContain('strict?: boolean');
 
 		const conditionRoot = createPackageScratch('tokens');
 		const conditionManifestPath = join(conditionRoot, 'packages/tokens/package.json');
@@ -334,11 +334,11 @@ describe('deterministic package API reports', () => {
 		const removalManifest = JSON.parse(readFileSync(removalManifestPath, 'utf8')) as {
 			exports: Record<string, unknown>;
 		};
-		delete removalManifest.exports['./serialize'];
+		delete removalManifest.exports['./parse'];
 		writeFileSync(removalManifestPath, `${JSON.stringify(removalManifest, null, 2)}\n`);
 		const removalReport = await createApiReport(removalRoot, '@yesid/tokens');
 		expect(removalReport).not.toBe(baseline);
-		expect(removalReport).not.toContain('### `./serialize`');
+		expect(removalReport).not.toContain('### `./parse`');
 
 		const assetRoot = createPackageScratch('tokens');
 		const assetPath = join(assetRoot, 'packages/tokens/tokens.css');

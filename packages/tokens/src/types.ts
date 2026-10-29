@@ -19,9 +19,6 @@ export interface YesidClampToken {
   $description?: string;
 }
 
-/** A token reference: "{path.to.token}" — resolved at build time. */
-export type TokenReference = `{${string}}`;
-
 /** Any leaf token. */
 export type Token = DtcgPrimitive | YesidClampToken;
 
@@ -29,11 +26,3 @@ export type Token = DtcgPrimitive | YesidClampToken;
 export interface TokenTree {
   [key: string]: Token | TokenTree;
 }
-
-/** Top-level shape of tokens.json. */
-// Intersection rather than interface extension: optional string props would conflict
-// with the index signature `[key: string]: Token | TokenTree` if typed as `string | undefined`.
-export type TokensFile = TokenTree & {
-  $schema?: string;
-  $description?: string;
-};
