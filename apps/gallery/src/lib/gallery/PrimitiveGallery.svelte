@@ -118,10 +118,7 @@
 				<FooterGroup label="Gallery resources">
 					<nav aria-label="Gallery footer examples" class="flex flex-col items-start">
 						<FooterLink href="#gallery-primitives">Primitive index</FooterLink>
-						<FooterLink
-							aria-label="Request a Gallery status refresh"
-							onclick={refreshFooterStatus}
-						>
+						<FooterLink onclick={refreshFooterStatus}>
 							Refresh status
 						</FooterLink>
 					</nav>

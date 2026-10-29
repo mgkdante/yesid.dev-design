@@ -30,7 +30,7 @@
 {/snippet}
 
 {#snippet themeButton()}
-	<button type="button" class="mt-2 rounded-md border border-border px-3 py-1 text-small">Toggle theme</button>
+	<button type="button" class="mt-2 min-h-11 rounded-md border border-border px-3 py-1 text-small">Toggle theme</button>
 {/snippet}
 
 <ErrorPage

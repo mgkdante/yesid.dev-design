@@ -145,7 +145,7 @@ const INTERACTIONS: readonly Interaction[] = [
 			const family = page.locator('[data-gallery-family="primitive:footer"]');
 			const status = family.getByRole('status');
 			await expect(status).toHaveText('Status refreshes: 0');
-			await family.getByRole('button', { name: 'Request a Gallery status refresh' }).click();
+			await family.getByRole('button', { name: 'Refresh status' }).click();
 			await expect(status).toHaveText('Status refreshes: 1');
 		},
 	},

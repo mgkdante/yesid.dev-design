@@ -134,7 +134,6 @@
 			<button
 				type="button"
 				class="inline-flex items-baseline rounded-md px-2 py-1 font-heading text-heading font-bold focus-visible:outline-2 focus-visible:outline-primary"
-				aria-label="Animate the sample wordmark"
 			>
 				{#if wordmarkDot}
 					<span use:wordmarkHover={{ dotEl: wordmarkDot }}>signal</span>
