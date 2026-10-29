@@ -9,7 +9,7 @@ package stylesheet. Repository and consumer adapters own physical output paths.
 - Public assets: `@yesid/tokens/tokens.json`, `tokens.css`, `theme.css` (the Tailwind `@theme` map and
   semantic color utilities), and `fonts.css` with the bundled Inter and JetBrains Mono files.
 - Public mechanics: `./parse`, `./fonts` (`preloadFont`) and `./generators/design-md`.
-- Generated interface authority: [`api-reports/tokens.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/api-reports/tokens.api.md).
+- Generated interface authority: [`api-reports/tokens.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/api-reports/tokens.api.md).
 
 The internal `buildAll` module and the other generators serve repository tooling; they are not package exports.
 
@@ -42,7 +42,7 @@ Svelte styles they need postcss-global-data and postcss-custom-media in the cons
 
 Consumers opt into `tokens.css`; no stylesheet is injected automatically. Consumer-owned token
 overrides and physical output paths stay downstream. Exact consumer receipts live only in
-[`CONSUMERS.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/CONSUMERS.md).
+[`CONSUMERS.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/CONSUMERS.md).
 
 The Figma round-trip remains manual. `figma:push` emits a `FigmaVariable[]` JSON document on
 stdout. A separate operator step writes those variables through Figma tooling, exports the result
@@ -66,6 +66,6 @@ platform-dependent serialization fail their owning tests or drift gates. Fix the
 never normalize a failing derivative by hand.
 
 Token values, public exports, generators, or package documentation change the coordinated release
-payload. Use a release fragment and the process in [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/RELEASING.md). Public
+payload. Use a release fragment and the process in [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/RELEASING.md). Public
 interface changes also require a regenerated API report. Product-specific values or policy do not
-belong here; see [`BOUNDARIES.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/BOUNDARIES.md).
+belong here; see [`BOUNDARIES.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/BOUNDARIES.md).
