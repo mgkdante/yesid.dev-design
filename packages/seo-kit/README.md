@@ -13,7 +13,6 @@ Consumers can use the root export (JSON-LD, sitemap and robots, Satori) or the s
 
 - `./jsonld`: node builders and `serializeJsonLd(nodes)`, one `@graph` body with `<` escaped.
 - `./sitemap`: alternate-locale entries, the sitemap document and `robotsTxt`.
-- `./satori`: `renderSatoriPng` with an injected rasterizer.
 - `./og`: `renderOgPng(card, fonts, rasterize)` draws the share card (eyebrow, wordmark with the
   accent dot, title, handle and location) at `OG_WIDTH` × `OG_HEIGHT` in `OG_PALETTE`, the dark
   token colors.

@@ -18,11 +18,6 @@
 - `types` → `./src/sitemap.ts`
 - `default` → `./src/sitemap.ts`
 
-### `./satori`
-
-- `types` → `./src/satori.ts`
-- `default` → `./src/satori.ts`
-
 ### `./og`
 
 - `types` → `./src/og.ts`
@@ -56,7 +51,6 @@
 - `Index` → `./src/index.ts` (`.`)
 - `Jsonld` → `./src/jsonld.ts` (`./jsonld`)
 - `Sitemap` → `./src/sitemap.ts` (`./sitemap`)
-- `Satori` → `./src/satori.ts` (`./satori`)
 - `Og` → `./src/og.ts` (`./og`)
 - `OgFonts` → `./src/og-fonts.ts` (`./og/fonts`)
 - `OgFiles` → `./src/og-files.ts` (`./og/files`)
@@ -369,15 +363,6 @@ interface RobotsTxtInput {
     indexing: boolean;
     notes?: readonly string[];
     sitemap?: string;
-}
-
-declare namespace Satori {
-    export {
-        renderSatoriPng,
-        SatoriTree,
-        SatoriRenderOptions,
-        SvgRasterizer
-    }
 }
 
 // @public (undocumented)

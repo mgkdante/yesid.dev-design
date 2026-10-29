@@ -8,13 +8,10 @@ package stylesheet. Repository and consumer adapters own physical output paths.
 
 - Public assets: `@yesid/tokens/tokens.json`, `tokens.css`, `theme.css` (the Tailwind `@theme` map and
   semantic color utilities), and `fonts.css` with the bundled Inter and JetBrains Mono files.
-- Public mechanics: parse, serialize, types, `./fonts` (`preloadFont`), and the five generator
-  subpaths, including `./generators/theme-css`.
+- Public mechanics: `./parse`, `./fonts` (`preloadFont`) and `./generators/design-md`.
 - Generated interface authority: [`api-reports/tokens.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/api-reports/tokens.api.md).
 
-The internal `buildAll` module composes generators for repository tooling. It is not a public
-package export. Legacy `./src/*` aliases remain compatibility surfaces until the process in
-[`DEPRECATION.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/DEPRECATION.md) authorizes removal.
+The internal `buildAll` module and the other generators serve repository tooling; they are not package exports.
 
 ## Invariants and generated outputs
 

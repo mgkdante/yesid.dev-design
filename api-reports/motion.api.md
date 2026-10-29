@@ -53,11 +53,6 @@
 - `types` → `./src/utils/lenis.ts`
 - `default` → `./src/utils/lenis.ts`
 
-### `./utils/sectionMagnet`
-
-- `types` → `./src/utils/sectionMagnet.ts`
-- `default` → `./src/utils/sectionMagnet.ts`
-
 ### `./utils/ticker`
 
 - `types` → `./src/utils/ticker.ts`
@@ -98,7 +93,6 @@
 - `UtilsGlobalRipple` → `./src/utils/globalRipple.ts` (`./utils/globalRipple`)
 - `UtilsGsap` → `./src/utils/gsap.ts` (`./utils/gsap`)
 - `UtilsLenis` → `./src/utils/lenis.ts` (`./utils/lenis`)
-- `UtilsSectionMagnet` → `./src/utils/sectionMagnet.ts` (`./utils/sectionMagnet`)
 - `UtilsTicker` → `./src/utils/ticker.ts` (`./utils/ticker`)
 - `UtilsViewTransition` → `./src/utils/viewTransition.ts` (`./utils/viewTransition`)
 
@@ -170,9 +164,6 @@ interface CursorGlowParams {
     radius?: number;
 }
 
-// @public
-const DESKTOP_TIER: MagnetTier;
-
 // @public (undocumented)
 function destroyLenis(): void;
 
@@ -205,9 +196,6 @@ type EaseKey = keyof typeof ease;
 // @public
 function ensureSplitTextRegistered(): void;
 
-// @public
-function findSettleTarget(scrollY: number, sectionTops: readonly number[], input: SettleTargetOpts): number | null;
-
 // @public (undocumented)
 function getLenis(): Lenis | null;
 
@@ -234,14 +222,7 @@ declare namespace Index {
         prefersReducedMotion,
         isPrefersReducedMotion,
         isTouchDevice,
-        isViewportAtMost,
-        findSettleTarget,
-        initSectionMagnet,
-        DESKTOP_TIER,
-        TOUCH_TIER,
-        MagnetTier,
-        SectionMagnetOpts,
-        SettleTargetOpts
+        isViewportAtMost
     }
 }
 
@@ -255,9 +236,6 @@ function initLenis(scroller?: LenisScroller): void;
 
 // @public
 function initScrollTriggerConfig(): void;
-
-// @public
-function initSectionMagnet(getSections: () => readonly HTMLElement[], opts?: SectionMagnetOpts): () => void;
 
 // @public (undocumented)
 function isPrefersReducedMotion(): boolean;
@@ -298,13 +276,6 @@ interface MagneticParams {
 }
 
 // @public (undocumented)
-interface MagnetTier {
-    maxRadiusPx: number;
-    radiusVh: number;
-    settleMs: number;
-}
-
-// @public (undocumented)
 type MotionTier = 'safe-always' | 'motion-gated';
 
 declare namespace Policy {
@@ -329,21 +300,6 @@ function scrollChain(node: HTMLElement): {
 function sectionGlow(node: HTMLElement): {
     destroy: () => void;
 };
-
-// @public (undocumented)
-interface SectionMagnetOpts {
-    desktop?: Partial<MagnetTier>;
-    lenisDuration?: number;
-    suppress?: () => boolean;
-    touch?: Partial<MagnetTier>;
-}
-
-// @public (undocumented)
-interface SettleTargetOpts {
-    epsilon?: number;
-    maxScroll: number;
-    radius: number;
-}
 
 // @public
 function shouldAnimate(tier: MotionTier): boolean;
@@ -370,9 +326,6 @@ declare namespace Tokens {
         EaseKey
     }
 }
-
-// @public
-const TOUCH_TIER: MagnetTier;
 
 // @public
 function unsubscribe(id: string): void;
@@ -415,18 +368,6 @@ declare namespace UtilsLenis {
         destroyLenis,
         getLenis,
         LenisScroller
-    }
-}
-
-declare namespace UtilsSectionMagnet {
-    export {
-        findSettleTarget,
-        initSectionMagnet,
-        SettleTargetOpts,
-        MagnetTier,
-        DESKTOP_TIER,
-        TOUCH_TIER,
-        SectionMagnetOpts
     }
 }
 

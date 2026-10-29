@@ -97,14 +97,11 @@ export type { ToggleChipProps } from './ToggleChip.svelte';
 
 export {
 	TOC_TARGET_SELECTOR,
-	flattenToc,
-	landTocFragments,
 	navigateToc,
 	observeActiveToc,
 	onTocNavigate,
 	openCollapsedTocTarget,
 	reconcileActiveToc,
-	resolveTocCounter,
 	revealTocTarget,
 	settleLayout,
 	tocElement,

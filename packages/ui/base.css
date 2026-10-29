@@ -129,12 +129,14 @@ pre, code, table {
 
 .circuit-grid {
 	position: relative;
+	/* Tiles anchor every line to the top-left corner, so the grid holds still when the box grows. */
 	background-image:
-		repeating-linear-gradient(90deg, var(--grid-block-marker) 0px, transparent 1px, transparent 400px),
-		repeating-linear-gradient(90deg, var(--grid-line-major) 0px, transparent 1px, transparent 80px),
-		repeating-linear-gradient(0deg, var(--grid-line-major) 0px, transparent 1px, transparent 80px),
-		repeating-linear-gradient(90deg, var(--grid-line-minor) 0px, transparent 1px, transparent 16px),
-		repeating-linear-gradient(0deg, var(--grid-line-minor) 0px, transparent 1px, transparent 16px);
+		linear-gradient(90deg, var(--grid-block-marker) 0px, transparent 1px),
+		linear-gradient(90deg, var(--grid-line-major) 0px, transparent 1px),
+		linear-gradient(180deg, var(--grid-line-major) 0px, transparent 1px),
+		linear-gradient(90deg, var(--grid-line-minor) 0px, transparent 1px),
+		linear-gradient(180deg, var(--grid-line-minor) 0px, transparent 1px);
+	background-size: 400px 400px, 80px 80px, 80px 80px, 16px 16px, 16px 16px;
 }
 
 [data-theme="light"], .theme-light {

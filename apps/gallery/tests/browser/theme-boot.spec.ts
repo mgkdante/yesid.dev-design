@@ -55,6 +55,9 @@ test('a remembered quiet mode paints sections closed before the app runs, and hy
 	await page.route('**/_app/**/*.js', (route) => route.abort());
 	await page.reload();
 	await expect(section).toHaveAttribute('aria-expanded', 'false');
+	// The boot script's html[data-quiet-mode] already shows the remembered labels.
+	await expect(page.getByRole('button', { name: 'Expand all' })).toBeVisible();
+	await expect(page.getByRole('button', { name: "Don't start collapsed" })).toBeVisible();
 	await expect(page.locator(`[id="${await section.getAttribute('aria-controls')}"]`)).toBeHidden();
 	const closed = await page
 		.getByRole('button', { expanded: false })
@@ -72,9 +75,9 @@ test('a remembered quiet mode paints sections closed before the app runs, and hy
 		}).observe(document, { subtree: true, attributeFilter: ['aria-expanded'], attributeOldValue: true });
 	});
 	await page.reload();
-	// Hydration renders the store's label, so this button only exists once the app runs.
+	// The store retitles the remember button, so this holds only once the app runs.
+	await expect(page.getByRole('button', { name: "Don't start collapsed" })).toHaveAttribute('title', "Don't start collapsed");
 	const expandAll = page.getByRole('button', { name: 'Expand all' });
-	await expect(expandAll).toBeVisible();
 	const states = await page.evaluate(() => (window as unknown as { states: Record<string, (string | null)[]> }).states);
 	for (const id of closed) {
 		// The first value is the server markup's; nothing after it may be expanded.

@@ -13,7 +13,10 @@ describe('viewTransition', () => {
 		complete: Promise.resolve(),
 	};
 	const original = Object.getOwnPropertyDescriptor(document, 'startViewTransition');
-	const start = vi.fn((callback: () => Promise<void>) => { void callback(); });
+	const start = vi.fn((callback: () => Promise<void>) => {
+		void callback();
+		return { ready: Promise.reject(new DOMException('Transition was skipped', 'AbortError')) };
+	});
 
 	beforeEach(() => {
 		start.mockClear();

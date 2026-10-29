@@ -7,7 +7,7 @@ scroll narratives, persisted state, and art direction.
 ## Interface
 
 The root and `./actions` exports provide shared actions. Policy, generated tokens, reduced-motion,
-device, ticker, GSAP, Lenis, ripple, and section-magnet surfaces are available through explicit
+device, ticker, GSAP, Lenis and ripple surfaces are available through explicit
 subpaths. See [`api-reports/motion.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/api-reports/motion.api.md) for the exact public
 interface.
 

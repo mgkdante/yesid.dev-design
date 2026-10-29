@@ -38,3 +38,6 @@ export { default as BlueprintTransitRoute } from './BlueprintTransitRoute.svelte
 export { default as BlueprintTunnelSection } from './BlueprintTunnelSection.svelte';
 export { default as BlueprintTurnoutCrossoverPlan } from './BlueprintTurnoutCrossoverPlan.svelte';
 export { default as BlueprintVentShaft } from './BlueprintVentShaft.svelte';
+
+/** Props every blueprint drawing takes: a class, a style and any other SVG attribute. */
+export type BlueprintProps = { class?: string; style?: string; [key: string]: unknown };

@@ -1,7 +1,7 @@
 <!--
   A quiet empty, error or status notice: a glyph tinted by `tone`, a title and an optional body,
   plus `meta` and `action` snippets. `row` and `pill` without snippets render inline, so they can
-  sit inside a sentence or a table cell. `role`, `aria-live` and `aria-label` pass through.
+  sit inside a sentence or a table cell. `role`, `aria-live` and `aria-label` pass through; with a `role`, the title names the notice.
 -->
 <script lang="ts" module>
 	import type { Snippet } from 'svelte';
@@ -37,6 +37,7 @@
 		...restProps
 	}: StateNoticeProps = $props();
 
+	const titleId = $props.id();
 	const element = $derived(
 		(presentation === 'pill' || presentation === 'row') && !meta && !action ? 'span' : 'div',
 	);
@@ -48,6 +49,7 @@
 	data-slot="state-notice"
 	data-presentation={presentation}
 	data-tone={tone}
+	aria-labelledby={restProps.role && !restProps['aria-label'] ? titleId : undefined}
 	{...restProps}
 >
 	<svelte:element this={element} class="state-notice-surface">
@@ -57,7 +59,7 @@
 			{/if}
 
 			<span class="state-notice-copy">
-				<span class="state-notice-title">{title}</span>
+				<span class="state-notice-title" id={titleId}>{title}</span>
 				{#if body}
 					{#if presentation === 'row' || presentation === 'pill'}<span
 							class="state-notice-separator"

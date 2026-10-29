@@ -77,5 +77,5 @@ export const clock: ClockStore = clockStore;
 export const quietMode: QuietModeStore = quietModeStore;
 export const persisted: <T extends LocaleFree>(key: string, initial: T) => Persisted<Widen<T>> =
 	persistedState;
-export { desktop, DESKTOP_MIN_WIDTH } from './desktop.js';
+export { desktop } from './desktop.js';
 export { createLocaleContext, type LocaleContext } from './locale.js';

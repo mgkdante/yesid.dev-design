@@ -1,9 +1,6 @@
 <script lang="ts">
-	let {
-		operator = 'STM',
-		class: className = '',
-		...rest
-	}: { operator?: string; class?: string; style?: string; [key: string]: unknown } = $props();
+	import type { BlueprintProps } from './index.js';
+	let { operator = 'STM', class: className = '', ...rest }: BlueprintProps & { operator?: string } = $props();
 </script>
 
 <svg

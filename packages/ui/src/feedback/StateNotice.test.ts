@@ -16,7 +16,7 @@ describe('StateNotice', () => {
 			},
 		});
 
-		const notice = screen.getByRole('status');
+		const notice = screen.getByRole('status', { name: 'No departures' });
 		expect(notice.getAttribute('aria-live')).toBe('polite');
 		expect(notice.textContent).toContain('No departures');
 		expect(notice.textContent).toContain('The feed is quiet right now.');

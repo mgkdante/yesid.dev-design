@@ -1,7 +1,8 @@
 /**
  * Runs in <head> before first paint. It applies the stored theme, then, as the parser adds marked
  * elements, each persisted collapsible's stored choice and a remembered quiet mode's close, so a
- * reload paints what hydration will render. The storage keys are the ones `../state` writes.
+ * reload paints what hydration will render. It also swallows the rejection of a cross-document view transition that
+ * a reload cuts short. The storage keys are the ones `../state` writes.
  * `boot.json` holds this text's CSP hash; edit both together.
  */
 export const themeBootScript = `(() => {
@@ -14,6 +15,7 @@ export const themeBootScript = `(() => {
 	} catch {}
 	root.dataset.theme = theme === 'light' ? 'light' : 'dark';
 	if (quiet) root.dataset.quietMode = 'true';
+	addEventListener('pagereveal', (event) => event.viewTransition?.ready.catch(() => {}));
 
 	const stored = new Map();
 	try {

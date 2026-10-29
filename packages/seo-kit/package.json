@@ -18,10 +18,6 @@
 			"types": "./src/sitemap.ts",
 			"default": "./src/sitemap.ts"
 		},
-		"./satori": {
-			"types": "./src/satori.ts",
-			"default": "./src/satori.ts"
-		},
 		"./og": {
 			"types": "./src/og.ts",
 			"default": "./src/og.ts"
