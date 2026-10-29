@@ -8,6 +8,7 @@
 		CornerMarks,
 		CornerMeta,
 		ConstructionProps,
+		ConstructionFloodlight,
 		ErrorIllustration,
 		FilterGroup,
 		FilterSection,
@@ -325,10 +326,13 @@
 				<Card.Description>Montréal construction artwork: plain or lit, with a replayable bottom reveal.</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<ConstructionProps revealAt={constructionEnd} />
-				<ConstructionProps lighting revealAt={constructionEnd} />
+				<div class="relative h-64"><ConstructionProps lighting revealAt={constructionEnd} /></div>
 				<div bind:this={constructionEnd} data-construction-end aria-hidden="true"></div>
 			</Card.Content>
+		</Card.Root>
+		<Card.Root data-gallery-family="brand:ConstructionFloodlight">
+			<Card.Header><Card.Title>ConstructionFloodlight</Card.Title><Card.Description>Stationary original fixture, unlit by default; the app owns any beam.</Card.Description></Card.Header>
+			<Card.Content><div class="flex gap-8"><div class="w-16"><ConstructionFloodlight /></div><div class="w-16"><ConstructionFloodlight lit /></div></div></Card.Content>
 		</Card.Root>
 
 		<Card.Root data-gallery-family="brand:ManifestoCanvas">

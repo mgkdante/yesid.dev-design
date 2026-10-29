@@ -5,38 +5,34 @@ import ConstructionProps from './ConstructionProps.svelte';
 
 afterEach(cleanup);
 afterEach(() => vi.unstubAllGlobals());
-const props = ['sign', 'helmet', 'barricade', 'balise', 'stop'];
+const props = ['sign', 'helmet', 'barricade', 'balise'];
 
-it('renders the five construction artworks and bilingual sign without exposing decorative images to AT', () => {
+it('renders the four original construction artworks without exposing decorative images to AT', () => {
 	const view = render(ConstructionProps);
 	for (const prop of props) expect(view.container.querySelector(`[data-construction-prop="${prop}"] svg`)).not.toBeNull();
-	expect(view.getByText('ARRÊT')).toBeTruthy();
-	expect(view.getByText('STOP')).toBeTruthy();
 	expect(screen.queryByRole('img')).toBeNull();
 	expect(view.container.querySelector('a, button, [tabindex]')).toBeNull();
 	expect(view.container.querySelector('feDiffuseLighting')).toBeNull();
 });
 
-it('reverses visibility on every bottom visit and releases its observer on unmount', async () => {
-	let update: (visible: boolean) => void = () => {};
-	const disconnect = vi.fn();
-	vi.stubGlobal('IntersectionObserver', class {
-		constructor(callback: IntersectionObserverCallback) {
-			update = visible => callback([{ isIntersecting: visible } as IntersectionObserverEntry], this as unknown as IntersectionObserver);
-		}
-		observe() {}
-		disconnect = disconnect;
-	});
-	const view = render(ConstructionProps, { props: { revealAt: document.createElement('div') } });
+it('tracks scroll position in both directions in the active viewport and cleans up', async () => {
+	vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
+	const viewport = document.createElement('div'), marker = document.createElement('div');
+	Object.defineProperty(viewport, 'clientHeight', { value: 800 });
+	viewport.getBoundingClientRect = () => new DOMRect(0, 0, 1200, 800);
+	let top = 800;
+	marker.getBoundingClientRect = () => new DOMRect(0, top, 1, 1);
+	const remove = vi.spyOn(viewport, 'removeEventListener');
+	const view = render(ConstructionProps, { props: { revealAt: marker, revealRoot: viewport } });
 	const floor = view.container.querySelector('[data-slot="construction-props"]')!;
-	for (const visible of [false, true, false, true]) {
-		update(visible);
+	for (const [position, progress] of [[800, 0], [710, .25], [660, .5], [560, 1], [660, .5], [800, 0], [560, 1]]) {
+		top = position;
+		viewport.dispatchEvent(new Event('scroll'));
 		await tick();
-		expect(floor.getAttribute('data-state')).toBe(visible ? 'visible' : 'hidden');
-		expect(disconnect).not.toHaveBeenCalled();
+		expect(Number(floor.getAttribute('data-progress'))).toBe(progress);
 	}
 	await view.unmount();
-	expect(disconnect).toHaveBeenCalledOnce();
+	expect(remove).toHaveBeenCalledWith('scroll', expect.any(Function));
 });
 
 it('keeps every clip and optional lighting reference local to its own instance', () => {

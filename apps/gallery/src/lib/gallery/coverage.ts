@@ -23,6 +23,7 @@ export const GALLERY_COVERAGE = {
 		'CornerMarks',
 		'CornerMeta',
 		'ConstructionProps',
+		'ConstructionFloodlight',
 		'ErrorIllustration',
 		'FilterGroup',
 		'FilterSection',

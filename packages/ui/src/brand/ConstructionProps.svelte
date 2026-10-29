@@ -1,25 +1,45 @@
-<!-- Original four yesid.dev construction artworks (4ac6a931), plus the bilingual stop sign. -->
+<!-- Original four yesid.dev construction artworks (4ac6a931). Caller owns the ground. -->
 <script lang="ts" module>
  export interface ConstructionPropsProps {
   /** Original warm spotlight treatment; plain artwork by default. */
   lighting?: boolean;
-  /** Actual document/footer-bottom sentinel. Omit for a plain static floor. */
+  /** Spread the group along the caller-owned ground. */
+  layout?: 'original' | 'spread' | 'around-fixture';
+  /** Bind to unfold a caller-owned background from a stable, pre-ground anchor. */
+  progress?: number;
+  /** Include an unlit fixture in the moving group. */
+  floodlight?: boolean;
+  /** Footer-top marker. Reveal immediately after it enters 5% of the viewport. */
   revealAt?: Element;
+  /** Active scroll viewport; omit for the window. */
+  revealRoot?: Element;
  }
 </script>
 <script lang="ts">
- let { lighting = false, revealAt }: ConstructionPropsProps = $props();
+ import ConstructionFloodlight from './ConstructionFloodlight.svelte';
+ let { lighting = false, layout = 'original', progress = $bindable(1), floodlight = false, revealAt, revealRoot }: ConstructionPropsProps = $props();
  const uid = $props.id();
  let enhanced = $state(false);
- let shown = $state(false);
  $effect(() => {
-  if (!revealAt) { enhanced = false; return; }
+  if (!revealAt) { enhanced = false; progress = 1; return; }
   enhanced = true;
-  const observer = new IntersectionObserver(entries => {
-   shown = entries.some(entry => entry.isIntersecting);
-  });
-  observer.observe(revealAt);
-  return () => observer.disconnect();
+  const viewport = revealRoot ?? window;
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const update = () => {
+   const height = revealRoot?.clientHeight ?? document.documentElement.clientHeight;
+   if (height <= 0) { progress = 0; return; }
+   const top = revealRoot?.getBoundingClientRect().top ?? 0;
+   const edge = revealAt!.getBoundingClientRect().top - top;
+   const value = Math.max(0, Math.min(1, (height * .95 - edge) / (height * .25)));
+   progress = motion.matches ? (value > 0 ? 1 : 0) : value;
+  };
+  update();
+  motion.addEventListener('change', update);
+  viewport.addEventListener('scroll', update, { passive: true });
+  if (!revealRoot) window.addEventListener('resize', update);
+  const resize = new ResizeObserver(update);
+  resize.observe(revealRoot ?? document.documentElement);
+  return () => { motion.removeEventListener('change', update); viewport.removeEventListener('scroll', update); if (!revealRoot) window.removeEventListener('resize', update); resize.disconnect(); };
  });
 </script>
 
@@ -36,8 +56,60 @@
  {/if}
 {/snippet}
 
-<div class="construction-props" data-state={enhanced ? (shown ? 'visible' : 'hidden') : 'static'} data-slot="construction-props" aria-hidden="true">
+<div class="construction-props" class:spread={layout === 'spread'} class:around={layout === 'around-fixture'} style="--construction-progress:{progress}" data-progress={progress} data-state={enhanced ? (progress >= 1 ? 'visible' : progress <= 0 ? 'hidden' : 'revealing') : 'static'} data-slot="construction-props" aria-hidden="true">
  <div class="floor">
+  <div class="left-group">
+  <div class="prop balise" data-construction-prop="balise">
+   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" fill="none" focusable="false">
+    {@render light('balise', 64, 96)}
+    <g filter={lighting ? 'url(#' + uid + '-balise-light)' : undefined}>
+  <!-- Montreal TRV-7 balise conique — 5 stacked cylinders, each only slightly
+       narrower than the one below (near-columnar, subtle step), a white reflective
+       stripe at the top of each, on a black weighted rubber foot. -->
+  <!-- Flat cap -->
+  <path d="M19 11 Q19 8.5 21.5 8.5 L42.5 8.5 Q45 8.5 45 11 Z" fill="#E07800"/>
+  <!-- Stacked cylinder segments (bottom widest, ~0.5u narrower each step up) -->
+  <rect x="19" y="11" width="26" height="14" fill="#E07800"/>
+  <rect x="18.5" y="25" width="27" height="14" fill="#E07800"/>
+  <rect x="18" y="39" width="28" height="14" fill="#E07800"/>
+  <rect x="17.5" y="53" width="29" height="14" fill="#E07800"/>
+  <rect x="17" y="67" width="30" height="14" fill="#E07800"/>
+  <!-- Straight base skirt -->
+  <rect x="17" y="81" width="30" height="8" fill="#E07800"/>
+  <!-- White reflective stripe at the top of each segment -->
+  <rect x="19" y="11" width="26" height="5" fill="#f4f4f4"/>
+  <rect x="19" y="15" width="26" height="1" fill="#cfcfcf"/>
+  <rect x="18.5" y="25" width="27" height="5" fill="#f4f4f4"/>
+  <rect x="18.5" y="29" width="27" height="1" fill="#cfcfcf"/>
+  <rect x="18" y="39" width="28" height="5" fill="#f4f4f4"/>
+  <rect x="18" y="43" width="28" height="1" fill="#cfcfcf"/>
+  <rect x="17.5" y="53" width="29" height="5" fill="#f4f4f4"/>
+  <rect x="17.5" y="57" width="29" height="1" fill="#cfcfcf"/>
+  <rect x="17" y="67" width="30" height="5" fill="#f4f4f4"/>
+  <rect x="17" y="71" width="30" height="1" fill="#cfcfcf"/>
+  <!-- Right-side shading for cylinder roundness -->
+  <path d="M32 11 L45 11 L45 25 L45.5 25 L45.5 39 L46 39 L46 53 L46.5 53 L46.5 67 L47 67 L47 89 L32 89 Z" fill="#000000" opacity="0.09"/>
+  <!-- Black weighted rubber foot — flat, wide pad -->
+  <rect x="9" y="89" width="46" height="7" rx="1.5" fill="#222222"/>
+  <rect x="10" y="89.5" width="44" height="2" rx="1" fill="#333333"/>
+</g>
+   </svg>
+  </div>
+  <div class="prop helmet" data-construction-prop="helmet">
+   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 65 44" fill="none" focusable="false">
+    {@render light('helmet', 65, 44)}
+    <g filter={lighting ? 'url(#' + uid + '-helmet-light)' : undefined}>
+  <!-- Construction Helmet -->
+  <path d="M5,42 Q5,10 32,6 Q60,10 60,42 Z" fill="#FFB627"/>
+  <path d="M15,38 Q15,18 32,14 Q42,16 45,30" fill="none" stroke="#FFD060" stroke-width="1.5" opacity="0.5"/>
+  <path d="M0,40 Q0,42 3,44 L62,44 Q65,42 65,40 L60,38 L5,38 Z" fill="#E6A020"/>
+  <path d="M8,42 L57,42 L55,44 L10,44 Z" fill="#CC8800" opacity="0.4"/>
+  <path d="M32,6 L32,38" stroke="#E6A020" stroke-width="2" opacity="0.6"/>
+</g>
+   </svg>
+  </div>
+  </div>
+  <div class="right-group">
   <div class="prop sign" data-construction-prop="sign">
    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 70" fill="none" focusable="false">
     {@render light('sign', 50, 70)}
@@ -67,19 +139,6 @@
   <line x1="25" y1="46" x2="25" y2="68" stroke="#555" stroke-width="3.5" stroke-linecap="round"/>
   <!-- Base plate -->
   <rect x="17" y="66" width="16" height="4" rx="1" fill="#444"/>
-</g>
-   </svg>
-  </div>
-  <div class="prop helmet" data-construction-prop="helmet">
-   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 65 44" fill="none" focusable="false">
-    {@render light('helmet', 65, 44)}
-    <g filter={lighting ? 'url(#' + uid + '-helmet-light)' : undefined}>
-  <!-- Construction Helmet -->
-  <path d="M5,42 Q5,10 32,6 Q60,10 60,42 Z" fill="#FFB627"/>
-  <path d="M15,38 Q15,18 32,14 Q42,16 45,30" fill="none" stroke="#FFD060" stroke-width="1.5" opacity="0.5"/>
-  <path d="M0,40 Q0,42 3,44 L62,44 Q65,42 65,40 L60,38 L5,38 Z" fill="#E6A020"/>
-  <path d="M8,42 L57,42 L55,44 L10,44 Z" fill="#CC8800" opacity="0.4"/>
-  <path d="M32,6 L32,38" stroke="#E6A020" stroke-width="2" opacity="0.6"/>
 </g>
    </svg>
   </div>
@@ -120,72 +179,41 @@
 </g>
    </svg>
   </div>
-  <div class="prop balise" data-construction-prop="balise">
-   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" fill="none" focusable="false">
-    {@render light('balise', 64, 96)}
-    <g filter={lighting ? 'url(#' + uid + '-balise-light)' : undefined}>
-  <!-- Montreal TRV-7 balise conique — 5 stacked cylinders, each only slightly
-       narrower than the one below (near-columnar, subtle step), a white reflective
-       stripe at the top of each, on a black weighted rubber foot. -->
-  <!-- Flat cap -->
-  <path d="M19 11 Q19 8.5 21.5 8.5 L42.5 8.5 Q45 8.5 45 11 Z" fill="#E07800"/>
-  <!-- Stacked cylinder segments (bottom widest, ~0.5u narrower each step up) -->
-  <rect x="19" y="11" width="26" height="14" fill="#E07800"/>
-  <rect x="18.5" y="25" width="27" height="14" fill="#E07800"/>
-  <rect x="18" y="39" width="28" height="14" fill="#E07800"/>
-  <rect x="17.5" y="53" width="29" height="14" fill="#E07800"/>
-  <rect x="17" y="67" width="30" height="14" fill="#E07800"/>
-  <!-- Straight base skirt -->
-  <rect x="17" y="81" width="30" height="8" fill="#E07800"/>
-  <!-- White reflective stripe at the top of each segment -->
-  <rect x="19" y="11" width="26" height="5" fill="#f4f4f4"/>
-  <rect x="19" y="15" width="26" height="1" fill="#cfcfcf"/>
-  <rect x="18.5" y="25" width="27" height="5" fill="#f4f4f4"/>
-  <rect x="18.5" y="29" width="27" height="1" fill="#cfcfcf"/>
-  <rect x="18" y="39" width="28" height="5" fill="#f4f4f4"/>
-  <rect x="18" y="43" width="28" height="1" fill="#cfcfcf"/>
-  <rect x="17.5" y="53" width="29" height="5" fill="#f4f4f4"/>
-  <rect x="17.5" y="57" width="29" height="1" fill="#cfcfcf"/>
-  <rect x="17" y="67" width="30" height="5" fill="#f4f4f4"/>
-  <rect x="17" y="71" width="30" height="1" fill="#cfcfcf"/>
-  <!-- Right-side shading for cylinder roundness -->
-  <path d="M32 11 L45 11 L45 25 L45.5 25 L45.5 39 L46 39 L46 53 L46.5 53 L46.5 67 L47 67 L47 89 L32 89 Z" fill="#000000" opacity="0.09"/>
-  <!-- Black weighted rubber foot — flat, wide pad -->
-  <rect x="9" y="89" width="46" height="7" rx="1.5" fill="#222222"/>
-  <rect x="10" y="89.5" width="44" height="2" rx="1" fill="#333333"/>
-</g>
-   </svg>
   </div>
-  <div class="prop stop" data-construction-prop="stop">
-   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 112" fill="none" focusable="false">
-    {@render light('stop', 68, 112)}
-    <g filter={lighting ? 'url(#' + uid + '-stop-light)' : undefined}>
-     <path d="M34 61 V108" stroke="#555" stroke-width="4" stroke-linecap="round" />
-     <rect x="24" y="107" width="20" height="5" rx="1" fill="#444" />
-     <path d="M18 1 H50 L66 17 V49 L50 65 H18 L2 49 V17 Z" fill="#C62832" stroke="#EEE" stroke-width="2" />
-     <path d="M19 4 H49 L63 18 V48 L49 62 H19 L5 48 V18 Z" stroke="#FFF" stroke-width="0.8" />
-     <text x="34" y="28" text-anchor="middle" fill="#FFF" font-family="var(--font-heading, sans-serif)" font-size="12" font-weight="800">ARRÊT</text>
-     <text x="34" y="46" text-anchor="middle" fill="#FFF" font-family="var(--font-heading, sans-serif)" font-size="12" font-weight="800">STOP</text>
-    </g>
-   </svg>
-  </div>
+
+
+
+
+
+  {#if floodlight}<div class="fixture" data-construction-fixture><ConstructionFloodlight /></div>{/if}
  </div>
 </div>
 
 <style>
- .construction-props { container-type: inline-size; width: 100%; pointer-events: none; }
- .floor { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(.75rem, 2cqi, 2rem); align-items: end; justify-items: center; }
- .prop { overflow: clip; max-width: 100%; line-height: 0; }
- .prop > svg { display: block; width: 100%; height: auto; transition: transform .45s var(--ease-out, ease-out), opacity .3s ease-out; }
- [data-state='hidden'] .prop > svg { transform: translateY(110%); opacity: 0; }
- .sign { width: clamp(4rem, 10cqi, 8.5rem); }
- .helmet { width: clamp(2.5rem, 5cqi, 4rem); }
- .barricade { width: clamp(6rem, 15cqi, 12.5rem); }
- .balise { width: clamp(3rem, 8cqi, 7rem); grid-row: 2; grid-column: 1; }
- .stop { width: clamp(5rem, 10cqi, 8.5rem); grid-row: 2; grid-column: 3; }
- @container (min-width: 40rem) {
-  .floor { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .balise, .stop { grid-row: auto; grid-column: auto; }
+ .construction-props, .floor, .left-group, .right-group { display: contents; pointer-events: none; }
+ .prop { position: absolute; bottom: 0; pointer-events: none; z-index: calc(var(--z-content) + 2); line-height: 0; overflow: clip; }
+ .prop > svg, .fixture :global(svg) { display: block; width: 100%; height: auto; transform-box: border-box; transform: translateY(calc((1 - var(--construction-progress, 1)) * 100%)); }
+ [data-state='hidden'] .prop > svg, [data-state='hidden'] .fixture :global(svg) { opacity: 0; }
+ .sign { left: 10%; width: 167px; }
+ .helmet { left: 22%; width: 60px; }
+ .barricade { left: 30%; width: 200px; }
+ .balise { left: 45%; width: 156px; }
+ @media (--tablet-max) {
+  .sign { left: calc(50% - 50px); width: 64px; }
+  .helmet { left: calc(50% + 24px); width: 28px; }
+  .barricade { left: calc(50% + 50px); width: 80px; }
+  .balise { left: calc(50% - 98px); width: 60px; }
  }
- @media (prefers-reduced-motion: reduce) { .prop > svg { transition: none; } }
+ .fixture { position: absolute; bottom: 0; left: 62%; width: 64px; overflow: clip; line-height: 0; pointer-events: none; }
+ .spread .floor { position: absolute; inset-inline: clamp(16px, 4vw, 64px) var(--construction-end-inset, clamp(16px, 4vw, 64px)); bottom: 0; display: flex; align-items: flex-end; justify-content: space-evenly; gap: clamp(6px, 1.6vw, 24px); }
+ .spread .prop, .spread .fixture { position: relative; left: auto; bottom: auto; flex: 0 1 auto; min-width: 0; }
+ .spread .sign { order: 0; } .spread .helmet { order: 1; } .spread .barricade { order: 2; } .spread .balise { order: 3; } .spread .fixture { order: 4; }
+ @media (--tablet-max) {
+  .around .left-group, .around .right-group { position: absolute; bottom: 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+  .around .left-group { left: 8px; right: calc(50% + 24px); }
+  .around .right-group { left: calc(50% + 24px); right: 8px; }
+  .around .prop { position: relative; left: auto; bottom: auto; flex: 0 1 auto; min-width: 0; }
+ }
+ @media (--tablet-max) { .fixture { width: 40px; } }
+ @media (prefers-reduced-motion: reduce) { .prop > svg, .fixture :global(svg) { transform: none; } }
 </style>

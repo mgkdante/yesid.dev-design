@@ -9,25 +9,39 @@ for(const theme of GALLERY_THEMES) test(`construction artwork reverses safely at
 	await expect(floor).toHaveAttribute('data-state','hidden');
 	const height=await page.evaluate(()=>document.documentElement.scrollHeight);
 	for(const visible of [true,false,true,false,true]){
-		if(visible)await demo.locator('[data-construction-end]').evaluate(el=>el.scrollIntoView({block:'end'}));
+		if(visible)await demo.locator('[data-construction-end]').evaluate(el=>{el.scrollIntoView({block:'center'});scrollBy(0,innerHeight*.05);});
 		else await page.evaluate(()=>scrollTo({top:0,behavior:'instant'}));
 		await expect(floor).toHaveAttribute('data-state',visible?'visible':'hidden');
 		for(const art of await floor.locator('[data-construction-prop] > svg').all())await expect(art).toHaveCSS('opacity',visible?'1':'0');
 		expect(await page.evaluate(()=>document.documentElement.scrollHeight)).toBe(height);
 	}
-	const artworks=await floor.locator('[data-construction-prop]').evaluateAll(els=>els.map(el=>({name:(el as HTMLElement).dataset.constructionProp,box:el.getBoundingClientRect().toJSON(),pointer:getComputedStyle(el).pointerEvents})));
-	expect(artworks.map(art=>art.name).sort()).toEqual(['balise','barricade','helmet','sign','stop']);
-	for(const art of artworks){expect(art.box.width).toBeGreaterThan(0);expect(art.box.height).toBeGreaterThan(0);expect(art.pointer).toBe('none');}
-	for(let i=0;i<artworks.length;i++)for(let j=i+1;j<artworks.length;j++){
-		const a=artworks[i].box,b=artworks[j].box;
-		expect(Math.min(a.right,b.right)<=Math.max(a.left,b.left)||Math.min(a.bottom,b.bottom)<=Math.max(a.top,b.top)).toBe(true);
-	}
-	const stop=floor.locator('[data-construction-prop="stop"] svg');
-	for(const label of ['ARRÊT','STOP']){
-		const text=stop.getByText(label,{exact:true});await expect(text).toBeVisible();
-		const box=(await text.boundingBox())!,sign=(await stop.boundingBox())!;
-		expect(box.x>=sign.x&&box.y>=sign.y&&box.x+box.width<=sign.x+sign.width&&box.y+box.height<=sign.y+sign.height).toBe(true);
-	}
-	await page.emulateMedia({reducedMotion:'reduce'});
+	await demo.locator('[data-construction-end]').evaluate(el=>scrollBy(0,el.getBoundingClientRect().top-innerHeight*.825));
+	await expect.poll(()=>floor.getAttribute('data-progress').then(Number)).toBeCloseTo(.5,2);
 	for(const art of await floor.locator('[data-construction-prop] > svg').all())await expect(art).toHaveCSS('transition-duration','0s');
+	await demo.locator('[data-construction-end]').evaluate(el=>scrollBy(0,el.getBoundingClientRect().top-innerHeight*.45));
+	await expect(floor).toHaveAttribute('data-state','visible');
+	const artworks=await floor.locator('[data-construction-prop]').evaluateAll(els=>els.map(el=>{
+		const svg=el.querySelector('svg')!,box=svg.getBBox(),matrix=svg.getScreenCTM()!;
+		const points=[[box.x,box.y],[box.x+box.width,box.y+box.height]].map(([x,y])=>new DOMPoint(x,y).matrixTransform(matrix));
+		return {name:(el as HTMLElement).dataset.constructionProp,box:{left:points[0].x,top:points[0].y,right:points[1].x,bottom:points[1].y,width:points[1].x-points[0].x,height:points[1].y-points[0].y},pointer:getComputedStyle(el).pointerEvents};
+	}));
+	expect(artworks.map(art=>art.name).sort()).toEqual(['balise','barricade','helmet','sign']);
+	for(const art of artworks){expect(art.box.width).toBeGreaterThan(0);expect(art.box.height).toBeGreaterThan(0);expect(art.pointer).toBe('none');}
+	const frame=await floor.evaluate(el=>el.parentElement!.getBoundingClientRect().toJSON());
+	for(const art of artworks)expect(art.box.left>=frame.left-1&&art.box.right<=frame.right+1&&art.box.top>=frame.top-1&&art.box.bottom<=frame.bottom+1).toBe(true);
+	await page.emulateMedia({reducedMotion:'reduce'});
+	await demo.locator('[data-construction-end]').evaluate(el=>scrollBy(0,el.getBoundingClientRect().top-innerHeight*.825));
+	for(const art of await floor.locator('[data-construction-prop] > svg').all())await expect(art).toHaveCSS('transition-duration','0s');
+	for(const art of await floor.locator('[data-construction-prop] > svg').all())await expect(art).toHaveCSS('transform','none');
+});
+
+test('construction artwork stays available without JavaScript',async({browser,baseURL})=>{
+	const context=await browser.newContext({baseURL,javaScriptEnabled:false});
+	const page=await context.newPage();
+	try{
+		await page.goto('/');
+		const floor=page.locator('[data-gallery-family="brand:ConstructionProps"] [data-slot="construction-props"]');
+		await expect(floor).toHaveAttribute('data-state','static');
+		for(const art of await floor.locator('[data-construction-prop] > svg').all())await expect(art).toBeVisible();
+	}finally{await context.close();}
 });
