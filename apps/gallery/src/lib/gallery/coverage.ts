@@ -64,6 +64,6 @@ export const GALLERY_COVERAGE = {
 	environments: ['dark', 'light', 'reduced-motion', 'desktop', 'mobile'],
 } as const;
 
-export type PrimitiveFamily = (typeof GALLERY_COVERAGE.primitives)[number];
-export type BrandFamily = (typeof GALLERY_COVERAGE.brand)[number];
-export type MotionFamily = (typeof GALLERY_COVERAGE.motion)[number];
+type PrimitiveFamily = (typeof GALLERY_COVERAGE.primitives)[number];
+type BrandFamily = (typeof GALLERY_COVERAGE.brand)[number];
+type MotionFamily = (typeof GALLERY_COVERAGE.motion)[number];

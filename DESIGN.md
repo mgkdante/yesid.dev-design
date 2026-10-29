@@ -140,7 +140,7 @@ dark-first, governed by the four-color infrastructure doctrine below. Every visu
 traces back to one of five principles: edge-to-edge layout, dark-first surfaces, one-orange
 interactivity (orange is the clickable hue — with a single doctrinal exception: yellow
 conversion buttons, see Colors), motion-with-intent, no fluff.
-Public narrative and implementation rules: README.md, BOUNDARIES.md, and
+Public narrative and implementation rules: README.md and
 docs/BUILD-A-YESID-PRODUCT.md.
 
 ## Colors

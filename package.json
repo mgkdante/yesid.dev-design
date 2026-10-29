@@ -26,8 +26,7 @@
 		"dev": "turbo run dev",
 		"tokens:build": "bun tools/build-tokens.ts",
 		"tokens:lint": "design.md lint DESIGN.md",
-		"ci:tokens": "bun run tokens:build && git diff --exit-code packages/tokens/tokens.css packages/tokens/theme.css packages/motion/src/tokens.ts DESIGN.md",
-		"setup:hooks": "git config core.hooksPath .githooks"
+		"ci:tokens": "bun run tokens:build && git diff --exit-code packages/tokens/tokens.css packages/tokens/theme.css packages/motion/src/tokens.ts DESIGN.md"
 	},
 	"devDependencies": {
 		"@google/design.md": "0.1.1",
