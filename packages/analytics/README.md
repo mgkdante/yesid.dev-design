@@ -8,7 +8,7 @@ product's events. The package never selects a product domain, event names, copy,
 ## Interface
 
 The root export and `./config`, `./client`, and `./vitals` subpaths are public.
-See [`api-reports/analytics.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/api-reports/analytics.api.md)
+See [`api-reports/analytics.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/api-reports/analytics.api.md)
 for the exact interface.
 
 ## Measurement
@@ -51,7 +51,7 @@ runs and where the samples go.
 ## Consumers and compatibility
 
 Products own the domain, when measurement starts, the event vocabulary, the privacy policy and
-the CSP. Current receipts live in [`CONSUMERS.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/CONSUMERS.md).
+the CSP. Current receipts live in [`CONSUMERS.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/CONSUMERS.md).
 
 ## Commands
 
@@ -66,6 +66,6 @@ An unset domain, a foreign host or a server render sends nothing. Delivery is fi
 products own any operational visibility.
 
 Behavior, privacy mechanics, exports, or README changes alter the coordinated release payload.
-Use [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/RELEASING.md); public-interface changes also require an API report.
+Use [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/RELEASING.md); public-interface changes also require an API report.
 Product policy and legal conclusions remain downstream as mapped in
-[`BOUNDARIES.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/BOUNDARIES.md).
+[`BOUNDARIES.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/BOUNDARIES.md).
