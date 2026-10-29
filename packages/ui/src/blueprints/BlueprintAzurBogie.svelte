@@ -1,5 +1,6 @@
 <script lang="ts">
-	let { class: className = '', ...rest }: { class?: string; style?: string; [key: string]: unknown } = $props();
+	import type { BlueprintProps } from './index.js';
+	let { class: className = '', ...rest }: BlueprintProps = $props();
 </script>
 
 <svg class={className} {...rest} viewBox="0 0 600 500" fill="none" xmlns="http://www.w3.org/2000/svg">
