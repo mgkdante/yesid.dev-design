@@ -192,6 +192,8 @@
 		margin-top: calc(-1 * var(--chrome-offset, 0px));
 		padding-top: var(--chrome-offset, 0px);
 		overflow: hidden;
+		/* Clips the fixed circuit grid, so it holds still with the page while the header scrolls. */
+		clip-path: inset(0);
 		background: var(--manifesto);
 		cursor: crosshair;
 	}
@@ -202,8 +204,9 @@
 	}
 
 	.header__circuit-grid {
-		position: absolute;
-		inset: 0;
+		position: fixed;
+		inset: 0 0 auto;
+		height: 100lvh;
 		z-index: var(--z-base);
 		background-image:
 			linear-gradient(90deg, color-mix(in srgb, var(--article-accent) 3.5%, transparent) 1px, transparent 1px),

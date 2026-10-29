@@ -45,6 +45,18 @@ test('detail frame layout at this width', async ({ page }) => {
 	expect((await title.boundingBox())!.y).toBeGreaterThanOrEqual((await navBottom()) + NAV_CLEARANCE);
 });
 
+test('the header circuit grid holds still while the header scrolls', async ({ page }) => {
+	await page.goto('/detail-frame');
+	const header = page.locator('[data-slot="article-header"]');
+	const grid = header.locator('.header__circuit-grid');
+	for (const top of [0, 120]) {
+		await page.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), top);
+		await expect.poll(() => page.evaluate(() => scrollY)).toBe(top);
+		expect((await grid.boundingBox())!.y).toBe(0);
+	}
+	await expect(header).toHaveCSS('clip-path', 'inset(0px)');
+});
+
 test('the back link sits midway between the chrome and the next line', async ({ page }) => {
 	const { height } = page.viewportSize()!;
 	for (const width of [page.viewportSize()!.width, 820])
