@@ -7,7 +7,7 @@ test('Manifesto layers share one background strength across themes and motion se
 	for (const colorScheme of ['light', 'dark'] as const) {
 		for (const reducedMotion of ['reduce', 'no-preference'] as const) {
 			await page.emulateMedia({ colorScheme, reducedMotion });
-			await openGallery(page);
+			await openGallery(page, colorScheme);
 			const demo = page.locator('[data-gallery-family="brand:ManifestoCanvas"]');
 			await demo.scrollIntoViewIfNeeded();
 			const strengths = await demo.evaluate(el => {
