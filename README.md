@@ -101,8 +101,7 @@ the ones they use by URL in `package.json`, and `bun install` pins each tarball'
 lockfile. `@yesid/ui` and `@yesid/seo-kit` take their sibling packages as peer dependencies pinned
 to the same release, so an app lists every `@yesid` package it uses and holds one copy of each.
 [`RELEASING.md`](RELEASING.md) covers the release side and [`DECISIONS.md`](DECISIONS.md) the
-reasoning. The [shared CI contract](docs/SHARED-TOOLING-CI.md) documents the immutable-SHA
-classifier, reporter, and configuration/caller drift actions.
+reasoning.
 
 For a new product, follow [`docs/BUILD-A-YESID-PRODUCT.md`](docs/BUILD-A-YESID-PRODUCT.md).
 It covers installation, tokens, Tailwind, fonts, UI configuration, motion, gates, localization,
