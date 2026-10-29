@@ -34,14 +34,14 @@ with the same tag in every URL:
 https://github.com/mgkdante/yesid.dev-design/releases/download/vX.Y.Z/yesid-<package>-X.Y.Z.tgz
 ```
 
-`bun install` records each tarball's integrity in `bun.lock`. `@yesid/ui` and `@yesid/seo-kit`
-take `@yesid/tokens`, `@yesid/motion` and `@yesid/seo-kit` as peer dependencies at the same
-release, so list those too. The product guide has the full
+`bun install` records each tarball's integrity in `bun.lock`. `@yesid/ui` takes `@yesid/tokens`,
+`@yesid/motion` and `@yesid/seo-kit` as peer dependencies at the same release, and
+`@yesid/seo-kit` takes `@yesid/tokens`, so list those too. The product guide has the full
 [dependency block](docs/BUILD-A-YESID-PRODUCT.md#2-install-one-exact-release).
 
-To upgrade, change the tag in every URL and run `bun install`. A rollback is the same edit with an
-earlier tag. `gh attestation verify <tarball> --repo mgkdante/yesid.dev-design` confirms a tarball
-came from the release workflow.
+To upgrade, change the tag and the version in every URL and run `bun install`. A rollback is the
+same edit with an earlier release. `gh attestation verify <tarball> --repo mgkdante/yesid.dev-design`
+confirms a tarball came from the release workflow.
 
 ## Develop
 
@@ -82,8 +82,9 @@ deployment. [DECISIONS.md](DECISIONS.md) records why the packages are shaped the
 ## Releases
 
 All eight packages share one version. [CHANGELOG.md](CHANGELOG.md) lists what changed in each
-release, `api-reports/` records each package's public interface, [RELEASING.md](RELEASING.md)
-covers cutting a release, and [DEPRECATION.md](DEPRECATION.md) covers retiring a public export.
+release, `api-reports/` records the public interface of every package but `@yesid/config`,
+[RELEASING.md](RELEASING.md) covers cutting a release, and [DEPRECATION.md](DEPRECATION.md) covers
+retiring a public export.
 
 ## Contributing
 
