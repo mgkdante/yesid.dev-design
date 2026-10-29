@@ -204,7 +204,7 @@
  .spread .floor { position: absolute; inset-inline: clamp(16px, 4vw, 64px) var(--construction-end-inset, clamp(16px, 4vw, 64px)); bottom: 0; display: flex; align-items: flex-end; justify-content: space-evenly; gap: clamp(6px, 1.6vw, 24px); }
  .spread .prop, .spread .fixture { position: relative; left: auto; bottom: auto; flex: 0 1 auto; min-width: 0; }
  .spread .sign { order: 0; } .spread .helmet { order: 1; } .spread .barricade { order: 2; } .spread .balise { order: 3; } .spread .fixture { order: 4; }
- /* One even row around a centred 40px fixture gap; balise and sign are 16px wider than helmet and barricade, hence the wider end inset. */
+ /* One even row around a centred 40px fixture gap; balise and sign are 16px wider than helmet and barricade, hence the wider end inset. Below a 304px-wide container the artwork shrinks to fit and the gaps close. */
  @media (max-width: 767px) {
   .around .floor { position: absolute; inset-inline: 8px 24px; bottom: 0; display: flex; align-items: flex-end; justify-content: space-evenly; }
   .around .floor::after { content: ''; flex: none; width: 40px; order: 2; }
