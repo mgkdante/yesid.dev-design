@@ -10,7 +10,6 @@
 *.yaml text eol=lf
 *.svelte text eol=lf
 *.json text eol=lf
-.githooks/* text eol=lf
 
 # Binary assets: never touch
 *.png binary

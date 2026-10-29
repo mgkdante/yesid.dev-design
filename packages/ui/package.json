@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "svelte": "./src/index.ts",
-  "description": "Source-shipped yesid brand UI primitives, ported byte-faithful from Transit with consumer-configurable class vocabulary.",
+  "description": "Svelte 5 primitives, brand components, page frames and site shell for yesid products, shipped as source.",
   "files": ["src", "base.css", "!**/*.test.ts", "!**/test-fixtures", "!src/vitest.*", "NOTICE"],
   "sideEffects": ["**/*.css"],
   "exports": {

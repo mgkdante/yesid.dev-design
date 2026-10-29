@@ -14,11 +14,14 @@ body:
     attributes:
       label: Affected surface
       options:
-        - Adoption tool or schema-2 manifest
         - Tokens
+        - UI
         - Motion
         - Gates
-        - UI
+        - SEO kit
+        - Analytics
+        - i18n core
+        - Config
         - Gallery or documentation
     validations:
       required: true
@@ -61,7 +64,7 @@ body:
     attributes:
       label: Boundary checks
       options:
-        - label: I reproduced this without hand-editing vendored package files.
+        - label: I reproduced this without editing the installed package files.
           required: true
         - label: I used an exact tag, not a branch or floating reference.
           required: true

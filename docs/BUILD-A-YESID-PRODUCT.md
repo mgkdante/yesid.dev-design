@@ -45,9 +45,9 @@ Each release carries one tarball per package. Add the packages with the same tag
 ```
 
 Run `bun install`. The lockfile records each tarball's integrity, so CI installs exactly the bytes
-the release published. `@yesid/ui` and `@yesid/seo-kit` take `@yesid/tokens`, `@yesid/motion` and
-`@yesid/seo-kit` as peer dependencies pinned to the same release: list all of them, even one the
-product never imports, so the app holds a single copy. The packages ship TypeScript and Svelte
+the release published. `@yesid/ui` takes `@yesid/tokens`, `@yesid/motion` and `@yesid/seo-kit` as
+peer dependencies pinned to the same release, and `@yesid/seo-kit` takes `@yesid/tokens`: list all
+of them, even one the product never imports, so the app holds a single copy. The packages ship TypeScript and Svelte
 source that Vite compiles (see `ssr.noExternal` in section 4).
 `gh attestation verify <tarball> --repo mgkdante/yesid.dev-design` proves a tarball came from the
 release workflow.

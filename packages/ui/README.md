@@ -22,16 +22,12 @@ of their bundle.
 
 ## Source scanning and application tokens
 
-Because the package ships source, a Tailwind consumer must scan `@yesid/ui/src`. For a workspace
-consumer whose stylesheet is under `apps/web/src`, add:
+Because the package ships source, a Tailwind product must scan it. Point `@source` at the
+installed source, relative to the stylesheet that holds the directive:
 
 ```css
-@source "../../../packages/ui/src";
+@source "../node_modules/@yesid/ui/src";
 ```
-
-For a separately installed package, point the directive at the installed source, for example
-`@source "../node_modules/@yesid/ui/src";`. The path is relative to the stylesheet containing
-the directive.
 
 `Combobox` preserves a 44px minimum tap target through `var(--size-tap-min)`. Products must define
 `--size-tap-min: 44px` in application CSS. Product copy, placeholders, labels, options, and
@@ -116,7 +112,7 @@ The first `cn` use, including a primitive's first class merge, locks the zero-co
 default. Products with custom vocabulary must initialize before any primitive renders. Use one
 shared initializer imported by both SvelteKit `hooks.client.ts` (`ClientInit`) and
 `hooks.server.ts` (`ServerInit`), not a root layout instance script. See the
-[`v0.13.3 product setup guide`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/docs/BUILD-A-YESID-PRODUCT.md#4-configure-ui-once-per-module-graph-at-boot)
+[product guide](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/docs/BUILD-A-YESID-PRODUCT.md)
 for the complete hook pattern.
 
 The state boundary is the loaded ESM module graph. Browser and SSR bundles, separately bundled
@@ -131,8 +127,8 @@ checks or consumer conditionals in either stage.
 
 ## Primitive family seams
 
-These seams are part of the adoption contract. They identify what the package owns and what a
-consumer must retain locally to avoid an unreviewed visual or behavior change.
+These seams are part of the consumer contract. They say what the package owns and what a product
+must keep locally to avoid an unreviewed visual or behavior change.
 
 ### Badge
 
@@ -572,20 +568,7 @@ from the app stylesheet after Tailwind:
 
 Like every package stylesheet, it is opt-in; no JavaScript import loads it.
 
-## Consumer verification
-
-Package behavior, installed-payload integrity, and product acceptance are separate attestations.
-For every bump:
-
-1. Run the consumer's tests, typecheck, gates and production build.
-2. Compare affected behavior in the browser across themes, sizes, accessibility states and reduced
-   motion.
-
-Package tests and Gallery browser checks remain required upstream, but neither proves that an
-external consumer retained its product-specific behavior. This installed guide is the durable
-owner for the package/consumer UI seams and verification duties listed above.
-
-## Commands, failures, and release implications
+## Develop
 
 ```sh
 bun run --cwd packages/ui test
@@ -593,11 +576,5 @@ bun run --cwd packages/ui check
 bun run api:check
 ```
 
-An import/type failure points to a public interface or consumer-tooling mismatch. A package test
-failure belongs to shared rendering mechanics; a Gallery failure belongs to neutral integration;
-a product-only visual or policy failure stays in that product. Do not cure one layer by moving
-its policy into another.
-
-Source, public-interface, compatibility-documentation, or README changes alter the coordinated
-release payload. Use [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/RELEASING.md), regenerate the API report only for
-public-interface changes, and preserve consumer seams through separate adoption verification.
+Package tests and the Gallery's browser suite cover the shared behavior. Each product still runs
+its own tests, build and browser checks when it takes a release; a pass here does not replace them.
