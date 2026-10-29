@@ -58,7 +58,6 @@
 
 <div class="construction-props" class:spread={layout === 'spread'} class:around={layout === 'around-fixture'} style="--construction-progress:{progress}" data-progress={progress} data-state={enhanced ? (progress >= 1 ? 'visible' : progress <= 0 ? 'hidden' : 'revealing') : 'static'} data-slot="construction-props" aria-hidden="true">
  <div class="floor">
-  <div class="left-group">
   <div class="prop balise" data-construction-prop="balise">
    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" fill="none" focusable="false">
     {@render light('balise', 64, 96)}
@@ -108,8 +107,6 @@
 </g>
    </svg>
   </div>
-  </div>
-  <div class="right-group">
   <div class="prop sign" data-construction-prop="sign">
    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 70" fill="none" focusable="false">
     {@render light('sign', 50, 70)}
@@ -179,7 +176,6 @@
 </g>
    </svg>
   </div>
-  </div>
 
 
 
@@ -190,7 +186,7 @@
 </div>
 
 <style>
- .construction-props, .floor, .left-group, .right-group { display: contents; pointer-events: none; }
+ .construction-props, .floor { display: contents; pointer-events: none; }
  .prop { position: absolute; bottom: 0; pointer-events: none; z-index: calc(var(--z-content) + 2); line-height: 0; overflow: clip; }
  .prop > svg, .fixture :global(svg) { display: block; width: 100%; height: auto; transform-box: border-box; transform: translateY(calc((1 - var(--construction-progress, 1)) * 100%)); }
  [data-state='hidden'] .prop > svg, [data-state='hidden'] .fixture :global(svg) { opacity: 0; }
@@ -198,7 +194,7 @@
  .helmet { left: 22%; width: 60px; }
  .barricade { left: 30%; width: 200px; }
  .balise { left: 45%; width: 156px; }
- @media (--tablet-max) {
+ @media (max-width: 767px) {
   .sign { left: calc(50% - 50px); width: 64px; }
   .helmet { left: calc(50% + 24px); width: 28px; }
   .barricade { left: calc(50% + 50px); width: 80px; }
@@ -208,12 +204,13 @@
  .spread .floor { position: absolute; inset-inline: clamp(16px, 4vw, 64px) var(--construction-end-inset, clamp(16px, 4vw, 64px)); bottom: 0; display: flex; align-items: flex-end; justify-content: space-evenly; gap: clamp(6px, 1.6vw, 24px); }
  .spread .prop, .spread .fixture { position: relative; left: auto; bottom: auto; flex: 0 1 auto; min-width: 0; }
  .spread .sign { order: 0; } .spread .helmet { order: 1; } .spread .barricade { order: 2; } .spread .balise { order: 3; } .spread .fixture { order: 4; }
- @media (--tablet-max) {
-  .around .left-group, .around .right-group { position: absolute; bottom: 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-  .around .left-group { left: 8px; right: calc(50% + 24px); }
-  .around .right-group { left: calc(50% + 24px); right: 8px; }
+ /* One even row around a centred 40px fixture gap; balise and sign are 16px wider than helmet and barricade, hence the wider end inset. Below a 304px-wide container the artwork shrinks to fit and the gaps close. */
+ @media (max-width: 767px) {
+  .around .floor { position: absolute; inset-inline: 8px 24px; bottom: 0; display: flex; align-items: flex-end; justify-content: space-evenly; }
+  .around .floor::after { content: ''; flex: none; width: 40px; order: 2; }
   .around .prop { position: relative; left: auto; bottom: auto; flex: 0 1 auto; min-width: 0; }
+  .around .sign { order: 1; } .around .helmet { order: 3; } .around .barricade { order: 4; }
  }
- @media (--tablet-max) { .fixture { width: 40px; } }
+ @media (max-width: 767px) { .fixture { width: 40px; } }
  @media (prefers-reduced-motion: reduce) { .prop > svg, .fixture :global(svg) { transform: none; } }
 </style>
