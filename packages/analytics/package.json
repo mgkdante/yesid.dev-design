@@ -1,6 +1,6 @@
 {
 	"name": "@yesid/analytics",
-	"version": "0.28.1",
+	"version": "0.29.0",
 	"private": true,
 	"type": "module",
 	"description": "Consumer-neutral cookieless Plausible client, URL reduction, and web-vitals collection.",

@@ -112,7 +112,7 @@ The first `cn` use, including a primitive's first class merge, locks the zero-co
 default. Products with custom vocabulary must initialize before any primitive renders. Use one
 shared initializer imported by both SvelteKit `hooks.client.ts` (`ClientInit`) and
 `hooks.server.ts` (`ServerInit`), not a root layout instance script. See the
-[product guide](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/docs/BUILD-A-YESID-PRODUCT.md)
+[product guide](https://github.com/mgkdante/yesid.dev-design/blob/v0.29.0/docs/BUILD-A-YESID-PRODUCT.md)
 for the complete hook pattern.
 
 The state boundary is the loaded ESM module graph. Browser and SSR bundles, separately bundled

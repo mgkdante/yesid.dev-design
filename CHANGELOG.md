@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.29.0
+
+<!-- release-fragment: config-playwright -->
+- `@yesid/config` (minor): Adds `@yesid/config/playwright`. `yesidProjects(baseURL)` returns the standard Playwright projects: `phone` (390×844), `tablet` (768×1024) and `desktop` (1440×900) for untagged tests, `reduced-motion` for tests tagged `@motion`, and `light` and `dark` (seeded through the `theme` localStorage key) for tests tagged `@theme`. `expectAccessible(page, { include, exclude })` fails a test on any serious or critical axe violation of WCAG 2.2 AA or axe best practice; the contrast rule skips blueprint art (`.blueprint-bg`). `@playwright/test` and `@axe-core/playwright` are optional peer dependencies: install them in the same package.json as `@yesid/config` (the workspace root in a monorepo), since a root package cannot see peers installed in a child workspace.
+
+  Deprecates `@yesid/config/turbo/base.json` and the `@yesid/config/tsconfig/base.json` subpath, which have no consumer: each app commits its own `turbo.json`, and products extend `tsconfig/library.json` or `tsconfig/svelte-kit.json`, which keep their base. Replacement: keep your own `turbo.json`, and extend `library.json` or `svelte-kit.json`. Earliest removal: v0.31.0, and not before 90 days after v0.29.0 is published.
+
+<!-- release-fragment: language-toggle-tap-size -->
+- `@yesid/ui` (patch): `LanguageToggle`'s link keeps the 44px tap minimum (`--size-tap-min`) on phones. It was 38px wide below 480px and 26px below 360px; the drawing keeps its phone size inside the wider target.
+
+<!-- release-fragment: seo-kit-highlight -->
+- `@yesid/seo-kit` (minor), `@yesid/ui` (minor): `@yesid/seo-kit/highlight` adds `highlight(code, lang)`, server-side Shiki highlighting with the JavaScript regex engine. It resolves to token markup for a `<code>` element in `syn-*` classes, with no inline styles, and returns unknown languages escaped. `shiki` 4.x is a new optional peer dependency, needed only for this subpath. `@yesid/ui/base.css` colors the `syn-*` classes through the `--syntax-*` tokens. `CodeBlock`'s copy labels take an optional `copied`, and a polite status now announces `copied` or `failed` after a copy; the visible ✓ and failure label are unchanged.
+
 ## 0.28.1
 
 <!-- release-fragment: article-header-still-grid -->
