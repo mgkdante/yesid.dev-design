@@ -12,11 +12,6 @@ async function open(page: Page): Promise<void> {
 	await page.evaluate(() => document.fonts.ready);
 }
 
-async function dismissConsent(page: Page): Promise<void> {
-	await page.getByRole('button', { name: copy.consent.decline }).click();
-	await expect(page.getByRole('region', { name: copy.consent.title })).toHaveCount(0);
-}
-
 test('tables stack or scroll to fit this width', async ({ page }) => {
 	await open(page);
 	const stacked = page.getByRole('table', { name: stopTable.caption });
@@ -51,7 +46,6 @@ test('tables stack or scroll to fit this width', async ({ page }) => {
 
 test('filter chips narrow the table and say so when nothing matches', async ({ page }) => {
 	await open(page);
-	await dismissConsent(page);
 	const filters = page.getByRole('group', { name: copy.filters });
 	const table = page.getByRole('table', { name: stopTable.caption });
 	const late = statuses.find((status) => status.key === 'late')!;
@@ -71,7 +65,6 @@ test('filter chips narrow the table and say so when nothing matches', async ({ p
 
 test('the rail is a landmark on desktop and a sheet on phones that keeps its state', async ({ page }) => {
 	await open(page);
-	await dismissConsent(page);
 	const landmark = page.getByRole('complementary', { name: copy.rail.label });
 	const pill = page.getByRole('button', { name: new RegExp(`^${copy.rail.label}`) });
 
@@ -111,7 +104,6 @@ test.describe('with motion on', () => {
 	test('the rail sheet stays centred while it opens on phones', async ({ page }) => {
 		test.skip(!isPhone(page), 'the rail sheet is only shown on phones');
 		await open(page);
-		await dismissConsent(page);
 		// Samples every frame in which the sheet is animating, from before the click until it settles.
 		await page.evaluate((label) => {
 			const offsets: number[] = [];
@@ -137,47 +129,13 @@ test.describe('with motion on', () => {
 	});
 });
 
-test('consent asks, steps aside after a choice and comes back as settings with tap-size actions', async ({ page }) => {
-	await open(page);
-	const prompt = page.getByRole('region', { name: copy.consent.title });
-
-	await expect(prompt).toBeVisible();
-	await prompt.getByRole('button', { name: copy.consent.decline }).click();
-	await expect(prompt).toBeHidden();
-
-	await page.getByRole('button', { name: copy.consent.settings }).click();
-	const settings = page.getByRole('region', { name: copy.consent.settings });
-	await expect(settings).toBeFocused();
-	await expect(settings.getByRole('button', { name: copy.consent.decline })).toHaveAttribute(
-		'aria-pressed',
-		'true',
-	);
-	const box = (await settings.boundingBox())!;
-	expect(box.x).toBeGreaterThanOrEqual(0);
-	expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
-	const tapMin = await page.evaluate(() => {
-		const probe = document.body.appendChild(document.createElement('div'));
-		probe.style.height = 'var(--size-tap-min)';
-		const height = probe.getBoundingClientRect().height;
-		probe.remove();
-		return height;
-	});
-	for (const button of await settings.getByRole('button').all()) {
-		const { x, width, height } = (await button.boundingBox())!;
-		expect(height).toBeGreaterThanOrEqual(tapMin);
-		expect(x).toBeGreaterThanOrEqual(box.x);
-		expect(x + width).toBeLessThanOrEqual(box.x + box.width);
-	}
-});
-
-test('no blocking axe violations with the prompt and the sheet open', async ({ page }, testInfo) => {
+test('no blocking axe violations when loaded and with the sheet open', async ({ page }, testInfo) => {
 	await open(page);
 	const states: Array<[string, () => Promise<void>]> = [['loaded', async () => {}]];
 	if (isPhone(page)) {
 		states.push([
 			'rail sheet',
 			async () => {
-				await dismissConsent(page);
 				await page.getByRole('button', { name: new RegExp(`^${copy.rail.label}`) }).click();
 				await expect(page.getByRole('dialog', { name: copy.rail.label })).toBeVisible();
 			},

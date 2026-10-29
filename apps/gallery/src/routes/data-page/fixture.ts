@@ -6,14 +6,6 @@ export const copy = {
 	filters: 'Filters',
 	summary: 'Summary',
 	noMatch: 'No departures match these filters',
-	consent: {
-		title: 'Analytics',
-		description: 'May we count anonymous visits to improve the Gallery?',
-		accept: 'Allow',
-		decline: 'No thanks',
-		settings: 'Analytics settings',
-		privacy: 'Privacy',
-	},
 } as const;
 
 export const trail = [

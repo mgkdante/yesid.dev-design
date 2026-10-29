@@ -279,9 +279,8 @@ describe('deterministic package API reports', () => {
 		expect(first['@yesid/tokens']).toContain(
 			'`./tokens.json` — direct asset `./tokens.json` (`default`), sha256 `',
 		);
-		expect(first['@yesid/analytics']).toContain('function createAnalyticsClient');
+		expect(first['@yesid/analytics']).toContain('function createAnalytics');
 		expect(first['@yesid/analytics']).toContain('function defineAnalyticsPreset');
-		expect(first['@yesid/analytics']).toContain('function createAnalyticsConsentStore');
 		expect(first['@yesid/i18n-core']).toContain('function createLocaleRouting');
 		expect(first['@yesid/tokens']).toContain('function parseTokens');
 		expect(first['@yesid/motion']).toContain('function subscribe');
