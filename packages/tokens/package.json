@@ -25,7 +25,6 @@
     }
   },
   "scripts": {
-    "figma:push": "bun scripts/push-to-figma.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "tsc --noEmit"
