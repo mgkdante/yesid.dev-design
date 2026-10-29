@@ -58,6 +58,6 @@ until they independently satisfy the third-consumer rule.
 ## Release implications
 
 Config changes add a `.changes` fragment naming `@yesid/config` and ship with the next coordinated
-release ([`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/RELEASING.md)).
+release ([`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/RELEASING.md)).
 Shared-action ownership stays in
-[`docs/SHARED-TOOLING-CI.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/docs/SHARED-TOOLING-CI.md).
+[`docs/SHARED-TOOLING-CI.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/docs/SHARED-TOOLING-CI.md).

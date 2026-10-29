@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.28.0
+
+<!-- release-fragment: c1-carried-fixes -->
+- `@yesid/tokens` (minor), `@yesid/motion` (minor), `@yesid/seo-kit` (minor), `@yesid/ui` (minor): `StateNotice` with a `role` is named by its title. `QuietModeButton` paints the remembered labels before hydration instead of flipping them when the app starts. A view transition that a reload cuts short no longer logs `AbortError: Transition was skipped`: `viewTransition` and the head boot script catch its `ready` promise, and `boot.json` carries the new hash. `@yesid/ui/blueprints` exports `BlueprintProps`, the props every drawing takes. `.circuit-grid` and `ArticleHeader`'s grid anchor their lines to the top-left corner, so the grid no longer slides when the page grows.
+
+  Removed without a deprecation period under the owner's 2026-10-29 waiver of both DEPRECATION.md gates; neither app nor the Gallery imports any of them. `@yesid/motion` loses `./utils/sectionMagnet` and its root re-exports (`initSectionMagnet`, `findSettleTarget`, `DESKTOP_TIER`, `TOUCH_TIER`, `MagnetTier`, `SectionMagnetOpts`, `SettleTargetOpts`). `@yesid/tokens` loses `./serialize`, `./types`, `./generators/tokens-css`, `./generators/theme-css`, `./generators/motion-ts` and the legacy `./src/parse.ts`, `./src/generators/tokens-css.ts` and `./src/generators/motion-ts.ts` aliases. `@yesid/seo-kit` loses the `./satori` subpath; `renderSatoriPng` stays in the root export. `@yesid/ui` and `@yesid/ui/brand` stop exporting `flattenToc`, `landTocFragments` and `resolveTocCounter`, and `@yesid/ui/state` stops exporting `DESKTOP_MIN_WIDTH`. To migrate, there is nothing to change unless you imported one of these; `DetailFrame`'s `toc.landFragments` replaces a direct `landTocFragments()` call.
+
+<!-- release-fragment: release-tgz-assets -->
+- `@yesid/tokens` (minor), `@yesid/motion` (minor), `@yesid/gates` (minor), `@yesid/seo-kit` (minor), `@yesid/ui` (minor), `@yesid/analytics` (minor), `@yesid/i18n-core` (minor), `@yesid/config` (minor): Each package now ships as its own tarball on the GitHub Release (`yesid-<pkg>-X.Y.Z.tgz`), with a
+  build-provenance attestation. Install them by URL instead of vendoring: see
+  `docs/BUILD-A-YESID-PRODUCT.md`. `@yesid/ui` and `@yesid/seo-kit` take their sibling packages as
+  peer dependencies pinned to the same release, so list every `@yesid` package the app uses.
+  `@yesid/config` joins the lockstep version and the separate `config-v*` releases end. The adoption
+  CLI, the `yesid.dev-design-vX.Y.Z.tar` archive and the schema-2 `manifest.json` are removed under
+  the owner's 2026-10-29 waiver (see `DEPRECATION.md`).
+
 ## 0.27.0
 
 <!-- release-fragment: analytics-always-on -->
