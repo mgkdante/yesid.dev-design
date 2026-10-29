@@ -259,6 +259,8 @@ the code shows as a plain, focusable `<pre>`.
 The circuit-node backdrop of brand headers. It fills `containerEl` (which must be positioned) and
 listens there: nodes glow and link up near the pointer, and a click sends out a ripple. Under
 reduced motion the nodes are static. It is decorative and pauses while off screen.
+The shared base stylesheet owns `--manifesto-background-strength` (0.75), applied once to
+nodes/traces, warm glow and ripple ink. Companion product grids use the same property.
 
 ### Blueprint drawings
 
