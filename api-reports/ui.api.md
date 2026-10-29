@@ -150,7 +150,7 @@
 
 ## Direct public assets
 
-- `./base.css` — direct asset `./base.css` (`default`), sha256 `0a4e256f1a7d24266e177226aee1bd47fa182b15ec26c0e3ea893a48caa84956`
+- `./base.css` — direct asset `./base.css` (`default`), sha256 `be0008dc383ba4255a3eb4a7ebf5805f7914c3255171c42c16be0b6112f385d8`
 - `./boot.json` — direct asset `./src/head/boot.json` (`default`), sha256 `9b0229a77f56656dfffbafab88b3e5d9c62c654aa37c6721284aad0ff5626577`
 
 ## Declaration namespaces
@@ -2568,7 +2568,7 @@ left: string;
 right: string;
 bottom: string;
 };
-}, undefined, "bg-popover text-popover-foreground shadow-sheet fixed flex flex-col gap-4 transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out", {
+}, undefined, "bg-popover text-popover-foreground shadow-sheet fixed flex flex-col gap-4 transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out motion-reduce:transition-none", {
 side: {
 left: string;
 right: string;
@@ -2580,7 +2580,7 @@ left: string;
 right: string;
 bottom: string;
 };
-}, undefined, "bg-popover text-popover-foreground shadow-sheet fixed flex flex-col gap-4 transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out", unknown, unknown, undefined>>;
+}, undefined, "bg-popover text-popover-foreground shadow-sheet fixed flex flex-col gap-4 transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out motion-reduce:transition-none", unknown, unknown, undefined>>;
 
 // @public (undocumented)
 const SiteFooter: Component<SiteFooterProps, {}, "">;
@@ -2641,6 +2641,7 @@ interface SiteHeaderLabels {
     nav?: string;
     // (undocumented)
     openMenu: string;
+    skipToContent?: string;
     // (undocumented)
     theme: string;
 }

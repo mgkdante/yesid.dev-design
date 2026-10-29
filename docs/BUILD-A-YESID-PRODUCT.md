@@ -291,7 +291,7 @@ bun run build
 
 ## 7. Test accessibility with the standard projects
 
-`@yesid/config/playwright` gives every product the same Playwright projects and one axe check. Install
+`@yesid/config/playwright` gives every product the same Playwright projects and the same checks. Install
 `@playwright/test` and `@axe-core/playwright` next to `@yesid/config`, in the workspace root of a monorepo; they are
 optional peer dependencies.
 
@@ -306,9 +306,9 @@ export default defineConfig({ use: { baseURL }, projects: yesidProjects(baseURL)
 ```
 
 ```ts
-// e2e/a11y.spec.ts
-import { test } from '@playwright/test';
-import { expectAccessible } from '@yesid/config/playwright';
+// e2e/accessibility.spec.ts
+import { expect, test } from '@playwright/test';
+import { expectAccessible, expectNoHorizontalOverflow, expectTapTargets } from '@yesid/config/playwright';
 import { routes } from '../src/lib/routes';
 
 test.describe('accessibility', { tag: '@theme' }, () => {
@@ -319,17 +319,63 @@ test.describe('accessibility', { tag: '@theme' }, () => {
     });
   }
 });
+
+for (const route of routes) {
+  test(`${route} keeps the skeleton, fits the viewport and sizes its targets`, async ({ page }) => {
+    await page.goto(route);
+    await page.keyboard.press('Tab');
+    await expect(page.locator(':focus')).toHaveAttribute('href', '#main');
+    await expect(page.getByRole('banner')).toHaveCount(1);
+    await expect(page.getByRole('main')).toHaveAttribute('id', 'main');
+    await expect(page.getByRole('contentinfo')).toHaveCount(1); // 0 on a page without a footer
+    await expectNoHorizontalOverflow(page);
+    await expectTapTargets(page);
+  });
+}
 ```
 
 Untagged tests run at phone (390×844), tablet (768×1024) and desktop (1440×900). Tag a test `@theme` to run it
-once in each theme, or `@motion` to run it once with reduced motion. `expectAccessible` fails on any serious or
-critical violation of WCAG 2.2 AA or axe best practice; the contrast rule skips blueprint art (`.blueprint-bg`).
+once in each theme, or `@motion` to run it once with reduced motion.
 
-The standard covers what the packages render: component roles, names, states, focus, keyboard paths and tap sizes
-are tested in `@yesid/ui` and its Gallery, and token contrast pairs in `@yesid/tokens`. The product owns what it puts
-on the page: alt text, CMS and copy text, heading order, landmarks and route structure, and anything the packages
-don't draw, such as Transit's map. Its a11y spec loops over its own routes and the states it opens: menus, dialogs
-and form errors.
+- `expectAccessible(page, { include, exclude })` fails on any serious or critical violation of WCAG 2.2 AA or axe
+  best practice, including a name that leaves out its visible text (WCAG 2.5.3). The contrast rule skips blueprint
+  art (`.blueprint-bg`).
+- `expectTapTargets(page, { exclude })` fails when a visible control is smaller than `--size-tap-min` (44px). A
+  control that is the only one in its list item or table row needs WCAG's 24px, and a link inside a sentence is
+  exempt.
+- `expectNoHorizontalOverflow(page, scrollers)` fails when the page, or an element matching one of the `scrollers`
+  selectors, scrolls sideways.
+
+### The page skeleton
+
+Every product renders the same skeleton, so the skip link and the landmarks match across sites:
+
+```svelte
+<SiteRoot lang={locale}>
+  <SiteHeader … />  <!-- the skip link to #main, then the header: the banner -->
+  <main id="main">{@render children()}</main>
+  <SiteFooter … />  <!-- outside main, so it is the contentinfo landmark -->
+</SiteRoot>
+```
+
+Wrappers are fine, such as a full-height shell or a scroll container that holds `main` and the footer, as long as
+the order holds and the footer stays outside `main`. A full-bleed page, such as a map, may leave the footer out.
+
+### Who owns what
+
+| The packages guarantee | The product owns |
+| --- | --- |
+| The focus ring, with an outline under forced colors | Names that contain their visible text |
+| The menu dialog: focus trap, Escape and focus return | Its own dialogs, charts, maps and forms |
+| `<html lang>` after client navigation | Alt text, copy and CMS text, heading order |
+| Reduced motion in the header, sheets and route transitions | Reduced motion in its own animations |
+| The skip link, the banner and the footer landmark | `<main id="main">` and its routes |
+| 44px targets in the header, footer and frames | 44px targets, or 24px rows, in what it draws |
+| Contrast of the token pairs, tested in `@yesid/tokens` | Colors it mixes from the tokens |
+
+Component roles, names, states, focus and keyboard paths are tested in `@yesid/ui` and its Gallery. The product's
+spec loops over its own routes and the states it opens, such as menus, dialogs and form errors, and never re-tests
+the packages.
 
 ## 8. Keep localization authority and copy in the product
 
