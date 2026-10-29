@@ -16,7 +16,7 @@ brings its own content and product logic; the look and the shared plumbing come 
 | [`@yesid/ui`](packages/ui/README.md) | Svelte 5 primitives, brand components, page frames, site shell and head |
 | [`@yesid/motion`](packages/motion/README.md) | Svelte actions, reduced-motion policy, GSAP and Lenis helpers |
 | [`@yesid/gates`](packages/gates/README.md) | Brand and contrast checks that run in a product's own tests |
-| [`@yesid/seo-kit`](packages/seo-kit/README.md) | JSON-LD, sitemap and robots, share cards, favicon mark, security headers |
+| [`@yesid/seo-kit`](packages/seo-kit/README.md) | JSON-LD, sitemap and robots, share cards, favicon mark, security headers, server-side code highlighting |
 | [`@yesid/analytics`](packages/analytics/README.md) | Cookieless Plausible pageviews and events, web-vitals collection |
 | [`@yesid/i18n-core`](packages/i18n-core/README.md) | Locale routing, cached Intl formatting, typed copy |
 | [`@yesid/config`](packages/config/README.md) | Shared TypeScript, Svelte and Turborepo configuration |
