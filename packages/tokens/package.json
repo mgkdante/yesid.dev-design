@@ -18,41 +18,9 @@
       "types": "./src/parse.ts",
       "default": "./src/parse.ts"
     },
-    "./serialize": {
-      "types": "./src/serialize.ts",
-      "default": "./src/serialize.ts"
-    },
-    "./types": {
-      "types": "./src/types.ts",
-      "default": "./src/types.ts"
-    },
-    "./generators/tokens-css": {
-      "types": "./src/generators/tokens-css.ts",
-      "default": "./src/generators/tokens-css.ts"
-    },
-    "./generators/theme-css": {
-      "types": "./src/generators/theme-css.ts",
-      "default": "./src/generators/theme-css.ts"
-    },
-    "./generators/motion-ts": {
-      "types": "./src/generators/motion-ts.ts",
-      "default": "./src/generators/motion-ts.ts"
-    },
     "./generators/design-md": {
       "types": "./src/generators/design-md.ts",
       "default": "./src/generators/design-md.ts"
-    },
-    "./src/parse.ts": {
-      "types": "./src/parse.ts",
-      "default": "./src/parse.ts"
-    },
-    "./src/generators/tokens-css.ts": {
-      "types": "./src/generators/tokens-css.ts",
-      "default": "./src/generators/tokens-css.ts"
-    },
-    "./src/generators/motion-ts.ts": {
-      "types": "./src/generators/motion-ts.ts",
-      "default": "./src/generators/motion-ts.ts"
     }
   },
   "scripts": {

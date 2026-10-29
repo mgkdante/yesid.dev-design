@@ -29,50 +29,10 @@
 - `types` → `./src/parse.ts`
 - `default` → `./src/parse.ts`
 
-### `./serialize`
-
-- `types` → `./src/serialize.ts`
-- `default` → `./src/serialize.ts`
-
-### `./types`
-
-- `types` → `./src/types.ts`
-- `default` → `./src/types.ts`
-
-### `./generators/tokens-css`
-
-- `types` → `./src/generators/tokens-css.ts`
-- `default` → `./src/generators/tokens-css.ts`
-
-### `./generators/theme-css`
-
-- `types` → `./src/generators/theme-css.ts`
-- `default` → `./src/generators/theme-css.ts`
-
-### `./generators/motion-ts`
-
-- `types` → `./src/generators/motion-ts.ts`
-- `default` → `./src/generators/motion-ts.ts`
-
 ### `./generators/design-md`
 
 - `types` → `./src/generators/design-md.ts`
 - `default` → `./src/generators/design-md.ts`
-
-### `./src/parse.ts`
-
-- `types` → `./src/parse.ts`
-- `default` → `./src/parse.ts`
-
-### `./src/generators/tokens-css.ts`
-
-- `types` → `./src/generators/tokens-css.ts`
-- `default` → `./src/generators/tokens-css.ts`
-
-### `./src/generators/motion-ts.ts`
-
-- `types` → `./src/generators/motion-ts.ts`
-- `default` → `./src/generators/motion-ts.ts`
 
 ## Direct public assets
 
@@ -84,12 +44,7 @@
 ## Declaration namespaces
 
 - `Fonts` → `./src/fonts.ts` (`./fonts`)
-- `Parse` → `./src/parse.ts` (`./parse`, `./src/parse.ts`)
-- `Serialize` → `./src/serialize.ts` (`./serialize`)
-- `Types` → `./src/types.ts` (`./types`)
-- `GeneratorsTokensCss` → `./src/generators/tokens-css.ts` (`./generators/tokens-css`, `./src/generators/tokens-css.ts`)
-- `GeneratorsThemeCss` → `./src/generators/theme-css.ts` (`./generators/theme-css`)
-- `GeneratorsMotionTs` → `./src/generators/motion-ts.ts` (`./generators/motion-ts`, `./src/generators/motion-ts.ts`)
+- `Parse` → `./src/parse.ts` (`./parse`)
 - `GeneratorsDesignMd` → `./src/generators/design-md.ts` (`./generators/design-md`)
 
 ## API Report File for "@yesid/tokens"
@@ -127,37 +82,10 @@ declare namespace Fonts {
 // @public (undocumented)
 function generateDesignMd(tree: TokenTree, opts?: DesignMdOptions): string;
 
-// @public (undocumented)
-function generateMotionTs(tree: TokenTree): string;
-
-// @public
-function generateThemeCss(tree: TokenTree): string;
-
-// @public (undocumented)
-function generateTokensCss(tree: TokenTree): string;
-
 declare namespace GeneratorsDesignMd {
     export {
         generateDesignMd,
         DesignMdOptions
-    }
-}
-
-declare namespace GeneratorsMotionTs {
-    export {
-        generateMotionTs
-    }
-}
-
-declare namespace GeneratorsThemeCss {
-    export {
-        generateThemeCss
-    }
-}
-
-declare namespace GeneratorsTokensCss {
-    export {
-        generateTokensCss
     }
 }
 
@@ -185,46 +113,13 @@ function parseTokens(input: unknown): TokenTree;
 // @public
 function preloadFont(path: string): boolean;
 
-declare namespace Serialize {
-    export {
-        serializeCss,
-        serializeYaml
-    }
-}
-
-// @public
-function serializeCss(token: Token): string;
-
-// @public
-function serializeYaml(token: Token): string;
-
 // @public
 type Token = DtcgPrimitive | YesidClampToken;
-
-// @public
-type TokenReference = `{${string}}`;
-
-// @public
-type TokensFile = TokenTree & {
-    $schema?: string;
-    $description?: string;
-};
 
 // @public
 interface TokenTree {
     // (undocumented)
     [key: string]: Token | TokenTree;
-}
-
-declare namespace Types {
-    export {
-        DtcgPrimitive,
-        YesidClampToken,
-        TokenReference,
-        Token,
-        TokenTree,
-        TokensFile
-    }
 }
 
 // @public

@@ -90,7 +90,6 @@ const EXISTING_MOTION_EXPORTS = {
 	'./utils/globalRipple': './src/utils/globalRipple.ts',
 	'./utils/gsap': './src/utils/gsap.ts',
 	'./utils/lenis': './src/utils/lenis.ts',
-	'./utils/sectionMagnet': './src/utils/sectionMagnet.ts',
 	'./utils/ticker': './src/utils/ticker.ts',
 	'./utils/viewTransition': './src/utils/viewTransition.ts',
 	'./utils/blueprintScrub': './src/utils/blueprintScrub.ts',
@@ -104,7 +103,6 @@ const SEO_KIT_EXPORTS = {
 	'.': './src/index.ts',
 	'./jsonld': './src/jsonld.ts',
 	'./sitemap': './src/sitemap.ts',
-	'./satori': './src/satori.ts',
 	'./og': './src/og.ts',
 	'./og/fonts': './src/og-fonts.ts',
 	'./og/files': './src/og-files.ts',
@@ -132,16 +130,8 @@ const TOKEN_DIRECT_EXPORTS = {
 
 const TOKEN_TYPESCRIPT_EXPORTS = {
 	'./parse': './src/parse.ts',
-	'./serialize': './src/serialize.ts',
-	'./types': './src/types.ts',
 	'./fonts': './src/fonts.ts',
-	'./generators/tokens-css': './src/generators/tokens-css.ts',
-	'./generators/theme-css': './src/generators/theme-css.ts',
-	'./generators/motion-ts': './src/generators/motion-ts.ts',
 	'./generators/design-md': './src/generators/design-md.ts',
-	'./src/parse.ts': './src/parse.ts',
-	'./src/generators/tokens-css.ts': './src/generators/tokens-css.ts',
-	'./src/generators/motion-ts.ts': './src/generators/motion-ts.ts',
 } as const;
 
 const CORE_IDENTIFIER = '(?:0|[1-9]\\d*)';

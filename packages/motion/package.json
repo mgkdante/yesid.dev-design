@@ -3,7 +3,7 @@
   "version": "0.27.0",
   "private": true,
   "type": "module",
-  "description": "Pure brand motion actions extracted byte-faithful from yesid.dev @ 2bdb611d. Snappy Doctrine vocabulary (Tier 1): boop, magnetic, cursorGlow, sectionGlow, cardParallax, pressBounce, wordmarkHover + sectionMagnet, plus scrollChain for nested scroll under Lenis. morphHover stays app-side.",
+  "description": "Pure brand motion actions extracted byte-faithful from yesid.dev @ 2bdb611d. Snappy Doctrine vocabulary (Tier 1): boop, magnetic, cursorGlow, sectionGlow, cardParallax, pressBounce, wordmarkHover, plus scrollChain for nested scroll under Lenis. morphHover stays app-side.",
   "sideEffects": ["**/*.css"],
   "exports": {
     ".": {
@@ -45,10 +45,6 @@
     "./utils/lenis": {
       "types": "./src/utils/lenis.ts",
       "default": "./src/utils/lenis.ts"
-    },
-    "./utils/sectionMagnet": {
-      "types": "./src/utils/sectionMagnet.ts",
-      "default": "./src/utils/sectionMagnet.ts"
     },
     "./utils/ticker": {
       "types": "./src/utils/ticker.ts",

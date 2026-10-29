@@ -23,12 +23,3 @@ export { shouldAnimate, type MotionTier } from './policy.js';
 export { duration, ease, durationSec, type DurationKey, type EaseKey } from './tokens.js';
 export { prefersReducedMotion, isPrefersReducedMotion } from './stores/reducedMotion.js';
 export { isTouchDevice, isViewportAtMost } from './utils/device.js';
-export {
-	findSettleTarget,
-	initSectionMagnet,
-	DESKTOP_TIER,
-	TOUCH_TIER,
-	type MagnetTier,
-	type SectionMagnetOpts,
-	type SettleTargetOpts,
-} from './utils/sectionMagnet.js';

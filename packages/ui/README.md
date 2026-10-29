@@ -284,8 +284,7 @@ nodes/traces, warm glow and ripple ink. Companion product grids use the same pro
 ### Blueprint drawings
 
 `@yesid/ui/blueprints` exports the brand's blueprint drawings (`BlueprintBridge`,
-`BlueprintSignal` and the rest), drawn in `currentColor`. Each takes `class`, `style` and other
-attributes, and `BlueprintBusSide` names the fleet's `operator`; compose them in a
+`BlueprintSignal` and the rest), drawn in `currentColor`. Each takes `BlueprintProps` (`class`, `style` and other attributes), and `BlueprintBusSide` names the fleet's `operator`; compose them in a
 `BlueprintShell`. The Gallery shows every one.
 
 ### QuietModeButton
@@ -318,8 +317,7 @@ list inside a `CollapsibleSection` and skips entries marked `rail`. `TocPill` is
 and drawer, hidden at the desktop breakpoint; the caller supplies `openAria` and `closeAria`, and
 `onNavigate` defaults to `navigateToc`. `observeActiveToc` reports the active id from
 `[data-section-index]` and `[data-toc]` targets, and `onTocNavigate` belongs in `afterNavigate`.
-`landTocFragments()` is opt-in for apps whose layout does not already land same-page fragment
-links; start it next to `observeActiveToc` and run its cleanup on unmount. Jumps through
+`DetailFrame`'s `toc.landFragments` lands same-page fragment links for layouts that don't already. Jumps through
 `navigateToc` and `revealTocTarget` land the section a quarter down the viewport, the same line
 `observeActiveToc` reads, so the active entry is always the one the reader picked.
 
@@ -477,7 +475,7 @@ header, `tableClass` styles the table and other attributes go to the frame.
 `@yesid/ui/feedback` exports `StateNotice`, the quiet empty, error and status notice: `title`,
 optional `body`, a `glyph` tinted by `tone`, and `meta` and `action` snippets. `presentation` is
 `responsive` (default), `silo`, `card`, `pill` or `row`; a pill or row without snippets renders
-inline. Pass `role` and `aria-live` when the notice reports a change.
+inline. Pass `role` and `aria-live` when the notice reports a change. With a `role`, the title names it.
 
 ## Site root and shared state
 

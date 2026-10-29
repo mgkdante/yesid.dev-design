@@ -150,8 +150,8 @@
 
 ## Direct public assets
 
-- `./base.css` — direct asset `./base.css` (`default`), sha256 `c2a93eeac848f3a02d516dae01dd8cea74f03afd8338ed69c47f69030f83b1ab`
-- `./boot.json` — direct asset `./src/head/boot.json` (`default`), sha256 `430847054f7b4c36c8328ad5646fa59a8625398e332f774be22baa23254c7578`
+- `./base.css` — direct asset `./base.css` (`default`), sha256 `b3765410b70bfef569705bdb7288b1116e268662f949865ca57e55c815437ca0`
+- `./boot.json` — direct asset `./src/head/boot.json` (`default`), sha256 `9b0229a77f56656dfffbafab88b3e5d9c62c654aa37c6721284aad0ff5626577`
 
 ## Declaration namespaces
 
@@ -217,271 +217,34 @@ type $$ComponentProps = {
 };
 
 // @public (undocumented)
-type $$ComponentProps_10 = {
-    operator?: string;
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_11 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_12 = {
-    class?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_13 = {
-    class?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_14 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_15 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_16 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_17 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_18 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_19 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
 type $$ComponentProps_2 = {
     badge?: TocBadgeSpec;
     iconClass?: string;
 };
 
 // @public (undocumented)
-type $$ComponentProps_20 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
+type $$ComponentProps_3 = BlueprintProps & {
+    operator?: string;
 };
 
 // @public (undocumented)
-type $$ComponentProps_21 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_22 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_23 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_24 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_25 = {
-    class?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_26 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_27 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_28 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_29 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_3 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_30 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_31 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_32 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_33 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_34 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_35 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_36 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_37 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_38 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_39 = {
-    class?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_4 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_40 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_41 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_42 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_43 = WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+type $$ComponentProps_4 = WithElementRef<HTMLAttributes<HTMLDivElement>> & {
     size?: 'default' | 'sm';
     interactive?: boolean;
 };
 
 // @public (undocumented)
-type $$ComponentProps_44 = ResizablePrimitive.PaneGroupProps & {
+type $$ComponentProps_5 = ResizablePrimitive.PaneGroupProps & {
     this?: ResizablePrimitive.PaneGroup;
 };
 
 // @public (undocumented)
-type $$ComponentProps_45 = WithoutChildrenOrChild<ResizablePrimitive.PaneResizerProps> & {
+type $$ComponentProps_6 = WithoutChildrenOrChild<ResizablePrimitive.PaneResizerProps> & {
     withHandle?: boolean;
 };
 
 // @public (undocumented)
-type $$ComponentProps_46 = WithoutChild<ScrollArea_2.RootProps> & {
+type $$ComponentProps_7 = WithoutChild<ScrollArea_2.RootProps> & {
     orientation?: 'vertical' | 'horizontal' | 'both' | undefined;
     scrollbarXClasses?: string | undefined;
     scrollbarYClasses?: string | undefined;
@@ -489,49 +252,14 @@ type $$ComponentProps_46 = WithoutChild<ScrollArea_2.RootProps> & {
 };
 
 // @public (undocumented)
-type $$ComponentProps_47 = Tabs_2.ListProps & {
+type $$ComponentProps_8 = Tabs_2.ListProps & {
     variant?: TabsListVariant;
 };
 
 // @public (undocumented)
-type $$ComponentProps_48 = Toggle_2.RootProps & {
+type $$ComponentProps_9 = Toggle_2.RootProps & {
     variant?: ToggleVariant;
     size?: ToggleSize;
-};
-
-// @public (undocumented)
-type $$ComponentProps_5 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_6 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_7 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_8 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
-};
-
-// @public (undocumented)
-type $$ComponentProps_9 = {
-    class?: string;
-    style?: string;
-    [key: string]: unknown;
 };
 
 // @public (undocumented)
@@ -744,169 +472,176 @@ sm: string;
 }, undefined, "gap-1 rounded-4xl border border-transparent font-mono font-medium transition-all has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&>svg]:size-3! focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive group/badge inline-flex w-fit shrink-0 items-center justify-center overflow-hidden whitespace-nowrap transition-colors focus-visible:ring-[3px] [&>svg]:pointer-events-none", unknown, unknown, undefined>>;
 
 // @public (undocumented)
-const BlueprintAccessibleBusCurbSection: Component<$$ComponentProps_3, {}, "">;
+const BlueprintAccessibleBusCurbSection: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintAccessibleBusCurbSection = ReturnType<typeof BlueprintAccessibleBusCurbSection>;
 
 // @public (undocumented)
-const BlueprintAzurBogie: Component<$$ComponentProps_4, {}, "">;
+const BlueprintAzurBogie: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintAzurBogie = ReturnType<typeof BlueprintAzurBogie>;
 
 // @public (undocumented)
-const BlueprintAzurCross: Component<$$ComponentProps_5, {}, "">;
+const BlueprintAzurCross: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintAzurCross = ReturnType<typeof BlueprintAzurCross>;
 
 // @public (undocumented)
-const BlueprintAzurFront: Component<$$ComponentProps_6, {}, "">;
+const BlueprintAzurFront: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintAzurFront = ReturnType<typeof BlueprintAzurFront>;
 
 // @public (undocumented)
-const BlueprintAzurSide: Component<$$ComponentProps_7, {}, "">;
+const BlueprintAzurSide: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintAzurSide = ReturnType<typeof BlueprintAzurSide>;
 
 // @public (undocumented)
-const BlueprintAzurTop: Component<$$ComponentProps_8, {}, "">;
+const BlueprintAzurTop: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintAzurTop = ReturnType<typeof BlueprintAzurTop>;
 
 // @public (undocumented)
-const BlueprintBridge: Component<$$ComponentProps_9, {}, "">;
+const BlueprintBridge: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintBridge = ReturnType<typeof BlueprintBridge>;
 
 // @public (undocumented)
-const BlueprintBusSide: Component<$$ComponentProps_10, {}, "">;
+const BlueprintBusSide: Component<$$ComponentProps_3, {}, "">;
 
 // @public (undocumented)
 type BlueprintBusSide = ReturnType<typeof BlueprintBusSide>;
 
 // @public (undocumented)
-const BlueprintCatenary: Component<$$ComponentProps_11, {}, "">;
+const BlueprintCatenary: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintCatenary = ReturnType<typeof BlueprintCatenary>;
 
 // @public (undocumented)
-const BlueprintCodeSystem: Component<$$ComponentProps_12, {}, "">;
+const BlueprintCodeSystem: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintCodeSystem = ReturnType<typeof BlueprintCodeSystem>;
 
 // @public (undocumented)
-const BlueprintDataPipeline: Component<$$ComponentProps_13, {}, "">;
+const BlueprintDataPipeline: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintDataPipeline = ReturnType<typeof BlueprintDataPipeline>;
 
 // @public (undocumented)
-const BlueprintDetailBogie: Component<$$ComponentProps_14, {}, "">;
+const BlueprintDetailBogie: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintDetailBogie = ReturnType<typeof BlueprintDetailBogie>;
 
 // @public (undocumented)
-const BlueprintDetailDoor: Component<$$ComponentProps_15, {}, "">;
+const BlueprintDetailDoor: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintDetailDoor = ReturnType<typeof BlueprintDetailDoor>;
 
 // @public (undocumented)
-const BlueprintDetailHandrails: Component<$$ComponentProps_16, {}, "">;
+const BlueprintDetailHandrails: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintDetailHandrails = ReturnType<typeof BlueprintDetailHandrails>;
 
 // @public (undocumented)
-const BlueprintDetailInterior: Component<$$ComponentProps_17, {}, "">;
+const BlueprintDetailInterior: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintDetailInterior = ReturnType<typeof BlueprintDetailInterior>;
 
 // @public (undocumented)
-const BlueprintDetailSeat: Component<$$ComponentProps_18, {}, "">;
+const BlueprintDetailSeat: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintDetailSeat = ReturnType<typeof BlueprintDetailSeat>;
 
 // @public (undocumented)
-const BlueprintDetailWindow: Component<$$ComponentProps_19, {}, "">;
+const BlueprintDetailWindow: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintDetailWindow = ReturnType<typeof BlueprintDetailWindow>;
 
 // @public (undocumented)
-const BlueprintErector: Component<$$ComponentProps_20, {}, "">;
+const BlueprintErector: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintErector = ReturnType<typeof BlueprintErector>;
 
 // @public (undocumented)
-const BlueprintGeology: Component<$$ComponentProps_21, {}, "">;
+const BlueprintGeology: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintGeology = ReturnType<typeof BlueprintGeology>;
 
 // @public (undocumented)
-const BlueprintGlassShelter: Component<$$ComponentProps_22, {}, "">;
+const BlueprintGlassShelter: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintGlassShelter = ReturnType<typeof BlueprintGlassShelter>;
 
 // @public (undocumented)
-const BlueprintGroutInjection: Component<$$ComponentProps_23, {}, "">;
+const BlueprintGroutInjection: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintGroutInjection = ReturnType<typeof BlueprintGroutInjection>;
 
 // @public (undocumented)
-const BlueprintHeatedGlassShelterSection: Component<$$ComponentProps_24, {}, "">;
+const BlueprintHeatedGlassShelterSection: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintHeatedGlassShelterSection = ReturnType<typeof BlueprintHeatedGlassShelterSection>;
 
 // @public (undocumented)
-const BlueprintInterfaceSuite: Component<$$ComponentProps_25, {}, "">;
+const BlueprintInterfaceSuite: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintInterfaceSuite = ReturnType<typeof BlueprintInterfaceSuite>;
 
 // @public (undocumented)
-const BlueprintMetroPlatformCirculationPlan: Component<$$ComponentProps_26, {}, "">;
+const BlueprintMetroPlatformCirculationPlan: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintMetroPlatformCirculationPlan = ReturnType<typeof BlueprintMetroPlatformCirculationPlan>;
 
 // @public (undocumented)
-const BlueprintMr73Side: Component<$$ComponentProps_27, {}, "">;
+const BlueprintMr73Side: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintMr73Side = ReturnType<typeof BlueprintMr73Side>;
 
 // @public (undocumented)
-const BlueprintPantographOverheadEquipment: Component<$$ComponentProps_28, {}, "">;
+const BlueprintPantographOverheadEquipment: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintPantographOverheadEquipment = ReturnType<typeof BlueprintPantographOverheadEquipment>;
 
 // @public (undocumented)
-const BlueprintPassengerInformationEquipment: Component<$$ComponentProps_29, {}, "">;
+const BlueprintPassengerInformationEquipment: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintPassengerInformationEquipment = ReturnType<typeof BlueprintPassengerInformationEquipment>;
 
+// @public
+type BlueprintProps = {
+    class?: string;
+    style?: string;
+    [key: string]: unknown;
+};
+
 // @public (undocumented)
-const BlueprintRailGaugeSection: Component<$$ComponentProps_30, {}, "">;
+const BlueprintRailGaugeSection: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintRailGaugeSection = ReturnType<typeof BlueprintRailGaugeSection>;
@@ -952,7 +687,8 @@ declare namespace Blueprints {
         BlueprintTransitRoute,
         BlueprintTunnelSection,
         BlueprintTurnoutCrossoverPlan,
-        BlueprintVentShaft
+        BlueprintVentShaft,
+        BlueprintProps
     }
 }
 
@@ -972,73 +708,73 @@ type BlueprintShellProps = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'cl
 };
 
 // @public (undocumented)
-const BlueprintSignal: Component<$$ComponentProps_31, {}, "">;
+const BlueprintSignal: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintSignal = ReturnType<typeof BlueprintSignal>;
 
 // @public (undocumented)
-const BlueprintSignallingCommunicationsEquipment: Component<$$ComponentProps_32, {}, "">;
+const BlueprintSignallingCommunicationsEquipment: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintSignallingCommunicationsEquipment = ReturnType<typeof BlueprintSignallingCommunicationsEquipment>;
 
 // @public (undocumented)
-const BlueprintSimpleShelter: Component<$$ComponentProps_33, {}, "">;
+const BlueprintSimpleShelter: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintSimpleShelter = ReturnType<typeof BlueprintSimpleShelter>;
 
 // @public (undocumented)
-const BlueprintStationSection: Component<$$ComponentProps_34, {}, "">;
+const BlueprintStationSection: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintStationSection = ReturnType<typeof BlueprintStationSection>;
 
 // @public (undocumented)
-const BlueprintStopPlan: Component<$$ComponentProps_35, {}, "">;
+const BlueprintStopPlan: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintStopPlan = ReturnType<typeof BlueprintStopPlan>;
 
 // @public (undocumented)
-const BlueprintStopPost: Component<$$ComponentProps_36, {}, "">;
+const BlueprintStopPost: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintStopPost = ReturnType<typeof BlueprintStopPost>;
 
 // @public (undocumented)
-const BlueprintTBM: Component<$$ComponentProps_37, {}, "">;
+const BlueprintTBM: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintTBM = ReturnType<typeof BlueprintTBM>;
 
 // @public (undocumented)
-const BlueprintTrackPlan: Component<$$ComponentProps_38, {}, "">;
+const BlueprintTrackPlan: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintTrackPlan = ReturnType<typeof BlueprintTrackPlan>;
 
 // @public (undocumented)
-const BlueprintTransitRoute: Component<$$ComponentProps_39, {}, "">;
+const BlueprintTransitRoute: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintTransitRoute = ReturnType<typeof BlueprintTransitRoute>;
 
 // @public (undocumented)
-const BlueprintTunnelSection: Component<$$ComponentProps_40, {}, "">;
+const BlueprintTunnelSection: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintTunnelSection = ReturnType<typeof BlueprintTunnelSection>;
 
 // @public (undocumented)
-const BlueprintTurnoutCrossoverPlan: Component<$$ComponentProps_41, {}, "">;
+const BlueprintTurnoutCrossoverPlan: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintTurnoutCrossoverPlan = ReturnType<typeof BlueprintTurnoutCrossoverPlan>;
 
 // @public (undocumented)
-const BlueprintVentShaft: Component<$$ComponentProps_42, {}, "">;
+const BlueprintVentShaft: Component<BlueprintProps, {}, "">;
 
 // @public (undocumented)
 type BlueprintVentShaft = ReturnType<typeof BlueprintVentShaft>;
@@ -1115,14 +851,11 @@ declare namespace Brand {
         ToggleChip,
         ToggleChipProps,
         TOC_TARGET_SELECTOR,
-        flattenToc,
-        landTocFragments,
         navigateToc,
         observeActiveToc,
         onTocNavigate,
         openCollapsedTocTarget,
         reconcileActiveToc,
-        resolveTocCounter,
         revealTocTarget,
         settleLayout,
         tocElement,
@@ -1274,7 +1007,7 @@ cta: string;
 }, undefined, "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 rounded-lg border border-transparent bg-clip-padding text-sm font-medium focus-visible:ring-3 active:not-aria-[haspopup]:translate-y-px aria-invalid:ring-3 [&_svg:not([class*='size-'])]:size-4 group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0", unknown, unknown, undefined>>;
 
 // @public (undocumented)
-const Card: Component<$$ComponentProps_43, {}, "ref">;
+const Card: Component<$$ComponentProps_4, {}, "ref">;
 
 // @public (undocumented)
 type Card = ReturnType<typeof Card>;
@@ -1676,9 +1409,6 @@ type DataTableResponsive = {
 // @public
 const desktop: MediaQuery;
 
-// @public
-const DESKTOP_MIN_WIDTH = "1024px";
-
 // @public (undocumented)
 const DetailFrame: Component<DetailFrameProps, {}, "activeId">;
 
@@ -1854,9 +1584,6 @@ interface FilterSummaryProps {
 }
 
 // @public (undocumented)
-function flattenToc(entries: TocEntry[]): TocEntry[];
-
-// @public (undocumented)
 const FooterGroup: Component<FooterGroupProps, {}, "ref">;
 
 // @public (undocumented)
@@ -1996,14 +1723,11 @@ declare namespace Index {
         ToggleChip,
         ToggleChipProps,
         TOC_TARGET_SELECTOR,
-        flattenToc,
-        landTocFragments,
         navigateToc,
         observeActiveToc,
         onTocNavigate,
         openCollapsedTocTarget,
         reconcileActiveToc,
-        resolveTocCounter,
         revealTocTarget,
         settleLayout,
         tocElement,
@@ -2022,9 +1746,6 @@ declare namespace Index {
 
 // @public
 function injectThemeBoot(html: string): string;
-
-// @public
-function landTocFragments(root?: Element | Document): () => void;
 
 // @public (undocumented)
 const LanguageToggle: Component<LanguageToggleProps, {}, "">;
@@ -2519,22 +2240,16 @@ function reconcileActiveToc(activeId: string, previousIds: readonly string[], ne
 function resetFocusAfterNavigation(): () => void;
 
 // @public (undocumented)
-const ResizableHandle: Component<$$ComponentProps_45, {}, "ref">;
+const ResizableHandle: Component<$$ComponentProps_6, {}, "ref">;
 
 // @public (undocumented)
 type ResizableHandle = ReturnType<typeof ResizableHandle>;
 
 // @public (undocumented)
-const ResizablePaneGroup: Component<$$ComponentProps_44, {}, "ref" | "this">;
+const ResizablePaneGroup: Component<$$ComponentProps_5, {}, "ref" | "this">;
 
 // @public (undocumented)
 type ResizablePaneGroup = ReturnType<typeof ResizablePaneGroup>;
-
-// @public (undocumented)
-function resolveTocCounter(entries: TocEntry[], activeId: string): {
-    current: number;
-    total: number;
-};
 
 // @public (undocumented)
 function revealTocTarget(id: string, input: RevealTocTargetOptions): Promise<boolean>;
@@ -2555,7 +2270,7 @@ interface RevealTocTargetOptions {
 const Root: Component<AlertDialogRootPropsWithoutHTML, {}, "open">;
 
 // @public (undocumented)
-const ScrollArea: Component<$$ComponentProps_46, {}, "ref" | "viewportRef">;
+const ScrollArea: Component<$$ComponentProps_7, {}, "ref" | "viewportRef">;
 
 // @public (undocumented)
 type ScrollArea = ReturnType<typeof ScrollArea>;
@@ -3032,7 +2747,6 @@ declare namespace State {
         quietMode,
         persisted,
         desktop,
-        DESKTOP_MIN_WIDTH,
         createLocaleContext,
         LocaleContext
     }
@@ -3199,7 +2913,7 @@ const TabsContent: Component<Tabs_2.ContentProps, {}, "ref">;
 type TabsContent = ReturnType<typeof TabsContent>;
 
 // @public (undocumented)
-const TabsList: Component<$$ComponentProps_47, {}, "ref">;
+const TabsList: Component<$$ComponentProps_8, {}, "ref">;
 
 // @public (undocumented)
 type TabsList = ReturnType<typeof TabsList>;
@@ -3388,7 +3102,7 @@ interface TocPillProps {
 }
 
 // @public (undocumented)
-const Toggle: Component<$$ComponentProps_48, {}, "ref" | "pressed">;
+const Toggle: Component<$$ComponentProps_9, {}, "ref" | "pressed">;
 
 // @public (undocumented)
 type Toggle = ReturnType<typeof Toggle>;
