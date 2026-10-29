@@ -54,7 +54,22 @@ test('the header circuit grid holds still while the header scrolls', async ({ pa
 		await expect.poll(() => page.evaluate(() => scrollY)).toBe(top);
 		expect((await grid.boundingBox())!.y).toBe(0);
 	}
-	await expect(header).toHaveCSS('clip-path', 'inset(0px)');
+	// Raised on top and hit-testable, the grid answers only inside the header, and nowhere once
+	// the header has scrolled away.
+	const answers = (x: number, y: number) =>
+		grid.evaluate((layer, [x, y]) => {
+			const previous = layer.style.zIndex;
+			layer.style.zIndex = '9999';
+			const hit = document.elementFromPoint(x, y) === layer;
+			layer.style.zIndex = previous;
+			return hit;
+		}, [x, y]);
+	await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+	const box = (await header.boundingBox())!;
+	const x = box.x + box.width / 2;
+	expect([await answers(x, box.y + box.height / 2), await answers(x, box.y + box.height + 40)]).toEqual([true, false]);
+	await page.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), box.y + box.height + 200);
+	expect(await answers(x, page.viewportSize()!.height / 2)).toBe(false);
 });
 
 test('the back link sits midway between the chrome and the next line', async ({ page }) => {
