@@ -150,7 +150,7 @@
 
 ## Direct public assets
 
-- `./base.css` — direct asset `./base.css` (`default`), sha256 `56e378d74f1d156d98a3ba26e020f972ee267b0373326c600a9a281612797168`
+- `./base.css` — direct asset `./base.css` (`default`), sha256 `c2a93eeac848f3a02d516dae01dd8cea74f03afd8338ed69c47f69030f83b1ab`
 - `./boot.json` — direct asset `./src/head/boot.json` (`default`), sha256 `430847054f7b4c36c8328ad5646fa59a8625398e332f774be22baa23254c7578`
 
 ## Declaration namespaces

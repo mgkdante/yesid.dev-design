@@ -3,6 +3,46 @@ import { expect, test, type Page } from '@playwright/test';
 import { GALLERY_COVERAGE } from '../../src/lib/gallery/coverage.js';
 import { openGallery } from './gallery.js';
 
+test('Manifesto layers share one background strength across themes and motion settings', async ({ page }) => {
+	for (const colorScheme of ['light', 'dark'] as const) {
+		for (const reducedMotion of ['reduce', 'no-preference'] as const) {
+			await page.emulateMedia({ colorScheme, reducedMotion });
+			await openGallery(page, colorScheme);
+			const demo = page.locator('[data-gallery-family="brand:ManifestoCanvas"]');
+			await demo.scrollIntoViewIfNeeded();
+			const strengths = await demo.evaluate(el => {
+				const strength = Number(getComputedStyle(el).getPropertyValue('--manifesto-background-strength'));
+				const canvas = el.querySelector('canvas')!;
+				const glow = canvas.nextElementSibling!;
+				return { strength, layers: [canvas, glow].map(layer => Number(getComputedStyle(layer).opacity)) };
+			});
+			expect(strengths.strength).toBeGreaterThan(0);
+			expect(strengths.strength).toBeLessThan(1);
+			for (const layer of strengths.layers) expect(layer).toBe(strengths.strength);
+			const rippleRatios = await demo.evaluate(el => {
+				const host = el.querySelector('canvas')!.parentElement!;
+				const alpha = (ring: Element) => {
+					const color = getComputedStyle(ring).borderTopColor;
+					return Number.parseFloat(color.split('/')[1] ?? color.split(',')[3] ?? '1');
+				};
+				const click = () => host.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 40, clientY: 40 }));
+				click();
+				const rings = [...host.querySelectorAll('.manifesto__ripple, .manifesto__ripple-inner')];
+				const quiet = rings.map(alpha);
+				host.style.setProperty('--manifesto-background-strength', '1');
+				const ratios = rings.map((ring, i) => quiet[i] / alpha(ring));
+				host.style.removeProperty('--manifesto-background-strength');
+				return ratios;
+			});
+			if (reducedMotion === 'reduce') expect(rippleRatios).toEqual([]);
+			else {
+				expect(rippleRatios.length).toBeGreaterThan(0);
+				for (const ratio of rippleRatios) expect(ratio).toBeCloseTo(strengths.strength);
+			}
+		}
+	}
+});
+
 function expectedFamilyMarkers(): string[] {
 	return [
 		...GALLERY_COVERAGE.primitives.map((family) => `primitive:${family}`),
