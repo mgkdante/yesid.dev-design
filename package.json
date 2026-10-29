@@ -37,8 +37,7 @@
 		"svelte2tsx": "0.7.58",
 		"turbo": "^2.5.0",
 		"typescript": "^5.9.3",
-		"vitest": "^4.1.0",
-		"yaml": "2.9.0"
+		"vitest": "^4.1.0"
 	},
 	"overrides": {
 		"brace-expansion": "5.0.9",

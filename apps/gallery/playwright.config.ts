@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
+import { yesidProjects } from '@yesid/config/playwright';
 
 const host = '127.0.0.1';
 const port = Number(process.env.GALLERY_BROWSER_PORT ?? 4173);
@@ -35,26 +36,7 @@ export default defineConfig({
 		trace: 'retain-on-failure',
 		video: 'off',
 	},
-	projects: [
-		{
-			name: 'chromium-noble-desktop',
-			use: {
-				browserName: 'chromium',
-				hasTouch: false,
-				isMobile: false,
-				viewport: { width: 1440, height: 1000 },
-			},
-		},
-		{
-			name: 'chromium-noble-mobile',
-			use: {
-				browserName: 'chromium',
-				hasTouch: true,
-				isMobile: true,
-				viewport: { width: 390, height: 844 },
-			},
-		},
-	],
+	projects: yesidProjects(baseURL),
 	webServer: {
 		command: `node node_modules/vite/bin/vite.js preview --host ${host} --port ${port} --strictPort`,
 		cwd: fileURLToPath(new URL('.', import.meta.url)),

@@ -208,7 +208,7 @@
 	/* Phones shrink the drawing, not the letters' proportions; heights follow the post's viewBox. */
 	@media (max-width: 479px) {
 		.lang-post {
-			min-width: 38px;
+			min-inline-size: var(--size-tap-min);
 			padding-inline: 3px;
 		}
 		.lang-post svg {
@@ -218,7 +218,6 @@
 	}
 	@media (max-width: 359px) {
 		.lang-post {
-			min-width: 26px;
 			padding-inline: 2px;
 		}
 		.lang-post svg {

@@ -22,5 +22,6 @@ bun run test:browser:list
 
 `browser:install` downloads Chromium once. `test:browser` builds the Gallery, then runs Playwright;
 `test:browser:list` lists the browser matrix without building. Browser runs are pinned to Chromium,
-UTC, `en-CA` and reduced motion, on desktop and mobile projects with one worker and no retries.
-They assert behavior, never pixels.
+UTC, `en-CA` and reduced motion, on the standard projects from `@yesid/config/playwright` (untagged
+tests at phone, tablet and desktop, `@theme` tests in light and dark, `@motion` tests with reduced
+motion), with one worker and no retries. They assert behavior, never pixels.

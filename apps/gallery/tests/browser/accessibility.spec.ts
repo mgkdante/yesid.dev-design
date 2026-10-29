@@ -1,51 +1,57 @@
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { readdirSync } from 'node:fs';
+import { expect, test } from '@playwright/test';
+import { expectAccessible } from '@yesid/config/playwright';
 
-import { blockingAxeViolations } from './authority.js';
-import { GALLERY_THEMES, openGallery } from './gallery.js';
+import { HOME, LABELS } from '../../src/lib/gallery/site-header-fixture.js';
+import { copy } from '../../src/routes/data-page/fixture.js';
+import { openGallery } from './gallery.js';
 
-async function scan(page: Page, testInfo: TestInfo, state: string): Promise<void> {
-	// Every rule everywhere, except contrast inside blueprint art: aria-hidden decoration whose faint
-	// reference labels are exempt.
-	const rest = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
-	const contrast = await new AxeBuilder({ page }).withRules(['color-contrast']).exclude('.blueprint-bg').analyze();
-	const results = { ...rest, violations: [...rest.violations, ...contrast.violations] };
-	await testInfo.attach(`axe-${state}.json`, {
-		body: JSON.stringify(results, null, 2),
-		contentType: 'application/json',
+const routes = [
+	'/',
+	...readdirSync(new URL('../../src/routes', import.meta.url), { withFileTypes: true })
+		.filter((entry) => entry.isDirectory())
+		.map(({ name }) => `/${name}`),
+];
+
+test.describe('accessibility', { tag: '@theme' }, () => {
+	test.afterEach(async ({ page }, testInfo) => {
+		await expect(page.locator('html')).toHaveAttribute('data-theme', testInfo.project.name);
 	});
-	const blockers = blockingAxeViolations(results.violations);
-	const evidence = blockers.map(({ help, helpUrl, id, impact, nodes }) => ({
-		help,
-		helpUrl,
-		id,
-		impact,
-		nodes: nodes.map(({ failureSummary, html, target }) => ({ failureSummary, html, target })),
-	}));
-	expect(evidence, `${state} has blocking axe violations`).toEqual([]);
-}
 
-for (const theme of GALLERY_THEMES) {
-	test(`${theme} theme has no serious or critical axe violations in default and exposed states`, async ({
-		page,
-	}, testInfo) => {
-		await openGallery(page, theme);
-		await scan(page, testInfo, `${theme}-default`);
+	for (const route of routes) {
+		test(`${route} has no serious or critical axe violations`, async ({ page }) => {
+			await page.goto(route);
+			await page.evaluate(() => document.fonts.ready);
+			await expectAccessible(page);
+		});
+	}
 
-		const combobox = page
-			.locator('[data-gallery-family="primitive:combobox"]')
-			.getByRole('combobox', { name: 'Choisir une vue opérationnelle' });
-		await page
-			.locator('[data-gallery-family="primitive:combobox"]')
-			.getByRole('button', { name: 'Choisir une vue opérationnelle' })
-			.click();
+	test('the gallery stays accessible with its combobox and sheet open', async ({ page }) => {
+		await openGallery(page);
+		const family = page.locator('[data-gallery-family="primitive:combobox"]');
+		await family.getByRole('button', { name: 'Choisir une vue opérationnelle' }).click();
 		await expect(page.getByRole('listbox')).toBeVisible();
-		await scan(page, testInfo, `${theme}-combobox-open`);
-		await combobox.press('Escape');
+		await expectAccessible(page);
+		await family.getByRole('combobox', { name: 'Choisir une vue opérationnelle' }).press('Escape');
 		await expect(page.getByRole('listbox')).toBeHidden();
 
 		await page.getByRole('button', { name: 'Open details' }).click();
 		await expect(page.getByRole('dialog', { name: 'Operational detail' })).toBeVisible();
-		await scan(page, testInfo, `${theme}-sheet-open`);
+		await expectAccessible(page);
 	});
-}
+
+	test('the data page stays accessible with its rail sheet open on a phone', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.goto('/data-page');
+		await page.getByRole('button', { name: new RegExp(`^${copy.rail.label}`) }).click();
+		await expect(page.getByRole('dialog', { name: copy.rail.label })).toBeVisible();
+		await expectAccessible(page);
+	});
+
+	test('the site header stays accessible with its menu open', async ({ page }) => {
+		await page.goto(HOME);
+		await page.getByRole('navigation', { name: LABELS.nav }).getByRole('button', { name: LABELS.openMenu }).click();
+		await expect(page.getByRole('dialog', { name: LABELS.menu })).toBeVisible();
+		await expectAccessible(page);
+	});
+});

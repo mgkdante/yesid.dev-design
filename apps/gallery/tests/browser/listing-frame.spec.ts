@@ -1,7 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-import { blockingAxeViolations } from './authority.js';
 
 const DESKTOP_MIN_WIDTH = 1024;
 
@@ -150,29 +148,12 @@ test('filter panel is usable at this width', async ({ page, browser, baseURL }) 
 	await expect(listing(page).firstButton).toBeVisible();
 });
 
-test('edge title fits and the page passes axe', async ({ page }, testInfo) => {
+test('edge title fits the viewport', async ({ page }) => {
+	test.skip(page.viewportSize()!.width < DESKTOP_MIN_WIDTH, 'The edge title is desktop only');
 	const viewport = page.viewportSize()!;
 	await page.goto('/listing-frame');
 	await page.evaluate(() => document.fonts.ready);
 
-	if (viewport.width >= DESKTOP_MIN_WIDTH) {
-		const box = await page.locator('[data-slot="listing-edge-title"] .edge-title').boundingBox();
-		expect(box!.height).toBeLessThanOrEqual(viewport.height);
-	}
-
-	const results = await new AxeBuilder({ page }).analyze();
-	await testInfo.attach('axe-listing-frame.json', {
-		body: JSON.stringify(results, null, 2),
-		contentType: 'application/json',
-	});
-	const blockers = blockingAxeViolations(results.violations).map(
-		({ help, helpUrl, id, impact, nodes }) => ({
-			help,
-			helpUrl,
-			id,
-			impact,
-			nodes: nodes.map(({ failureSummary, html, target }) => ({ failureSummary, html, target })),
-		}),
-	);
-	expect(blockers, 'listing frame has blocking axe violations').toEqual([]);
+	const box = await page.locator('[data-slot="listing-edge-title"] .edge-title').boundingBox();
+	expect(box!.height).toBeLessThanOrEqual(viewport.height);
 });

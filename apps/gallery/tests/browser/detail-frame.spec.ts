@@ -1,7 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-import { blockingAxeViolations } from './authority.js';
 
 const DESKTOP_MIN_WIDTH = 1024;
 const NAV_CLEARANCE = 14;
@@ -140,26 +138,8 @@ test('detail frame layout variants', async ({ page }) => {
 	await stuckAt(140);
 });
 
-test('error page and footer pass axe', async ({ page }, testInfo) => {
+test('error page motion, long-link fit and footer', async ({ page }) => {
 	const desktop = page.viewportSize()!.width >= DESKTOP_MIN_WIDTH;
-
-	for (const path of ['/error-page', '/detail-frame']) {
-		await page.goto(path);
-		await page.evaluate(() => document.fonts.ready);
-
-		const results = await new AxeBuilder({ page }).analyze();
-		await testInfo.attach(`axe${path.replace('/', '-')}.json`, {
-			body: JSON.stringify(results, null, 2),
-			contentType: 'application/json',
-		});
-		const blockers = blockingAxeViolations(results.violations).map(({ help, id, impact, nodes }) => ({
-			help,
-			id,
-			impact,
-			targets: nodes.map(({ target }) => target),
-		}));
-		expect(blockers, `${path} has blocking axe violations`).toEqual([]);
-	}
 
 	await page.goto('/error-page');
 	await page.emulateMedia({ reducedMotion: 'reduce' });

@@ -46,8 +46,3 @@ The exact interface is in
 bun run --cwd packages/tokens test
 bun run --cwd packages/tokens check
 ```
-
-The Figma round-trip is manual. `bun run --cwd packages/tokens figma:push` prints the variables as
-JSON; an operator writes them through Figma tooling and exports the result to
-`.tmp.figma-export.json`, then `scripts/verify-roundtrip.ts` compares the two. Keep the variable
-path prefixes intact.

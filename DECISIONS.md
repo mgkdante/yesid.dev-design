@@ -74,7 +74,7 @@ stylesheet, and supply any live exclusion selector.
 
 Fluid values use the `yesid.clamp` extension with structured `min`, `preferred`, and `max`
 strings. Parsing rejects incomplete triples. CSS and ordinary YAML serialization produce
-`clamp(min, preferred, max)`, and Figma export carries that expression as a STRING variable.
+`clamp(min, preferred, max)`.
 `DESIGN.md` typography uses the structured maximum because its font-size schema accepts one
 dimension; spacing may retain the quoted clamp expression. This preserves the three inputs for
 deterministic targets without pretending that clamp is a native DTCG dimension.
