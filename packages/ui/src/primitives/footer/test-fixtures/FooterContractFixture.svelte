@@ -25,7 +25,7 @@
 	<FooterLink
 		bind:ref={buttonRef}
 		type="submit"
-		aria-controls="analytics-consent"
+		aria-controls="footer-preferences"
 		aria-expanded="false"
 		data-slot="custom-footer-link"
 		data-testid="footer-button"
