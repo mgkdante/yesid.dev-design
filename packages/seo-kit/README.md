@@ -2,9 +2,9 @@
 
 Framework-neutral SEO construction mechanics. The package builds JSON-LD nodes and their script
 body, alternate-locale sitemap entries, robots.txt, the yesid share card, the favicon mark and the
-standard security headers. Products own content, canonical routes, indexing policy, their CSP,
-filesystem writes, rasterization and HTTP responses. The Svelte head component lives in
-`@yesid/ui/head`.
+standard security headers, and it highlights code on the server. Products own content, canonical
+routes, indexing policy, their CSP, filesystem writes, rasterization and HTTP responses. The
+Svelte head component lives in `@yesid/ui/head`.
 
 ## Interface
 
@@ -23,6 +23,11 @@ Consumers can use the root export (JSON-LD, sitemap and robots, Satori) or the s
 - `./headers`: `SECURITY_HEADERS` and `contentSecurityPolicy(directives)`. The Permissions-Policy
   denies every listed feature; a product that uses one overrides that header (Transit allows
   `geolocation=(self)` for its locate-me control).
+- `./highlight`: `highlight(code, lang)` resolves to token markup for a `<code>` element in `syn-*`
+  classes (bash, css, html, javascript, json, liquid, markdown, python, sql, svelte, typescript;
+  js, ts, sh, shell and md aliases). Shiki runs with the JavaScript regex engine (no WASM, so it
+  runs on Workers), loads each grammar on first use and caches one highlighter per process.
+  Unknown languages come back escaped. Server-only, and not in the root export.
 
 ## Invariants
 
@@ -34,28 +39,15 @@ Consumers can use the root export (JSON-LD, sitemap and robots, Satori) or the s
   JetBrains Mono TTFs; Satori can't read WOFF2.
 - PNG conversion stays behind the injected rasterizer because native and file ownership varies by
   consumer.
-- The package owns no routes, locale registry, cache, CSP or deployment adapter.
+- The package owns no routes, locale registry, response cache, CSP or deployment adapter.
 
-## Consumers and compatibility
-
-Consumers supply content and adapters at their own framework seam. `satori` is a peer dependency
-within the supported manifest range. Consumers are listed in
-[`CONSUMERS.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/CONSUMERS.md); product SEO policy stays in
-[`BOUNDARIES.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/BOUNDARIES.md).
-
-## Commands
+## Develop
 
 ```sh
 bun run --cwd packages/seo-kit test
 bun run --cwd packages/seo-kit check
 ```
 
-## Failure modes and release implications
-
-Invalid caller content remains a consumer problem. Invalid dates are omitted by the sitemap
-mechanics; Satori or rasterizer failures reject to the caller. Consumers decide whether to fail a
-build, retry, or provide another asset.
-
-Builder behavior, output bytes, exports, or README changes alter the coordinated release payload.
-Follow [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/RELEASING.md); update the API report only for public-interface
-changes. Do not promote one product's route/content policy into this package.
+`satori` is a peer dependency; `shiki` 4.x is an optional peer, needed only for `./highlight`.
+Invalid dates are left out of the sitemap. Satori and rasterizer errors reject to the caller,
+which decides whether to fail the build or retry.

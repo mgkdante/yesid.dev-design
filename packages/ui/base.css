@@ -366,6 +366,25 @@ pre, code, table {
 	.terminal-code-body code {
 		font-family: var(--font-mono);
 	}
+	.syn-keyword {
+		color: var(--syntax-keyword);
+	}
+	.syn-string {
+		color: var(--syntax-string);
+	}
+	.syn-number {
+		color: var(--syntax-number);
+	}
+	.syn-function {
+		color: var(--syntax-function);
+	}
+	.syn-comment {
+		color: var(--syntax-comment);
+		font-style: italic;
+	}
+	.syn-punctuation {
+		color: var(--syntax-punctuation);
+	}
 	.terminal-code-copy {
 		min-width: 3.75rem;
 		border: 1px solid var(--border-subtle);

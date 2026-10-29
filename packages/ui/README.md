@@ -249,10 +249,11 @@ pairs. Extra attributes go to the root. Its look comes from the `.terminal-*` cl
 
 `CodeBlock` puts source in a `TerminalPanel` with the `language` as its tag. Pass `copy` labels
 to show a copy button; it copies `code` and shows ✓ for two seconds, or `copy.failed` if the
-clipboard refuses. Highlighting stays in the app: render the highlighter's `<pre>` as
-`children`, colored through the `--syntax-*` tokens and focusable (`tabindex="0"`) so the keyboard
-can scroll it; give it `role="region"` and an `aria-label` if it needs a name. Without `children`
-the code shows as a plain, focusable `<pre>`.
+clipboard refuses, and a polite status announces `copy.copied` or `copy.failed`. Highlight on the
+server with `@yesid/seo-kit/highlight` and render its markup as `children` inside
+`<pre tabindex="0"><code>` so the keyboard can scroll it; give the `<pre>` `role="region"` and an
+`aria-label` if it needs a name. `base.css` colors the `syn-*` classes through the `--syntax-*`
+tokens. Without `children` the code shows as a plain, focusable `<pre>`.
 
 ### ConstructionProps
 
@@ -556,7 +557,7 @@ relies on `'unsafe-inline'` must not add the hash, because any hash switches `'u
 `@yesid/ui/base.css` is the base layer both products share: resets, the dark variant, selection,
 focus ring, text links (a link without a class is underlined in `--accent-text`; components
 style their own), scrollbar, circuit grid, shared keyframes, label styles, `.glass-chrome`, the
-`TerminalPanel` and `CodeBlock` classes (`.terminal-*`, in the components layer), the
+`TerminalPanel` and `CodeBlock` classes (`.terminal-*` and `.syn-*`, in the components layer), the
 `SiteHeader` geometry (`--nav-top`, `--nav-padding-y`, `--nav-clearance`) and the
 View Transitions route crossfade (off under reduced motion; pair it with `onNavigate(viewTransition)`
 from `@yesid/motion/utils/viewTransition`). It imports

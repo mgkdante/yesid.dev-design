@@ -104,6 +104,7 @@ const SEO_KIT_EXPORTS = {
 	'./og/files': './src/og-files.ts',
 	'./icons': './src/icons.ts',
 	'./headers': './src/headers.ts',
+	'./highlight': './src/highlight.ts',
 } as const;
 
 const ANALYTICS_EXPORTS = {

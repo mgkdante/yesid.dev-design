@@ -43,6 +43,11 @@
 - `types` → `./src/headers.ts`
 - `default` → `./src/headers.ts`
 
+### `./highlight`
+
+- `types` → `./src/highlight.ts`
+- `default` → `./src/highlight.ts`
+
 ## Direct public assets
 
 
@@ -56,6 +61,7 @@
 - `OgFiles` → `./src/og-files.ts` (`./og/files`)
 - `Icons` → `./src/icons.ts` (`./icons`)
 - `Headers` → `./src/headers.ts` (`./headers`)
+- `Highlight` → `./src/highlight.ts` (`./highlight`)
 
 ## API Report File for "@yesid/seo-kit"
 
@@ -172,6 +178,15 @@ declare namespace Headers_2 {
     export {
         contentSecurityPolicy,
         SECURITY_HEADERS
+    }
+}
+
+// @public
+function highlight(code: string, lang: string): Promise<string>;
+
+declare namespace Highlight_2 {
+    export {
+        highlight
     }
 }
 

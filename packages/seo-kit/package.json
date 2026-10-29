@@ -3,7 +3,7 @@
 	"version": "0.28.1",
 	"private": true,
 	"type": "module",
-	"description": "Framework-neutral JSON-LD, sitemap and robots, share-card, icon and security-header primitives with consumer-owned policy and rasterization.",
+	"description": "Framework-neutral JSON-LD, sitemap and robots, share-card, icon and security-header primitives with consumer-owned policy and rasterization, plus server-side code highlighting.",
 	"files": ["src", "fonts", "!**/__tests__", "NOTICE"],
 	"sideEffects": false,
 	"exports": {
@@ -38,6 +38,10 @@
 		"./headers": {
 			"types": "./src/headers.ts",
 			"default": "./src/headers.ts"
+		},
+		"./highlight": {
+			"types": "./src/highlight.ts",
+			"default": "./src/highlight.ts"
 		}
 	},
 	"scripts": {
@@ -47,11 +51,18 @@
 	},
 	"peerDependencies": {
 		"@yesid/tokens": "workspace:*",
-		"satori": ">=0.10.0 <1"
+		"satori": ">=0.10.0 <1",
+		"shiki": ">=4.0.0 <5"
+	},
+	"peerDependenciesMeta": {
+		"shiki": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@types/node": "^22.0.0",
 		"satori": "^0.28.0",
+		"shiki": "^4.5.0",
 		"typescript": "^5.5.0",
 		"vitest": "^4.1.0"
 	}
