@@ -569,14 +569,13 @@ from the app stylesheet after Tailwind:
 
 Like every package stylesheet, it is opt-in; no JavaScript import loads it.
 
-## Adoption verification contract
+## Consumer verification
 
 Package behavior, installed-payload integrity, and product acceptance are separate attestations.
-For every exact-tag adoption:
+For every bump:
 
-1. Run the vendored `tools/adopt.ts --check` against the schema-2 receipt.
-2. Run the consumer's vendor checks, tests, typecheck, gates and production build.
-3. Compare affected behavior in the browser across themes, sizes, accessibility states and reduced
+1. Run the consumer's tests, typecheck, gates and production build.
+2. Compare affected behavior in the browser across themes, sizes, accessibility states and reduced
    motion.
 
 Package tests and Gallery browser checks remain required upstream, but neither proves that an

@@ -1,7 +1,8 @@
 # @yesid/config
 
-Independent shared-tooling distribution for Yesid repositories. Consumers pin an exact
-`config-vX.Y.Z` GitHub Release asset; registry publication is intentionally disabled.
+Shared TypeScript, Svelte and Turborepo configuration
+for yesid repositories. It ships as `yesid-config-X.Y.Z.tgz` on each `vX.Y.Z` release, in
+lockstep with the other packages; registry publication is disabled.
 
 ## Compatibility
 
@@ -54,21 +55,9 @@ outputs, environment variables, app-only tasks, and credentials never belong in 
 ESLint, Prettier, Vitest, deploy bindings, and product path literals remain consumer-owned
 until they independently satisfy the third-consumer rule.
 
-## Commands, failures, and release implications
+## Release implications
 
-```sh
-bun run config:release:prepare -- --version X.Y.Z
-bun run config:release:check -- --version X.Y.Z
-bun run config:release:build -- --tag config-vX.Y.Z --output <outside-repository-path>
-```
-
-Unsupported compiler/runtime versions, source drift, an unallowlisted file, a mismatched tag,
-checksum drift, a non-deterministic archive, or a compressed, expanded, member, payload, entry, or
-command-output limit breach fails the config contracts. Artifact bytes are bounded and compared with
-the deterministic tagged package before archive members are parsed. Consumers keep their current
-exact asset until a corrected immutable release exists.
-
-Config bytes, compatibility text, or exports use the independent `.config-changes` and
-`config-vX.Y.Z` process in [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/config-v0.2.1/RELEASING.md). They never force a coordinated
-runtime-package release. Shared-action ownership remains in
-[`docs/SHARED-TOOLING-CI.md`](https://github.com/mgkdante/yesid.dev-design/blob/config-v0.2.1/docs/SHARED-TOOLING-CI.md).
+Config changes add a `.changes` fragment naming `@yesid/config` and ship with the next coordinated
+release ([`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/RELEASING.md)).
+Shared-action ownership stays in
+[`docs/SHARED-TOOLING-CI.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/docs/SHARED-TOOLING-CI.md).

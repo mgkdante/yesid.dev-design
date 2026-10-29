@@ -39,7 +39,7 @@ Consumers can use the root export (JSON-LD, sitemap and robots, Satori) or the s
 ## Consumers and compatibility
 
 Consumers supply content and adapters at their own framework seam. `satori` is a peer dependency
-within the supported manifest range. Current adoption receipts live in
+within the supported manifest range. Consumers are listed in
 [`CONSUMERS.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/CONSUMERS.md); product SEO policy stays in
 [`BOUNDARIES.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.27.0/BOUNDARIES.md).
 

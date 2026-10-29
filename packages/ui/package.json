@@ -5,6 +5,7 @@
   "type": "module",
   "svelte": "./src/index.ts",
   "description": "Source-shipped yesid brand UI primitives, ported byte-faithful from Transit with consumer-configurable class vocabulary.",
+  "files": ["src", "base.css", "!**/*.test.ts", "!**/test-fixtures", "!src/vitest.*", "NOTICE"],
   "sideEffects": ["**/*.css"],
   "exports": {
     ".": {
@@ -131,9 +132,6 @@
   },
   "dependencies": {
     "@lucide/svelte": "^1.18.0",
-    "@yesid/motion": "workspace:*",
-    "@yesid/seo-kit": "workspace:*",
-    "@yesid/tokens": "workspace:*",
     "bits-ui": "^2.16.3",
     "clsx": "^2.1.1",
     "paneforge": "^1.0.2",
@@ -141,6 +139,9 @@
     "tailwind-variants": "^3.2.2"
   },
   "peerDependencies": {
+    "@yesid/motion": "workspace:*",
+    "@yesid/seo-kit": "workspace:*",
+    "@yesid/tokens": "workspace:*",
     "svelte": "^5.0.0"
   },
   "devDependencies": {

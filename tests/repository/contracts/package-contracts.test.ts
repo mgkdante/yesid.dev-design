@@ -15,10 +15,6 @@ type PackageManifest = {
 	svelte?: unknown;
 	exports?: Record<string, PackageExport>;
 	scripts?: Record<string, string>;
-	dependencies?: Record<string, string>;
-	devDependencies?: Record<string, string>;
-	peerDependencies?: Record<string, string>;
-	optionalDependencies?: Record<string, string>;
 };
 
 type ReleasedPackageName =
@@ -257,33 +253,8 @@ describe('prospective package release contract', () => {
 		).toBe(rootManifest.version);
 	});
 
-	it('keeps @yesid/config independently versioned and outside the coordinated release closure', () => {
-		const configManifest = readManifest(CONFIG_MANIFEST_URL);
-		expect(isStrictSemVer(configManifest.version)).toBe(true);
-		expect(new Set(RELEASED_MANIFESTS)).toEqual(
-			new Set([
-				'@yesid/analytics',
-				'@yesid/tokens',
-				'@yesid/motion',
-				'@yesid/gates',
-				'@yesid/seo-kit',
-				'@yesid/ui',
-				'@yesid/i18n-core',
-			]),
-		);
-		expect(isReleasedManifestName(configManifest.name)).toBe(false);
-
-		for (const packageName of RELEASED_MANIFESTS) {
-			const manifest = readManifest(RELEASED_MANIFEST_URLS[packageName]);
-			for (const dependencies of [
-				manifest.dependencies,
-				manifest.devDependencies,
-				manifest.peerDependencies,
-				manifest.optionalDependencies,
-			]) {
-				expect(dependencies?.['@yesid/config']).toBeUndefined();
-			}
-		}
+	it('@yesid/config matches the root canonical version', () => {
+		expect(readManifest(CONFIG_MANIFEST_URL).version).toBe(rootManifest.version);
 	});
 
 	it('keeps the gallery private and outside the released manifest set', () => {

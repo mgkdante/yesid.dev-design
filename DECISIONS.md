@@ -10,22 +10,17 @@ available in Git history and `CHANGELOG.md`; it does not govern the current pack
 `README.md`. The tag never moves. Later releases advance from that reference rather than
 rewriting it.
 
-## D2: Consumers adopt immutable schema-2 releases
+## D2: Consumers install exact release tarballs
 
-Consumers vendor exact annotated GitHub Release assets. The schema-2 manifest binds the tag
-object, peeled commit, release asset size and SHA-256 digest, canonical package closure,
-exclusion-policy digest, complete adoption-tool digest, and length-framed payload tree hash.
-The self-vendored `tools/adopt.ts` bundle acquires, installs, recovers, and verifies the snapshot
-atomically. Offline `--check` proves installed-payload integrity; upstream CI and product
-verification remain separate evidence.
+Each release attaches one `bun pm pack` tarball per package, and consumers install them by URL from
+an exact tag; the lockfile's integrity hash is the pin. The immutable GitHub Release and its
+build-provenance attestation replaced the vendored snapshot, adoption tool and manifest in v0.28.0.
 
-## D3: Seven packages release in lockstep
+## D3: Eight packages release in lockstep
 
-The root version and `@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, `@yesid/seo-kit`,
-`@yesid/ui`, `@yesid/analytics`, and `@yesid/i18n-core` move together. Consumers choose and
-review an exact release; nothing floats automatically. The private `@yesid/gallery` workspace
-remains outside package lockstep. The separately versioned `@yesid/config` release also remains
-outside the seven-package archive and has its own adoption and CI contract.
+The root version and all eight packages, `@yesid/config` included since v0.28.0, move together and
+nothing floats; the private Gallery stays outside. Sibling packages are peer dependencies pinned to
+the same release, so each app holds exactly one copy of each.
 
 ## D4: Packages ship source and CSS is opt-in
 
@@ -94,14 +89,14 @@ and MetroStation conflicts in yesid.dev's favor).
 
 Shared controlled views own only their rendered mechanics. Consumers continue to own copy,
 locale selection, state, persistence and actions, such as StopLabel prefixes. Package and
-Gallery tests prove the neutral surface; every adoption still requires the consumer's source
+Gallery tests prove the neutral surface; every consumer bump still requires the consumer's source
 guards, generated outputs, tests, build, accessibility checks, and relevant browser comparison.
 
 ## D12: Gallery is the repository browser authority, not consumer proof
 
 Gallery dogfoods the workspace packages and owns repository-level rendered integration,
 accessibility, reduced-motion, responsive, and visual-regression checks. It does not install the
-immutable Release asset and cannot prove a Transit or yesid.dev adoption. Release integrity and
+immutable Release asset and cannot prove a Transit or yesid.dev bump. Release integrity and
 each product's verification remain separate gates.
 
 ## D13: Package contracts are local and efficiency work is measured

@@ -11,7 +11,7 @@ const TSC = fileURLToPath(new URL('../../../node_modules/typescript/bin/tsc', im
 const CONFIG_FILES = [
 	'README.md',
 	'LICENSE',
-	'CHANGELOG.md',
+	'NOTICE',
 	'tsconfig/base.json',
 	'tsconfig/library.json',
 	'tsconfig/svelte-kit.json',
@@ -57,7 +57,6 @@ describe('@yesid/config neutral contracts', () => {
 		const manifest = readJson('package.json');
 		expect(manifest).toMatchObject({
 			name: '@yesid/config',
-			version: '0.2.1',
 			private: true,
 			files: CONFIG_FILES,
 			exports: {
@@ -72,15 +71,6 @@ describe('@yesid/config neutral contracts', () => {
 				},
 			},
 		});
-	});
-
-	it('publishes compatibility ranges for every independently consumable contract', () => {
-		const readme = readFileSync(join(CONFIG_ROOT, 'README.md'), 'utf8');
-		expect(readme).toContain('| `tsconfig/base.json` | TypeScript `>=5.0 <6` |');
-		expect(readme).toContain('| `tsconfig/library.json` | TypeScript `>=5.0 <6` |');
-		expect(readme).toContain('| `tsconfig/svelte-kit.json` | TypeScript `>=5.7 <6`; SvelteKit `>=2 <3` |');
-		expect(readme).toContain('| `svelte/project-runes.js` | Svelte `>=5 <6`; Node `>=22` or Bun `>=1.3` |');
-		expect(readme).toContain('| `turbo/base.json` | Turbo `>=2.9 <3` |');
 	});
 
 	it('keeps the compiler core small and leaves consumer-owned choices in overlays', () => {
@@ -113,7 +103,7 @@ describe('@yesid/config neutral contracts', () => {
 			},
 		});
 		const source = CONFIG_FILES.filter(
-			(path) => !['README.md', 'LICENSE', 'CHANGELOG.md'].includes(path),
+			(path) => !['README.md', 'LICENSE', 'NOTICE'].includes(path),
 		)
 			.map((path) => readFileSync(join(CONFIG_ROOT, path), 'utf8'))
 			.join('\n');

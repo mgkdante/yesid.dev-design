@@ -1,7 +1,7 @@
 # Deprecation policy
 
-This policy applies to the public runtime, type, CSS, adoption, and manifest
-contracts of the seven released packages. Private Gallery code, test helpers,
+This policy applies to the public runtime, type and CSS
+contracts of the eight released packages. Private Gallery code, test helpers,
 and repository-only build internals are not public contracts unless a document
 explicitly says otherwise.
 
@@ -42,8 +42,7 @@ version-eligible removal is `v0.9.0`, and only after the 90-day gate also passes
 
 Patch releases never intentionally break a documented public contract. This
 includes exports and export conditions, TypeScript declarations, Svelte props
-and bindings, direct public assets, token names and meanings, adoption CLI
-syntax, schema-2 manifest validation, and previously valid runtime behavior.
+and bindings, direct public assets, token names and meanings, and previously valid runtime behavior.
 
 Fixing an implementation defect may change incorrect output, but the release
 fragment must identify the corrected contract and the regression proof. If a
@@ -56,6 +55,20 @@ dates, intervening minor, migration documentation, API report diff, and focused
 consumer or clean-room verification.
 
 ## Removals
+
+- **v0.28.0:** removed the adoption CLI (`tools/adopt.ts` and `tools/adopt/`), its schema-2
+  `manifest.json` and the `yesid.dev-design-vX.Y.Z.tar` archive: each package now ships as its own
+  release tarball installed by URL. Also removed, with no consumer in either app or the Gallery:
+  `@yesid/motion/utils/sectionMagnet` with its root re-exports (`initSectionMagnet`,
+  `findSettleTarget`, `DESKTOP_TIER`, `TOUCH_TIER`, `MagnetTier`, `SectionMagnetOpts`,
+  `SettleTargetOpts`); the `@yesid/tokens` subpaths `./serialize`, `./types`,
+  `./generators/tokens-css`, `./generators/theme-css`, `./generators/motion-ts`, `./src/parse.ts`,
+  `./src/generators/tokens-css.ts` and `./src/generators/motion-ts.ts`; `@yesid/seo-kit/satori`;
+  `flattenToc`, `landTocFragments` and `resolveTocCounter` from `@yesid/ui` and `@yesid/ui/brand`; and
+  `DESKTOP_MIN_WIDTH` from
+  `@yesid/ui/state`. None was deprecated first: the owner waived both gates on 2026-10-29, as for
+  v0.24.0 and v0.27.0, because there are no third-party consumers and both apps move in the same
+  cycle.
 
 - **v0.27.0:** removed `AnalyticsConsent` (with `AnalyticsConsentCopy` and `AnalyticsConsentProps`) from `@yesid/ui/feedback`; the `./consent`, `./policy` and `./plausible` subpaths of `@yesid/analytics`; `createAnalyticsClient`, `createPathnamePageviewTracker`, `AnalyticsClient` and `AnalyticsClientDependencies` from `./client` (replaced by `createAnalytics`); and `AnalyticsStorageKeys` with `AnalyticsPreset`'s `domain` and `storageKeys` from `./config`. None was deprecated first: the owner waived both gates (the 90 days and the intervening minor) on 2026-10-29 for all of them, because there are no third-party consumers and both apps drop consent in the same cycle. Measurement no longer asks, so the consent parts have no replacement.
 
