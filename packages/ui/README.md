@@ -254,6 +254,16 @@ clipboard refuses. Highlighting stays in the app: render the highlighter's `<pre
 can scroll it; give it `role="region"` and an `aria-label` if it needs a name. Without `children`
 the code shows as a plain, focusable `<pre>`.
 
+### ConstructionProps
+
+Five decorative construction artworks arranged in an intrinsic responsive floor. The sign,
+helmet, barricade and Montréal balise retain the original yesid.dev artwork; a bilingual
+ARRÊT / STOP sign completes the group. Optional `lighting` reproduces the warm scene treatment.
+Pass the app's actual bottom sentinel as `revealAt` to hide and reveal the artwork on every
+bottom visit. The footprint remains reserved, reduced motion switches instantly, and SSR
+without JavaScript stays plain and visible. Place in a homepage-only floor at the actual flow bottom; keep
+stationary scene fixtures outside the moving artwork. No fetch, parser or HTML injection.
+
 ### ManifestoCanvas
 
 The circuit-node backdrop of brand headers. It fills `containerEl` (which must be positioned) and

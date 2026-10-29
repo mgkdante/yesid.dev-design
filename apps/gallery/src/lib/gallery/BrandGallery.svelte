@@ -7,6 +7,7 @@
 		CollapsibleSection,
 		CornerMarks,
 		CornerMeta,
+		ConstructionProps,
 		ErrorIllustration,
 		FilterGroup,
 		FilterSection,
@@ -40,6 +41,7 @@
 
 	let chevronOpen = $state(false);
 	let manifestoHost = $state<HTMLElement>();
+	let constructionEnd = $state<HTMLElement>();
 	let filterMode = $state<string | null>('tram');
 	let searchText = $state('');
 	let grain = $state('week');
@@ -314,6 +316,18 @@
 					code="bun run build --filter @yesid/ui && bun run test --filter @yesid/ui -- --reporter=verbose --coverage --coverage.reporter=text-summary"
 					title="shell"
 				/>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root data-gallery-family="brand:ConstructionProps">
+			<Card.Header>
+				<Card.Title>ConstructionProps</Card.Title>
+				<Card.Description>Montréal construction artwork: plain or lit, with a replayable bottom reveal.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<ConstructionProps revealAt={constructionEnd} />
+				<ConstructionProps lighting revealAt={constructionEnd} />
+				<div bind:this={constructionEnd} data-construction-end aria-hidden="true"></div>
 			</Card.Content>
 		</Card.Root>
 
