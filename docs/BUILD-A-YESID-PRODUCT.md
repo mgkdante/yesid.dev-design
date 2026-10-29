@@ -308,8 +308,8 @@ Do not add product-specific locale checks, copy policy, or framework virtual-mod
 ```
 
 Set `PUBLIC_PLAUSIBLE_DOMAIN` to the production host (for example `example.com`) in the production
-environment only; unset means off. The client sends nothing without a domain or when the page is
-served from another host, so local, preview and fork deployments stay silent. Add
+environment only; unset means off. The client sends only from that host or its subdomains, so leave
+the variable unset for local, preview and fork deployments to keep them silent. Add
 `https://plausible.io` to `connect-src` (see the CSP in section 4).
 
 ## 9. Bump the brand pin deliberately

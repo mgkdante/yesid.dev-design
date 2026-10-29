@@ -65,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
           prerelease=false
-          if [[ "$TAG" == *-* ]]; then prerelease=true; fi
+          if [[ "${TAG%%+*}" == *-* ]]; then prerelease=true; fi
           gh release create "$TAG" dist/*.tgz \
             --verify-tag \
             --title "$TAG" \

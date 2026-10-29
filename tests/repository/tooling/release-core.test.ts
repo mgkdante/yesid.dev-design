@@ -268,7 +268,6 @@ describe('deterministic release preparation', () => {
 			'CHANGELOG.md',
 			'package.json',
 			...RELEASED_WORKSPACES.map((workspace) => `packages/${workspace}/package.json`),
-			'packages/config/package.json',
 			'bun.lock',
 		]) {
 			expect(readFileSync(join(left, path))).toEqual(readFileSync(join(right, path)));

@@ -9,7 +9,8 @@ package tarballs. Consumers install those tarballs by URL; nothing is published 
 - The root manifest and the eight packages (`@yesid/tokens`, `@yesid/motion`, `@yesid/gates`,
   `@yesid/seo-kit`, `@yesid/ui`, `@yesid/analytics`, `@yesid/i18n-core`, `@yesid/config`) share
   one version. The private Gallery stays at `0.1.0`.
-- Every version move consumes at least one `.changes/*.md` fragment.
+- Every version move consumes at least one `.changes/*.md` fragment, except promoting a release
+  candidate to its stable version, which reuses the candidate's changelog entry.
 - Never move, delete or re-push a tag, and never edit a published Release. Fix forward with a new
   version.
 

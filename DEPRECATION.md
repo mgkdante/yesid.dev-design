@@ -1,7 +1,7 @@
 # Deprecation policy
 
 This policy applies to the public runtime, type and CSS
-contracts of the seven released packages. Private Gallery code, test helpers,
+contracts of the eight released packages. Private Gallery code, test helpers,
 and repository-only build internals are not public contracts unless a document
 explicitly says otherwise.
 
@@ -64,7 +64,7 @@ consumer or clean-room verification.
   `SettleTargetOpts`); the `@yesid/tokens` subpaths `./serialize`, `./types`,
   `./generators/tokens-css`, `./generators/theme-css`, `./generators/motion-ts`, `./src/parse.ts`,
   `./src/generators/tokens-css.ts` and `./src/generators/motion-ts.ts`; `@yesid/seo-kit/satori`;
-  `flattenToc`, `landTocFragments` and `resolveTocCounter` from `@yesid/ui/brand`; and
+  `flattenToc`, `landTocFragments` and `resolveTocCounter` from `@yesid/ui` and `@yesid/ui/brand`; and
   `DESKTOP_MIN_WIDTH` from
   `@yesid/ui/state`. None was deprecated first: the owner waived both gates on 2026-10-29, as for
   v0.24.0 and v0.27.0, because there are no third-party consumers and both apps move in the same

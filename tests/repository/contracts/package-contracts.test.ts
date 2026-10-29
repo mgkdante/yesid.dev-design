@@ -15,10 +15,6 @@ type PackageManifest = {
 	svelte?: unknown;
 	exports?: Record<string, PackageExport>;
 	scripts?: Record<string, string>;
-	dependencies?: Record<string, string>;
-	devDependencies?: Record<string, string>;
-	peerDependencies?: Record<string, string>;
-	optionalDependencies?: Record<string, string>;
 };
 
 type ReleasedPackageName =

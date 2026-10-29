@@ -11,10 +11,8 @@ package README. Cross-product placement stays in `BOUNDARIES.md`; public interfa
 tokens.json -> pure token generators -> committed generated artifacts
                                              |
 selected source-shipped packages -> Gallery dogfood/browser authority
-             |                       |
-             +-> coordinated immutable archive -> exact-tag consumers
-
-config source -> independent config archive -> exact-tag tooling consumers
+             |
+             +-> eight package tarballs on the release -> exact-tag consumers
 ```
 
 | Owner | Inputs and allowed dependencies | Stable output or authority |
