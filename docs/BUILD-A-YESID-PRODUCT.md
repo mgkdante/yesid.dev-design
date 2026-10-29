@@ -8,7 +8,7 @@ Use this checklist in the new product:
 - [ ] Load the package token styles and bundled fonts.
 - [ ] Import one shared UI initializer from both SvelteKit client and server init hooks.
 - [ ] Apply the motion tiers and expose reduced-motion state where the product needs it.
-- [ ] Add one consumer-owned gate policy module and its contract test to Vitest and CI.
+- [ ] Add one consumer-owned gate policy module and run it with `lint:design` in CI.
 - [ ] Start analytics in the root layout and set `PUBLIC_PLAUSIBLE_DOMAIN` in production.
 - [ ] Run the app tests, typecheck, and production build.
 

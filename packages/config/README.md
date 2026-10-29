@@ -57,4 +57,4 @@ setup.
 
 `@yesid/config/playwright` exports `yesidProjects(baseURL)`, the standard projects, and
 `expectAccessible(page)`, one axe check. See
-[Test accessibility with the standard projects](../../docs/BUILD-A-YESID-PRODUCT.md#7-test-accessibility-with-the-standard-projects).
+[Test accessibility with the standard projects](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/docs/BUILD-A-YESID-PRODUCT.md#7-test-accessibility-with-the-standard-projects).

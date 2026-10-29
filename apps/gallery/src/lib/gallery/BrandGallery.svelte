@@ -580,7 +580,7 @@
 	</p>
 	<ul class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 		{#each Object.entries(blueprints) as [name, Drawing] (name)}
-			<li class="rounded-md border border-border p-3 text-primary" data-gallery-blueprint={name}>
+			<li class="rounded-md border border-border p-3 text-primary">
 				<Drawing class="h-32 w-full" aria-hidden="true" />
 				<p class="mt-2 font-mono text-caption text-muted-foreground">{name}</p>
 			</li>

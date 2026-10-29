@@ -14,6 +14,10 @@ const routes = [
 ];
 
 test.describe('accessibility', { tag: '@theme' }, () => {
+	test.afterEach(async ({ page }, testInfo) => {
+		await expect(page.locator('html')).toHaveAttribute('data-theme', testInfo.project.name);
+	});
+
 	for (const route of routes) {
 		test(`${route} has no serious or critical axe violations`, async ({ page }) => {
 			await page.goto(route);

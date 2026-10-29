@@ -1,6 +1,6 @@
 # @yesid/gates
 
-Brand-quality checks that run inside a product's own test suite. The package finds violations;
+Brand-quality checks that a product runs as its own lint script. The package finds violations;
 each product decides which files to scan and supplies its palette, thresholds, allowlists,
 exclusions and what counts as a failure.
 
@@ -9,7 +9,7 @@ exclusions and what counts as a failure.
 The root export holds the filesystem walk and comment helpers and the style, brand-hex, color-mix,
 contrast, dataviz, Tailwind-variant and SEO-coverage engines. The
 [product guide](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/docs/BUILD-A-YESID-PRODUCT.md)
-shows a full Vitest setup. The exact interface is in
+shows the `lint:design` script setup. The exact interface is in
 [`api-reports/gates.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/api-reports/gates.api.md).
 
 ## Rules

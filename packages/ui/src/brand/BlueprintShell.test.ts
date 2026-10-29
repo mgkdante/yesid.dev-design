@@ -19,4 +19,12 @@ describe('BlueprintShell', () => {
 		expect(container.querySelector('[data-testid="blueprint-hero"]')?.closest('[aria-hidden]')?.getAttribute('aria-hidden')).toBe('true');
 	});
 
+	it('forwards a caller class and renders the supplied labels', () => {
+		const { container } = render(BlueprintShell, {
+			props: { hero, details, labels: ['TR', 'BL', 'BR'], class: 'consumer-shell' },
+		});
+		const shell = container.querySelector('[data-testid="blueprint-hero"]')?.closest('[aria-hidden]');
+		expect(shell?.classList).toContain('consumer-shell');
+		for (const label of ['TR', 'BL', 'BR']) expect(shell?.textContent).toContain(label);
+	});
 });
