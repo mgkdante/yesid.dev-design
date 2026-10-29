@@ -32,7 +32,7 @@ not import this TypeScript package; keep its prefix list in a dependency-free mo
 
 Locale context and `<html lang>` live in `@yesid/ui` (`createLocaleContext` and `SiteRoot`'s
 `lang`), because they need Svelte. The exact interface is in
-[`api-reports/i18n-core.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.29.0/api-reports/i18n-core.api.md).
+[`api-reports/i18n-core.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.0/api-reports/i18n-core.api.md).
 
 ## Rules
 
