@@ -138,7 +138,7 @@ docs/BUILD-A-YESID-PRODUCT.md.
 colors — orange signage, yellow hazard stripes (with black), reflective white, black tape and
 structure. Each holds a named role; every component usage maps to exactly one:
 
-- **ORANGE — interactive/signage** (\`primary\` \`#E07800\`, light \`#A05500\`): nav and component
+- **ORANGE — interactive/signage** (\`primary\` \`#E07800\`, light \`#985000\`): nav and component
   links, buttons, CTAs, focus rings, active/hover states, signage accents. The clickable hue for
   everything except conversion and text links (below).
 - **YELLOW — wayfinding & hazard & highlight** (\`accent\` \`#FFB627\` as surface/art;

@@ -34,20 +34,16 @@ test('links and search show at the header widths their priority allows', async (
 	await expect(language(page)).toHaveAttribute('href', languageHref(LOCALES[1]));
 });
 
-test('the language link meets the tap-size minimum', async ({ page }) => {
+test('the skip link is the first tab stop and moves focus into the main content', async ({ page }) => {
 	await page.goto(HOME);
-	const { min, width, height } = await language(page).evaluate((link) => {
-		const probe = document.createElement('div');
-		probe.style.inlineSize = 'var(--size-tap-min)';
-		document.body.append(probe);
-		const min = probe.getBoundingClientRect().width;
-		probe.remove();
-		const { width, height } = link.getBoundingClientRect();
-		return { min, width, height };
-	});
-	expect(min).toBeGreaterThan(0);
-	expect(width).toBeGreaterThanOrEqual(min);
-	expect(height).toBeGreaterThanOrEqual(min);
+	const skip = page.getByRole('link', { name: LABELS.skipToContent });
+	await expect(skip).not.toBeInViewport();
+	await page.keyboard.press('Tab');
+	await expect(skip).toBeFocused();
+	await expect(skip).toBeInViewport();
+	await page.keyboard.press('Enter');
+	await page.keyboard.press('Tab');
+	await expect(page.getByRole('main').locator(':focus')).toHaveCount(1);
 });
 
 test('the menu opens with every item, traps focus and closes with Escape', async ({ page }) => {

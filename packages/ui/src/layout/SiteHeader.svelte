@@ -1,7 +1,8 @@
 <!--
   Floating pill header: wordmark, links, optional search and actions, then the theme, language and
-  menu controls. The menu is a full-screen metro line on a bits-ui Dialog; the pill renders inside
-  the dialog content so it stays reachable and focus-trapped above the open menu.
+  menu controls. It opens with a skip link to `#main`; the pill is the page's banner. The menu is a
+  full-screen metro line on a bits-ui Dialog; the pill renders inside the dialog content so it stays
+  reachable and focus-trapped above the open menu.
   `--site-header-inset-end` narrows the header beside a docked panel, animated over
   `--site-header-inset-duration`. Snippets can query the header's width with `@container site-header`.
 -->
@@ -40,6 +41,8 @@
 		nav?: string;
 		/** Defaults to "Navigation · All routes" in the language's locale; an empty string hides it. */
 		menuFooter?: string;
+		/** The skip link's text; defaults to "Skip to content" in the language's locale. */
+		skipToContent?: string;
 	}
 
 	export interface SiteHeaderProps {
@@ -57,11 +60,11 @@
 		actions?: Snippet;
 	}
 
-	const MENU_FOOTER: Readonly<Record<string, string>> = {
-		en: 'Navigation · All routes',
-		fr: 'Navigation · Toutes les routes',
-		es: 'Navegación · Todas las rutas',
-	};
+	const DEFAULT_LABELS = {
+		en: { menuFooter: 'Navigation · All routes', skipToContent: 'Skip to content' },
+		fr: { menuFooter: 'Navigation · Toutes les routes', skipToContent: 'Aller au contenu' },
+		es: { menuFooter: 'Navegación · Todas las rutas', skipToContent: 'Saltar al contenido' },
+	} as const;
 </script>
 
 <script lang="ts">
@@ -79,7 +82,9 @@
 
 	const contentId = $props.id();
 	const linksFrom = $derived(Math.min(...links.map((link) => link.priority ?? 1)));
-	const menuFooter = $derived(labels.menuFooter ?? MENU_FOOTER[language?.locale ?? 'en'] ?? MENU_FOOTER.en);
+	const defaults = $derived(DEFAULT_LABELS[(language?.locale ?? 'en') as keyof typeof DEFAULT_LABELS] ?? DEFAULT_LABELS.en);
+	const menuFooter = $derived(labels.menuFooter ?? defaults.menuFooter);
+	const skipToContent = $derived(labels.skipToContent ?? defaults.skipToContent);
 
 	let pill: HTMLElement;
 	let menuToggle: HTMLButtonElement;
@@ -189,6 +194,8 @@
 	}
 </script>
 
+<a class="skip-link" href="#main">{skipToContent}</a>
+
 <!-- Bound to `active` so the focus trap and scroll lock last through the close animation. -->
 <Dialog.Root open={active} onOpenChange={(open) => !open && close()}>
 	<Dialog.Content
@@ -223,21 +230,21 @@
 				style:contain="none"
 				data-lenis-prevent={active ? true : undefined}
 			>
-				<nav
+				<header
 					data-testid="nav"
 					data-slot="site-header"
-					aria-label={labels.nav}
 					class="nav-root pointer-events-none fixed left-0 right-0 flex flex-col items-center"
 					style:z-index={active ? 'var(--z-nav)' : 'var(--z-sheet)'}
 				>
-					<div
+					<nav
 						bind:this={pill}
 						data-testid="nav-pill"
 						data-links-from={linksFrom}
+						aria-label={labels.nav}
 						class="nav-pill pointer-events-auto flex items-center"
 						class:nav-pill-compact={active}
 					>
-						<Wordmark href={home} text={wordmark} autoPlay class="nav-wordmark min-h-11" />
+						<Wordmark href={home} text={wordmark} autoPlay class="nav-wordmark" />
 
 						{#if links.length}
 							<span class="nav-divider nav-collapsible nav-links-part" class:nav-collapsed={active} aria-hidden="true"
@@ -284,8 +291,8 @@
 							<span class="menu-toggle-line menu-toggle-top"></span>
 							<span class="menu-toggle-line menu-toggle-bottom"></span>
 						</button>
-					</div>
-				</nav>
+					</nav>
+				</header>
 
 				{#if active}
 					<div
@@ -343,6 +350,26 @@
 </Dialog.Root>
 
 <style>
+	/* Off screen until focused, then above the header. */
+	.skip-link {
+		position: fixed;
+		top: var(--nav-top);
+		left: -9999px;
+		z-index: var(--z-overlay);
+		display: inline-flex;
+		align-items: center;
+		min-block-size: var(--size-tap-min);
+		padding-inline: 1rem;
+		border-radius: var(--radius-pill);
+		background: var(--primary);
+		color: var(--background);
+		font-family: var(--font-body);
+		font-weight: 600;
+	}
+	.skip-link:focus {
+		left: 1rem;
+	}
+
 	/* ── Pill ── */
 	.nav-root {
 		top: var(--nav-top);

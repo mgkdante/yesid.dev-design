@@ -66,10 +66,10 @@
 {#snippet railBody()}
 	<label class="grid gap-1 text-small">
 		{copy.search}
-		<input type="search" class="rounded-md border border-border bg-card px-3 py-2" />
+		<input type="search" class="min-h-11 rounded-md border border-border bg-card px-3 py-2" />
 	</label>
 	<SegmentedChoice options={grains} value={grain} label={copy.grain} onSelect={(key) => (grain = key)} />
-	<a href="#waits" class="text-small text-primary">{stopTable.caption}</a>
+	<a href="#waits" class="text-small text-primary inline-flex min-h-11 items-center">{stopTable.caption}</a>
 {/snippet}
 
 {#snippet rail()}

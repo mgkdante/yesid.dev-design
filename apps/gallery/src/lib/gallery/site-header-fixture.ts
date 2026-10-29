@@ -17,6 +17,7 @@ export const MENU_ITEMS: readonly SiteHeaderMenuItem[] = [
 	{ href: 'https://example.com', label: 'Elsewhere', external: true, ariaLabel: 'Elsewhere (opens in a new tab)' },
 ];
 export const LABELS = {
+	skipToContent: 'Skip to content',
 	openMenu: 'Open menu',
 	closeMenu: 'Close menu',
 	menu: 'Site menu',

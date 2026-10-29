@@ -51,7 +51,7 @@
 				watermark="NOTES"
 			>
 				{#snippet controls()}
-					<button type="button" class="rounded-md border border-border px-3 py-1 text-small">Share</button>
+					<button type="button" class="min-h-11 rounded-md border border-border px-3 py-1 text-small">Share</button>
 				{/snippet}
 			</ArticleHeader>
 		{/snippet}
@@ -73,7 +73,7 @@
 
 {#snippet leftRail()}
 	<nav aria-label="Sections">
-		<ul class="grid gap-2 text-small">
+		<ul class="grid gap-2 text-small [&_a]:inline-block [&_a]:min-h-6">
 			{#each sections as { id, title } (id)}
 				<li><a href="#{id}">{title}</a></li>
 			{/each}

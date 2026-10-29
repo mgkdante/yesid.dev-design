@@ -423,7 +423,10 @@ optional `search` snippet shows from 1024px and folds away with the links while 
 items; snippets can query the header's width with `@container site-header`. A menu item's `icon`
 (any Lucide icon component, such as `@lucide/svelte/icons/map`) replaces its stop and lights up on
 the current page. The menu footer reads "Navigation · All routes" in the language's locale (en, fr
-or es); `labels.menuFooter` replaces it and an empty string hides it.
+or es); `labels.menuFooter` replaces it and an empty string hides it. The header opens with a skip
+link to `#main`, shown on focus ("Skip to content" in the same locales; `labels.skipToContent` replaces
+it), and the pill is the page's banner. Every product renders the same skeleton: `SiteHeader`, then
+`<main id="main">`, then `SiteFooter` outside `main`.
 `--site-header-inset-end` narrows the header beside a docked panel, animated over
 `--site-header-inset-duration`. The menu starts below the app's `--chrome-offset` (default `--nav-clearance`); page offsets read
 `--nav-clearance` from `base.css`.
@@ -554,7 +557,8 @@ relies on `'unsafe-inline'` must not add the hash, because any hash switches `'u
 focus ring, text links (a link without a class is underlined in `--accent-text`; components
 style their own), scrollbar, circuit grid, shared keyframes, label styles, `.glass-chrome`, the
 `TerminalPanel` and `CodeBlock` classes (`.terminal-*` and `.syn-*`, in the components layer), the
-`SiteHeader` geometry (`--nav-top`, `--nav-padding-y`, `--nav-clearance`) and the
+`SiteHeader` geometry (`--nav-top`, `--nav-padding-y`, `--nav-clearance`), a focus outline under
+forced colors and the
 View Transitions route crossfade (off under reduced motion; pair it with `onNavigate(viewTransition)`
 from `@yesid/motion/utils/viewTransition`). It imports
 `@yesid/tokens/theme.css`, which provides the Tailwind theme and the semantic color utilities

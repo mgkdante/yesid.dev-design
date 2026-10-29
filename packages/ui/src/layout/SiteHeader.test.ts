@@ -82,6 +82,24 @@ describe('SiteHeader', () => {
 		expect(defaults[0]).not.toBe(defaults[1]);
 	});
 
+	it('starts with a skip link to #main, named by locale or by label, before the banner', () => {
+		const names = (['en', 'fr'] as const).map((locale) => {
+			const view = setup({ language: { locale, locales: ['en', 'fr'], href: (next) => `/${next}`, label: 'Language' } });
+			const skip = view.getAllByRole('link')[0]!;
+			const banner = view.getByRole('banner');
+			expect(skip.getAttribute('href')).toBe('#main');
+			expect(skip.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+			expect(banner.contains(view.toggle)).toBe(true);
+			const name = skip.textContent!.trim();
+			view.unmount();
+			return name;
+		});
+		expect(names[0]).not.toBe('');
+		expect(names[0]).not.toBe(names[1]);
+		const custom = setup({ labels: { openMenu: 'Open menu', closeMenu: 'Close menu', menu: 'Site menu', theme: 'Dark theme', skipToContent: 'Jump to the page' } });
+		expect(custom.getAllByRole('link')[0]!.textContent!.trim()).toBe('Jump to the page');
+	});
+
 	it('opens the menu from the toggle and closes it from a menu link', async () => {
 		const { toggle, menu, open } = setup();
 		expect(menu()).toBeNull();

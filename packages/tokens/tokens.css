@@ -222,9 +222,9 @@
   --destructive: #C62828;
   --destructive-foreground: #FAF6EE;
   --success: #127336;
-  --primary: #A05500;
-  --primary-hover: #854500;
-  --primary-rgb: 160 85 0;
+  --primary: #985000;
+  --primary-hover: #7D4000;
+  --primary-rgb: 152 80 0;
   --accent-text: #815D00;
   --accent-foreground: #1C1813;
   --input: #94897A;
@@ -359,9 +359,9 @@
     --destructive: #C62828;
     --destructive-foreground: #FAF6EE;
     --success: #127336;
-    --primary: #A05500;
-    --primary-hover: #854500;
-    --primary-rgb: 160 85 0;
+    --primary: #985000;
+    --primary-hover: #7D4000;
+    --primary-rgb: 152 80 0;
     --accent-text: #815D00;
     --accent-foreground: #1C1813;
     --input: #94897A;

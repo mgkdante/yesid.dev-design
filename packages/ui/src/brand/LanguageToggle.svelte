@@ -81,6 +81,7 @@
 			};
 		}),
 	);
+	const codes = $derived(boards.map((board) => board.code).join(' '));
 </script>
 
 {#if locales.length >= 2}
@@ -92,7 +93,7 @@
 		data-sveltekit-reset={preserveState ? 'false' : undefined}
 		data-sveltekit-reload={reload || undefined}
 		class={cn('lang-post tap-press', className)}
-		aria-label="{label}: {name}"
+		aria-label="{label}: {name} ({codes})"
 		title={name}
 		style="--vb-h: {vbHeight}"
 	>
@@ -102,7 +103,7 @@
 			{#key locale}
 				<g class="boards">
 					{#each boards as b (b.locale)}
-						<g class="board" class:active={b.active} style="--d:{b.delay}ms; transform-origin:28px {b.ty - 3.8}px;">
+						{' '}<g class="board" class:active={b.active} style="--d:{b.delay}ms; transform-origin:28px {b.ty - 3.8}px;">
 							<path class="plate" d={b.path}></path>
 							{#if b.active}
 								<line class="rule" x1={b.ruleX1} y1={b.ruleY} x2={b.ruleX2} y2={b.ruleY}></line>

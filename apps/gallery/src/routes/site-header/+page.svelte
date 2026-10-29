@@ -36,7 +36,7 @@
 		type="search"
 		aria-label={SEARCH_LABEL}
 		placeholder={SEARCH_LABEL}
-		class="h-9 w-56 rounded-full border border-border-subtle bg-muted px-4 text-small"
+		class="h-11 w-56 rounded-full border border-border-subtle bg-muted px-4 text-small"
 	/>
 {/snippet}
 
@@ -50,11 +50,11 @@
 	{search}
 />
 
-<div style="padding-top: var(--nav-clearance);">
+<main id="main" class="mx-auto max-w-5xl px-6 pb-10" style="padding-top: var(--nav-clearance);">
 	<h1 class="font-heading text-display font-bold">Site header</h1>
 	<p class="mt-4 max-w-prose text-body text-muted-foreground">
 		Priority 2 links show from 500px of header width, priority 3 links and search from 1024px. The
 		menu holds every destination, like the <a href="/listing-frame">listing frame</a>; a language
 		switch from the open menu keeps it open.
 	</p>
-</div>
+</main>

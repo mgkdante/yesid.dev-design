@@ -17,7 +17,7 @@ describe('LanguageToggle', () => {
 		const { getByRole } = render(LanguageToggle, {
 			props: { locale: 'fr', locales: ['en', 'fr', 'es'], href, label: 'Langue' },
 		});
-		const link = getByRole('link', { name: 'Langue: Français' });
+		const link = getByRole('link', { name: 'Langue: Français (EN FR ES)' });
 		expect(link.getAttribute('href')).toBe('/es/page?q=1#h');
 		expect(link.textContent).toContain('EN');
 		expect(link.textContent).toContain('ES');
@@ -29,13 +29,13 @@ describe('LanguageToggle', () => {
 		const reload = render(LanguageToggle, {
 			props: { locale: 'en', locales: ['en', 'fr'], href, label: 'Language', reload: true },
 		});
-		expect(reload.getByRole('link', { name: 'Language: English' }).hasAttribute('data-sveltekit-reload')).toBe(true);
+		expect(reload.getByRole('link', { name: 'Language: English (EN FR)' }).hasAttribute('data-sveltekit-reload')).toBe(true);
 		reload.unmount();
 
 		const kept = render(LanguageToggle, {
 			props: { locale: 'en', locales: ['en', 'fr'], href, label: 'Language', preserveState: true },
 		});
-		expect(kept.getByRole('link', { name: 'Language: English' }).getAttribute('data-sveltekit-reset')).toBe('false');
+		expect(kept.getByRole('link', { name: 'Language: English (EN FR)' }).getAttribute('data-sveltekit-reset')).toBe('false');
 	});
 
 	it('resets focus only after its own state-preserving navigation', () => {
