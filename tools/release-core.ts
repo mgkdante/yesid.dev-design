@@ -18,14 +18,16 @@ export const RELEASED_PACKAGES = [
 	'@yesid/analytics',
 	'@yesid/i18n-core',
 ] as const;
+const LOCKSTEP_PACKAGES = [...RELEASED_PACKAGES, '@yesid/config'] as const;
 
 export type ReleasedPackageName = (typeof RELEASED_PACKAGES)[number];
+type LockstepPackageName = (typeof LOCKSTEP_PACKAGES)[number];
 export type ReleaseBump = 'patch' | 'minor' | 'major';
 
 export interface ParsedChangeFragment {
 	id: string;
 	path: string;
-	packages: ReadonlyMap<ReleasedPackageName, ReleaseBump>;
+	packages: ReadonlyMap<LockstepPackageName, ReleaseBump>;
 	description: string;
 }
 
@@ -48,12 +50,7 @@ export interface PreparedReleaseExpectation {
 	tag?: string;
 }
 
-const RELEASED_WORKSPACES: Readonly<
-	Record<
-		ReleasedPackageName,
-		`packages/${'tokens' | 'motion' | 'gates' | 'seo-kit' | 'ui' | 'analytics' | 'i18n-core'}`
-	>
-> = {
+const RELEASED_WORKSPACES: Readonly<Record<LockstepPackageName, `packages/${string}`>> = {
 	'@yesid/tokens': 'packages/tokens',
 	'@yesid/motion': 'packages/motion',
 	'@yesid/gates': 'packages/gates',
@@ -61,6 +58,7 @@ const RELEASED_WORKSPACES: Readonly<
 	'@yesid/ui': 'packages/ui',
 	'@yesid/analytics': 'packages/analytics',
 	'@yesid/i18n-core': 'packages/i18n-core',
+	'@yesid/config': 'packages/config',
 };
 const FRAGMENT_PATH = /^\.changes\/([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/u;
 const NUMERIC_IDENTIFIER = /^(?:0|[1-9]\d*)$/u;
@@ -78,8 +76,8 @@ function normalizeLineEndings(source: string): string {
 	return source.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
 }
 
-function isReleasedPackage(value: string): value is ReleasedPackageName {
-	return RELEASED_PACKAGES.some((packageName) => packageName === value);
+function isLockstepPackage(value: string): value is LockstepPackageName {
+	return LOCKSTEP_PACKAGES.some((packageName) => packageName === value);
 }
 
 function isReleaseBump(value: string): value is ReleaseBump {
@@ -136,7 +134,7 @@ export function parseChangeFragment(source: string, path: string): ParsedChangeF
 	if (end === -1) throw new Error(`${path} must close release fragment front matter`);
 	const descriptionStart = emptyFrontMatter ? 8 : end + '\n---\n'.length;
 
-	const packages = new Map<ReleasedPackageName, ReleaseBump>();
+	const packages = new Map<LockstepPackageName, ReleaseBump>();
 	const frontMatter = normalized.slice(4, end);
 	for (const declaration of frontMatter ? frontMatter.split('\n') : []) {
 		const match = declaration.match(/^"([^"]+)":\s*([^\s]+)$/u);
@@ -144,7 +142,7 @@ export function parseChangeFragment(source: string, path: string): ParsedChangeF
 			throw new Error(`${path} has malformed release declaration: ${declaration || '<empty>'}`);
 		}
 		const [packageName, bump] = [match[1], match[2]];
-		if (!isReleasedPackage(packageName)) {
+		if (!isLockstepPackage(packageName)) {
 			throw new Error(`${path} names unknown released package ${packageName}`);
 		}
 		if (!isReleaseBump(bump)) {
@@ -280,7 +278,7 @@ function readRepositoryVersionState(repositoryRootInput: string): RepositoryVers
 	const root = readManifest(repositoryRoot, 'package.json', 'yesid-dev-design');
 	const manifests = [
 		root,
-		...RELEASED_PACKAGES.map((packageName) => {
+		...LOCKSTEP_PACKAGES.map((packageName) => {
 			const workspace = RELEASED_WORKSPACES[packageName];
 			return readManifest(repositoryRoot, `${workspace}/package.json`, packageName);
 		}),
@@ -299,7 +297,7 @@ function readRepositoryVersionState(repositoryRootInput: string): RepositoryVers
 		);
 	}
 	const lockfile = readFileSync(join(repositoryRoot, 'bun.lock'), 'utf8');
-	for (const packageName of RELEASED_PACKAGES) {
+	for (const packageName of LOCKSTEP_PACKAGES) {
 		const workspace = RELEASED_WORKSPACES[packageName];
 		const version = lockWorkspaceVersion(lockfile, workspace);
 		if (version !== root.version) {
@@ -479,7 +477,7 @@ function assertStablePromotion(
 }
 
 function renderFragment(fragment: ParsedChangeFragment): string {
-	const packages = RELEASED_PACKAGES.filter((packageName) => fragment.packages.has(packageName)).map(
+	const packages = LOCKSTEP_PACKAGES.filter((packageName) => fragment.packages.has(packageName)).map(
 		(packageName) => `\`${packageName}\` (${fragment.packages.get(packageName)})`,
 	);
 	const description = fragment.description
@@ -552,7 +550,7 @@ export function prepareRelease(repositoryRootInput: string, version: string): vo
 	}
 
 	let nextLockfile = state.lockfile;
-	for (const packageName of RELEASED_PACKAGES) {
+	for (const packageName of LOCKSTEP_PACKAGES) {
 		nextLockfile = replaceLockWorkspaceVersion(
 			nextLockfile,
 			RELEASED_WORKSPACES[packageName],
@@ -560,10 +558,18 @@ export function prepareRelease(repositoryRootInput: string, version: string): vo
 			target.version,
 		);
 	}
+	const readmes = LOCKSTEP_PACKAGES.map((name) => `${RELEASED_WORKSPACES[name]}/README.md`);
 	const writes = [
 		...state.manifests.map((manifest) => ({
 			path: join(repositoryRoot, manifest.path),
 			source: replaceManifestVersion(manifest, target.version),
+		})),
+		...readmes.map((path) => ({
+			path: join(repositoryRoot, path),
+			source: readFileSync(join(repositoryRoot, path), 'utf8').replaceAll(
+				`blob/v${state.version}/`,
+				`blob/v${target.version}/`,
+			),
 		})),
 		{ path: join(repositoryRoot, 'bun.lock'), source: nextLockfile },
 		{ path: join(repositoryRoot, 'CHANGELOG.md'), source: nextChangelog },
@@ -595,5 +601,12 @@ export function checkPreparedRelease(
 	const latest = latestChangelogVersion(changelog);
 	if (latest !== expected.version) {
 		throw new Error(`Latest CHANGELOG.md release is ${latest ?? '<missing>'}; expected ${expected.version}`);
+	}
+	for (const name of LOCKSTEP_PACKAGES) {
+		const path = `${RELEASED_WORKSPACES[name]}/README.md`;
+		const stale = readFileSync(join(repositoryRoot, path), 'utf8')
+			.match(/blob\/v[^/]+\//gu)
+			?.find((link) => link !== `blob/v${expected.version}/`);
+		if (stale) throw new Error(`${path} links ${stale}; expected blob/v${expected.version}/`);
 	}
 }
