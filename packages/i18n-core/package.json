@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"description": "Pure, consumer-configured locale routing, Intl formatting and copy typing with app-owned locale values, tags and policy.",
+	"files": ["src", "!**/*.test.ts", "NOTICE"],
 	"sideEffects": false,
 	"exports": {
 		".": {

@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"description": "Consumer-neutral cookieless Plausible client, URL reduction, and web-vitals collection.",
+	"files": ["src", "!**/*.test.ts", "NOTICE"],
 	"sideEffects": false,
 	"exports": {
 		".": {

@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"description": "Framework-neutral JSON-LD, sitemap and robots, share-card, icon and security-header primitives with consumer-owned policy and rasterization.",
+	"files": ["src", "fonts", "!**/__tests__", "NOTICE"],
 	"sideEffects": false,
 	"exports": {
 		".": {
@@ -44,10 +45,8 @@
 		"test:watch": "vitest",
 		"check": "tsc --noEmit"
 	},
-	"dependencies": {
-		"@yesid/tokens": "workspace:*"
-	},
 	"peerDependencies": {
+		"@yesid/tokens": "workspace:*",
 		"satori": ">=0.10.0 <1"
 	},
 	"devDependencies": {

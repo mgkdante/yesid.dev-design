@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Pure brand motion actions extracted byte-faithful from yesid.dev @ 2bdb611d. Snappy Doctrine vocabulary (Tier 1): boop, magnetic, cursorGlow, sectionGlow, cardParallax, pressBounce, wordmarkHover, plus scrollChain for nested scroll under Lenis. morphHover stays app-side.",
+  "files": ["src", "*.css", "!**/*.test.ts", "!**/__tests__", "NOTICE"],
   "sideEffects": ["**/*.css"],
   "exports": {
     ".": {

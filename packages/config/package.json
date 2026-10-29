@@ -1,13 +1,13 @@
 {
 	"name": "@yesid/config",
-	"version": "0.2.1",
+	"version": "0.27.0",
 	"private": true,
 	"type": "module",
-	"description": "Independently versioned shared-tooling configuration distribution boundary.",
+	"description": "Shared TypeScript, Svelte and Turborepo configuration for yesid repositories.",
 	"files": [
 		"README.md",
 		"LICENSE",
-		"CHANGELOG.md",
+		"NOTICE",
 		"tsconfig/base.json",
 		"tsconfig/library.json",
 		"tsconfig/svelte-kit.json",

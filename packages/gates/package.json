@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"description": "Pure, parameterized brand-quality gate engines. Product policy stays consumer-owned; this package is test-runner-agnostic and depends only on Node filesystem APIs.",
+	"files": ["src", "!**/__tests__", "NOTICE"],
 	"sideEffects": ["**/*.css"],
 	"exports": {
 		".": {
