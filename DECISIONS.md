@@ -7,8 +7,8 @@ available in Git history and `CHANGELOG.md`; it does not govern the current pack
 
 `v0.1.0` is the byte-faithful parity release extracted from yesid.dev commit
 `2bdb611d91749dc437c07586cb82129eabe9dfec`, subject only to the deviation register in
-`README.md`. The tag never moves. Later releases advance from that reference rather than
-rewriting it.
+[that release's README](https://github.com/mgkdante/yesid.dev-design/blob/v0.1.0/README.md).
+The tag never moves. Later releases advance from that reference rather than rewriting it.
 
 ## D2: Consumers install exact release tarballs
 
@@ -82,7 +82,7 @@ deterministic targets without pretending that clamp is a native DTCG dimension.
 ## D11: UI compatibility is owned by durable package and consumer contracts
 
 `packages/ui/README.md` owns the shared component behavior and the known consumer compatibility
-seams. `BOUNDARIES.md` owns the cross-product placement decision. Product conflicts never become
+seams. Product conflicts never become
 app checks in the package: the owner settles each one and the package ships the single look
 (design-standard ds2 settled the Card, Button, resizable, StickyPanel, TerminalCursor, Separator
 and MetroStation conflicts in yesid.dev's favor).
@@ -95,28 +95,21 @@ guards, generated outputs, tests, build, accessibility checks, and relevant brow
 ## D12: Gallery is the repository browser authority, not consumer proof
 
 Gallery dogfoods the workspace packages and owns repository-level rendered integration,
-accessibility, reduced-motion, responsive, and visual-regression checks. It does not install the
+accessibility, reduced-motion and responsive checks. It does not install the
 immutable Release asset and cannot prove a Transit or yesid.dev bump. Release integrity and
 each product's verification remain separate gates.
 
-## D13: Package contracts are local and efficiency work is measured
+## D13: Each package README documents its own contract
 
-Each package README owns that package's responsibility, interface links, invariants, consumer
-obligations, commands, failure modes, compatibility, deterministic rules, and release impact.
-The root README is an index. Generated API reports remain interface authority; `BOUNDARIES.md`,
-`RELEASING.md`, `DEPRECATION.md`, and `CONSUMERS.md` retain their existing cross-package owners.
-Package READMEs link those owners at the immutable release tag so vendored copies never depend on
-paths outside the installed package. Gallery has its own README because it is a private app with a
-different authority and release boundary.
-
-Architecture and efficiency changes require a reproducible baseline and one observed failure or
-cost. Line counts are physical `wc -l` counts over tracked path sets, not semantic estimates.
-Generated and vendor material are reported separately. Raw churn is not net maintained change.
+Each package README states what the package owns, how to use it and the rules it keeps. The root
+README is an index, and the generated API reports remain the interface authority. Package READMEs
+link repository files at the release tag, so the copy installed in `node_modules` never points at a
+moved file. Gallery has its own README because it is a private app that is never released.
 
 ## D14: Two consumers are enough to promote a component
 
-The owner changed [Law 4](README.md#governance-laws) on 2026-10-26: a component or composed
+The owner changed [principle 4](README.md#principles) on 2026-10-26: a component or composed
 pattern promotes once two independent products need the same contract. The rule of three left every frame and composed
 component duplicated in Transit and yesid.dev while they waited for a third product. The copies
-drifted, and each carried fixes the other lacked. Law 1 still holds: a difference that cannot be a
+drifted, and each carried fixes the other lacked. Principle 1 still holds: a difference that cannot be a
 prop with a default stays in the app.

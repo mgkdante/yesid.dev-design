@@ -3,7 +3,7 @@
 	"version": "0.28.1",
 	"private": true,
 	"type": "module",
-	"description": "yesid.dev brand foundation — tokens, motion, gates, UI, gallery. Parity anchor: yesid.dev @ 2bdb611d91749dc437c07586cb82129eabe9dfec.",
+	"description": "yesid.dev design and product standard: tokens, UI, motion, gates, SEO, analytics, i18n and config packages, plus the Gallery app.",
 	"packageManager": "bun@1.3.11",
 	"engines": {
 		"bun": ">=1.3.0",

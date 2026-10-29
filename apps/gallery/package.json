@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
-	"description": "Living brand gallery — token sheets + motion demos rendered from @yesid/tokens and @yesid/motion. The dogfood consumer for @yesid/gates.",
+	"description": "Private app that renders the yesid packages and runs their browser tests.",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",

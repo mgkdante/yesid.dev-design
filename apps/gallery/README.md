@@ -1,25 +1,13 @@
 # Gallery
 
-Private static dogfood for the yesid.dev-design packages. Gallery owns neutral rendered examples,
-package coverage, and browser checks of behavior and accessibility. It is not a
-released package and cannot prove that Transit or yesid.dev adopted or preserved product behavior.
+A private SvelteKit app that renders the tokens, UI and motion packages from the workspace: token
+sheets, primitives, brand components, motion, and the listing, detail, data, error and site-header
+pages. Its unit and Playwright suites check rendered behavior and accessibility. It is never
+released, and a passing Gallery run does not replace a product's own tests.
 
-## Interface and dependency direction
-
-Gallery consumes `@yesid/tokens`, `@yesid/motion`, and `@yesid/ui` at runtime and
-`@yesid/gates` in local tests. It supplies its own UI vocabulary, theme persistence, demo data,
-and gate policy. Packages never import Gallery.
-
-The public package interfaces are owned by generated reports under `api-reports/`. Gallery's
-coverage registry checks that public UI families and shared motion actions have a neutral example;
-it does not create new package exports.
-
-## Invariants and generated content
-
-- Gallery remains versioned separately from the seven coordinated packages.
-- Browser authority is pinned to Chromium, UTC, `en-CA`, reduced motion, desktop/mobile projects,
-  one worker and no retries. Browser tests assert behavior; there are no pixel snapshots.
-- Gallery success is upstream integration evidence only; consumers own adoption and deployment.
+Gallery uses `@yesid/tokens`, `@yesid/motion` and `@yesid/ui` at runtime and `@yesid/gates` in its
+tests, with its own gate policy, demo data and theme persistence. Packages never import it. Its
+coverage test fails when a public UI family or shared motion action has no example.
 
 ## Commands
 
@@ -27,20 +15,12 @@ it does not create new package exports.
 bun run --cwd apps/gallery dev
 bun run --cwd apps/gallery test
 bun run --cwd apps/gallery check
-bun run --cwd apps/gallery build
-bun run test:browser:list
+bun run browser:install
 bun run test:browser
+bun run test:browser:list
 ```
 
-`test:browser:list` discovers the fixed matrix without building. `test:browser` deliberately
-builds the production Gallery before executing the browser suite.
-
-## Failure modes and release implications
-
-Unit/SSR failures point to package integration or Gallery policy. Browser failures additionally
-cover built output, interactions, accessibility, fonts and responsive containment.
-Package success cannot waive a Gallery failure, and Gallery success cannot waive consumer gates.
-
-Gallery source and README changes do not require a coordinated package release unless package
-payload bytes also change. Package release and consumer procedures live in
-[`RELEASING.md`](../../RELEASING.md) and [`CONSUMERS.md`](../../CONSUMERS.md).
+`browser:install` downloads Chromium once. `test:browser` builds the Gallery, then runs Playwright;
+`test:browser:list` lists the browser matrix without building. Browser runs are pinned to Chromium,
+UTC, `en-CA` and reduced motion, on desktop and mobile projects with one worker and no retries.
+They assert behavior, never pixels.

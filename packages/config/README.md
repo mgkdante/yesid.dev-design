@@ -1,8 +1,7 @@
 # @yesid/config
 
-Shared TypeScript, Svelte and Turborepo configuration
-for yesid repositories. It ships as `yesid-config-X.Y.Z.tgz` on each `vX.Y.Z` release, in
-lockstep with the other packages; registry publication is disabled.
+Shared TypeScript, Svelte and Turborepo configuration for yesid repositories. It ships as
+`yesid-config-X.Y.Z.tgz` on each `vX.Y.Z` release, in lockstep with the other packages.
 
 ## Compatibility
 
@@ -14,19 +13,18 @@ lockstep with the other packages; registry publication is disabled.
 | `svelte/project-runes.js` | Svelte `>=5 <6`; Node `>=22` or Bun `>=1.3` |
 | `turbo/base.json` | Turbo `>=2.9 <3` |
 
-These ranges are the tested contract, not registry peer dependencies. Each export remains
-independently usable without forcing unrelated tools into a consumer installation.
+These ranges are tested, not declared as peer dependencies. Each export works on its own, so a
+product never installs a tool it doesn't use.
 
-## TypeScript
+## TypeScript and Svelte
 
-- `@yesid/config/tsconfig/base.json` owns only the compiler policy shared by every proven
-  consumer.
-- `@yesid/config/tsconfig/library.json` adds the neutral no-emit library contract. Consumers
-  still own module format, globals, libraries, paths, and source inclusion.
-- `@yesid/config/tsconfig/svelte-kit.json` composes after SvelteKit's generated config. Apps
-  still own aliases, generated inputs, runtime globals, and any stricter local policy.
-- `@yesid/config/svelte/project-runes.js` supplies the shared Svelte 5 project-runes policy.
-  Pass `import.meta.dirname`; adapters, preprocessors, routes, and version polling stay local.
+- `@yesid/config/tsconfig/base.json` holds only the compiler policy every product shares.
+- `@yesid/config/tsconfig/library.json` adds the no-emit library settings. Products still own
+  module format, globals, libraries, paths and source inclusion.
+- `@yesid/config/tsconfig/svelte-kit.json` composes after SvelteKit's generated config. Apps still
+  own aliases, generated inputs, runtime globals and any stricter local policy.
+- `@yesid/config/svelte/project-runes.js` supplies the shared Svelte 5 runes policy. Pass
+  `import.meta.dirname`; adapters, preprocessors, routes and version polling stay local.
 
 ```json
 {
@@ -47,15 +45,10 @@ export default {
 
 ## Turborepo
 
-`@yesid/config/turbo/base.json` is the canonical three-repository task core. Root
-`turbo.json` files cannot extend an external config, so each consumer commits its own
-`turbo.json` that starts from this base. Deploy outputs, environment variables, app-only
-tasks, and credentials never belong in the base.
+`@yesid/config/turbo/base.json` is the task core the three repositories share. A root `turbo.json`
+cannot extend an external config, so each product commits its own `turbo.json` that starts from
+this base. Deploy outputs, environment variables, app-only tasks and credentials never belong in
+the base.
 
-ESLint, Prettier, Vitest, deploy bindings, and product path literals remain consumer-owned
-until they independently satisfy the third-consumer rule.
-
-## Release implications
-
-Config changes add a `.changes` fragment naming `@yesid/config` and ship with the next coordinated
-release ([`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/RELEASING.md)).
+ESLint, Prettier, Vitest and deploy settings stay in each product until two products need the same
+setup.
