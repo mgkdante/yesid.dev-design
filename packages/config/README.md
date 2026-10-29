@@ -58,4 +58,4 @@ until they independently satisfy the third-consumer rule.
 ## Release implications
 
 Config changes add a `.changes` fragment naming `@yesid/config` and ship with the next coordinated
-release ([`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/RELEASING.md)).
+release ([`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/RELEASING.md)).
