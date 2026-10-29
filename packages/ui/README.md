@@ -442,10 +442,9 @@ like a normal navigation through `onNavigate`; `reload` asks for a full document
 `SiteFooter` renders the hazard strip, the `brand` snippet with a `tagline`, one labelled
 navigation per entry in `groups` (`navLabel` when the accessible name differs from the heading;
 `external` links open in a new tab with `rel="noopener noreferrer"`, and `me` adds `rel="me"` for
-the owner's own profiles; `after` adds controls
-such as a consent button inside the group), and a status row with `statusStart`, a live lamp
-(`liveLabel` for screen readers) and today's date. `data-in-view` reports whether it is on
-screen.
+the owner's own profiles; `after` adds controls inside the group), and a status row with
+`statusStart`, a live lamp (`liveLabel` for screen readers) and today's date. `data-in-view`
+reports whether it is on screen.
 
 `ErrorPage` is the error route body: hazard rule, `ErrorIllustration`, `label`, `heading`, `body`,
 optional `detail`, `suggestions` in a navigation named `suggestionsLabel`, and a terminal line when
@@ -479,17 +478,6 @@ header, `tableClass` styles the table and other attributes go to the frame.
 optional `body`, a `glyph` tinted by `tone`, and `meta` and `action` snippets. `presentation` is
 `responsive` (default), `silo`, `card`, `pill` or `row`; a pill or row without snippets renders
 inline. Pass `role` and `aria-live` when the notice reports a change.
-
-## Analytics consent
-
-`@yesid/ui/feedback` exports `AnalyticsConsent`, the consent rail for an
-`@yesid/analytics/consent` store. It shows while `getAnalyticsPolicy(controls, state)` asks for a
-prompt and `canShow` allows it, or whenever preferences are open; then the current choice is
-pressed and every `store.openPreferences()` scrolls to and focuses the rail. The product passes
-the store, its `controls`, the `copy` (`title`, `description`, `accept`, `decline`, `settings`,
-`privacy`), `privacyHref` and optionally an `id`. The rail only exists while it shows, so a
-settings button that opens it should not point `aria-controls` at it. It calls `store.init()` on
-mount.
 
 ## Site root and shared state
 

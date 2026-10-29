@@ -23,7 +23,7 @@ config source -> independent config archive -> exact-tag tooling consumers
 | `@yesid/motion` | GSAP and Lenis; generated token values are committed locally | actions, reduced-motion policy, utilities, and opt-in CSS |
 | `@yesid/gates` | consumer-supplied policy and filesystem inputs; no product preset | deterministic consumer-neutral findings |
 | `@yesid/seo-kit` | `@yesid/tokens`; consumer data and injected rasterizer | framework-neutral JSON-LD, sitemap and robots, share card, favicon mark, and security-header mechanics |
-| `@yesid/analytics` | consumer consent policy and injected transport | fail-closed consent state, sanitization, ordered client, and Plausible mechanics |
+| `@yesid/analytics` | `@plausible-analytics/tracker`; consumer domain and event vocabulary | host-guarded cookieless pageviews and events, URL reduction, and web-vitals collection |
 | `@yesid/i18n-core` | consumer locale values, Intl tags and route rules | pure locale routing, cached Intl formatting with relative time, and copy typing |
 | `@yesid/ui` | `@yesid/motion` and `@yesid/seo-kit`; caller-owned state, copy, and actions | source-shipped Svelte primitives, rule-of-three brand components, the page head, and shared state (theme, quiet mode, clock, locale context) |
 | `@yesid/config` | no coordinated-package dependency | independently versioned compiler and task configuration |
@@ -56,11 +56,11 @@ better testability, lower public-API risk, or stronger cross-platform determinis
 | 2 | Single-read style-regression scan | 4 | 5 | 5 | 5 | 5 | 24 | implemented with RegExp-state regression proof |
 | 3 | Canonical internal seven-package catalog | 4 | 5 | 5 | 5 | 4 | 23 | deferred for release/adoption fault-injection proof |
 | 4 | Production-owned Gallery/UI inventory reader | 4 | 4 | 4 | 5 | 5 | 22 | retained independent anti-drift parser |
-| 5 | yesid.dev consent cutover | 5 | 5 | 4 | 4 | 3 | 21 | consumer task; out of repository scope |
+| 5 | yesid.dev consent cutover | 5 | 5 | 4 | 4 | 3 | 21 | obsolete: consent removed in v0.27.0 |
 | 6 | Shared repository-test fixture helpers | 3 | 3 | 4 | 5 | 5 | 20 | retained isolation for failure semantics |
 | 7 | Generic coordinated/config release core | 4 | 5 | 5 | 5 | 1 | 20 | rejected; release lines remain independent |
 | 8 | Retire token source aliases | 5 | 4 | 4 | 1 | 5 | 19 | deferred to deprecation gates |
-| 9 | Extract analytics-consent transition core | 3 | 5 | 5 | 4 | 1 | 18 | deferred pending three real consumers |
+| 9 | Extract analytics-consent transition core | 3 | 5 | 5 | 4 | 1 | 18 | obsolete: consent removed in v0.27.0 |
 | 10 | Retire UI aliases or variant exports | 5 | 4 | 3 | 1 | 3 | 16 | retained public compatibility |
 
 The 21 forwarding `index.ts` modules remain public compatibility surfaces or small family façades.

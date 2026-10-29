@@ -18,21 +18,6 @@
 - `types` → `./src/config.ts`
 - `default` → `./src/config.ts`
 
-### `./consent`
-
-- `types` → `./src/consent.ts`
-- `default` → `./src/consent.ts`
-
-### `./plausible`
-
-- `types` → `./src/plausible.ts`
-- `default` → `./src/plausible.ts`
-
-### `./policy`
-
-- `types` → `./src/policy.ts`
-- `default` → `./src/policy.ts`
-
 ### `./vitals`
 
 - `types` → `./src/vitals.ts`
@@ -46,9 +31,6 @@
 - `Index` → `./src/index.ts` (`.`)
 - `Client` → `./src/client.ts` (`./client`)
 - `Config` → `./src/config.ts` (`./config`)
-- `Consent` → `./src/consent.ts` (`./consent`)
-- `Plausible` → `./src/plausible.ts` (`./plausible`)
-- `Policy` → `./src/policy.ts` (`./policy`)
 - `Vitals` → `./src/vitals.ts` (`./vitals`)
 
 ## API Report File for "@yesid/analytics"
@@ -57,214 +39,60 @@
 
 ```ts
 
-import { Readable } from 'svelte/store';
-
 // @public (undocumented)
-interface AnalyticsClient<EventName extends string> {
+interface Analytics<EventName extends string> {
     // (undocumented)
-    trackEvent(name: EventName, url: URL): Promise<void>;
-    // (undocumented)
-    trackPageview(url: URL): Promise<boolean>;
-}
-
-// @public (undocumented)
-interface AnalyticsClientDependencies {
-    // (undocumented)
-    canTrack(): boolean;
-    // (undocumented)
-    getReferrer(): string;
-    // (undocumented)
-    loadTransport(): Promise<PlausibleTransport>;
-}
-
-// @public (undocumented)
-type AnalyticsConsentChoice = 'unknown' | 'granted' | 'denied';
-
-// @public (undocumented)
-interface AnalyticsConsentDependencies {
-    // (undocumented)
-    hostname: () => string;
-    // (undocumented)
-    listen: (listener: (value: string | null) => void) => () => void;
-    // (undocumented)
-    probeDurableStorage: () => void;
-    // (undocumented)
-    read: () => string | null;
-    // (undocumented)
-    readPreferencesMarker: () => string | null;
-    // (undocumented)
-    readSafetyMarker: () => string | null;
-    // (undocumented)
-    reload: () => void;
-    // (undocumented)
-    remove: () => void;
-    // (undocumented)
-    removePreferencesMarker: () => void;
-    // (undocumented)
-    removeSafetyMarker: () => void;
-    // (undocumented)
-    write: (value: DurableAnalyticsConsentChoice) => void;
-    // (undocumented)
-    writePreferencesMarker: (choice: AnalyticsConsentChoice) => void;
-    // (undocumented)
-    writeSafetyMarker: () => void;
-}
-
-// @public (undocumented)
-interface AnalyticsConsentState {
-    // (undocumented)
-    available: boolean;
-    // (undocumented)
-    choice: AnalyticsConsentChoice;
-    // (undocumented)
-    preferencesOpen: boolean;
-    // (undocumented)
-    ready: boolean;
-}
-
-// @public (undocumented)
-interface AnalyticsConsentStore extends Readable<AnalyticsConsentState> {
-    // (undocumented)
-    deny: () => void;
-    // (undocumented)
-    grant: () => void;
-    // (undocumented)
-    init: () => () => void;
-    // (undocumented)
-    openPreferences: () => void;
-    // (undocumented)
-    preferencesFocusRequests: Readable<number>;
-}
-
-// @public (undocumented)
-interface AnalyticsControlsInput {
-    // (undocumented)
-    enabled?: unknown;
-    // (undocumented)
-    showBanner?: unknown;
+    trackEvent(name: EventName): void;
 }
 
 // @public (undocumented)
 type AnalyticsEventName<Preset extends AnalyticsPreset> = Preset['events'][number];
 
 // @public (undocumented)
-interface AnalyticsPolicy extends NormalizedAnalyticsControls {
-    // (undocumented)
-    canTrack: boolean;
-    // (undocumented)
-    showPreferences: boolean;
-    // (undocumented)
-    showPrompt: boolean;
+interface AnalyticsOptions {
+    domain: string | undefined;
 }
 
 // @public (undocumented)
 interface AnalyticsPreset<EventName extends string = string> {
     // (undocumented)
-    readonly domain: string;
-    // (undocumented)
     readonly events: readonly EventName[];
-    // (undocumented)
-    readonly storageKeys: AnalyticsStorageKeys;
-}
-
-// @public (undocumented)
-interface AnalyticsStorageKeys {
-    // (undocumented)
-    readonly consent: string;
-    // (undocumented)
-    readonly denialSafety: string;
-    // (undocumented)
-    readonly preferencesOpen: string;
-    // (undocumented)
-    readonly storageProbe: string;
 }
 
 declare namespace Client {
     export {
         sanitizeAnalyticsUrl,
         sanitizeAnalyticsReferrer,
-        createPathnamePageviewTracker,
-        createAnalyticsClient,
-        AnalyticsClientDependencies,
-        AnalyticsClient
+        createAnalytics,
+        AnalyticsOptions,
+        Analytics
     }
 }
 
 declare namespace Config {
     export {
         defineAnalyticsPreset,
-        AnalyticsStorageKeys,
         AnalyticsPreset,
         AnalyticsEventName
     }
 }
 
-declare namespace Consent {
-    export {
-        probeDurableAnalyticsStorage,
-        createAnalyticsConsentStore,
-        AnalyticsConsentChoice,
-        AnalyticsConsentState,
-        AnalyticsConsentDependencies,
-        AnalyticsConsentStore
-    }
-}
-
-// @public (undocumented)
-function createAnalyticsClient<const EventName extends string>(preset: AnalyticsPreset<EventName>, dependencies: AnalyticsClientDependencies): AnalyticsClient<EventName>;
-
-// @public (undocumented)
-function createAnalyticsConsentStore(preset: AnalyticsPreset, dependencies: AnalyticsConsentDependencies): AnalyticsConsentStore;
-
-// @public (undocumented)
-function createPathnamePageviewTracker(send: (url: URL) => boolean | Promise<boolean>): (url: URL) => Promise<boolean>;
+// @public
+function createAnalytics<const EventName extends string>(preset: AnalyticsPreset<EventName>, input: AnalyticsOptions): Analytics<EventName>;
 
 // @public (undocumented)
 function defineAnalyticsPreset<const EventName extends string>(preset: AnalyticsPreset<EventName>): AnalyticsPreset<EventName>;
-
-// @public (undocumented)
-type DurableAnalyticsConsentChoice = Exclude<AnalyticsConsentChoice, 'unknown'>;
-
-// @public (undocumented)
-interface DurableStorageProbeTarget {
-    // (undocumented)
-    removeItem: (key: string) => void;
-    // (undocumented)
-    setItem: (key: string, value: string) => void;
-}
-
-// @public (undocumented)
-function getAnalyticsPolicy(controls: AnalyticsControlsInput, consent: AnalyticsConsentState): AnalyticsPolicy;
 
 declare namespace Index {
     export {
         sanitizeAnalyticsUrl,
         sanitizeAnalyticsReferrer,
-        createPathnamePageviewTracker,
-        createAnalyticsClient,
-        AnalyticsClientDependencies,
-        AnalyticsClient,
+        createAnalytics,
+        AnalyticsOptions,
+        Analytics,
         defineAnalyticsPreset,
-        AnalyticsStorageKeys,
         AnalyticsPreset,
         AnalyticsEventName,
-        probeDurableAnalyticsStorage,
-        createAnalyticsConsentStore,
-        AnalyticsConsentChoice,
-        AnalyticsConsentState,
-        AnalyticsConsentDependencies,
-        AnalyticsConsentStore,
-        sendPlausibleEvent,
-        PLAUSIBLE_ENDPOINT,
-        PLAUSIBLE_REQUEST_TIMEOUT_MS,
-        PlausibleEventPayload,
-        PlausibleTransport,
-        PlausibleFetch,
-        normalizeAnalyticsControls,
-        getAnalyticsPolicy,
-        AnalyticsControlsInput,
-        NormalizedAnalyticsControls,
-        AnalyticsPolicy,
         parseVitalsSample,
         parseVitalsBeacon,
         startVitals,
@@ -298,82 +126,17 @@ const MAX_VITALS_PATH_LEN = 256;
 // @public (undocumented)
 const MAX_VITALS_SAMPLES = 12;
 
-// @public (undocumented)
-function normalizeAnalyticsControls(controls?: AnalyticsControlsInput): NormalizedAnalyticsControls;
-
-// @public (undocumented)
-interface NormalizedAnalyticsControls {
-    // (undocumented)
-    enabled: boolean;
-    // (undocumented)
-    showBanner: boolean;
-}
-
 // @public
 function parseVitalsBeacon(input: unknown): VitalsSample[] | null;
 
 // @public (undocumented)
 function parseVitalsSample(input: unknown): VitalsSample | null;
 
-declare namespace Plausible {
-    export {
-        sendPlausibleEvent,
-        PLAUSIBLE_ENDPOINT,
-        PLAUSIBLE_REQUEST_TIMEOUT_MS,
-        PlausibleEventPayload,
-        PlausibleTransport,
-        PlausibleFetch
-    }
-}
-
-// @public (undocumented)
-const PLAUSIBLE_ENDPOINT = "https://plausible.io/api/event";
-
-// @public (undocumented)
-const PLAUSIBLE_REQUEST_TIMEOUT_MS = 3000;
-
-// @public (undocumented)
-interface PlausibleEventPayload {
-    // (undocumented)
-    domain: string;
-    // (undocumented)
-    name: string;
-    // (undocumented)
-    referrer?: string;
-    // (undocumented)
-    url: string;
-}
-
-// @public (undocumented)
-type PlausibleFetch = (input: string, init: RequestInit) => Promise<Response>;
-
-// @public (undocumented)
-interface PlausibleTransport {
-    // (undocumented)
-    sendPlausibleEvent(payload: PlausibleEventPayload): Promise<boolean>;
-}
-
-declare namespace Policy {
-    export {
-        normalizeAnalyticsControls,
-        getAnalyticsPolicy,
-        AnalyticsControlsInput,
-        NormalizedAnalyticsControls,
-        AnalyticsPolicy
-    }
-}
-
-// @public (undocumented)
-function probeDurableAnalyticsStorage(storage: DurableStorageProbeTarget, storageProbeKey: string): void;
-
 // @public (undocumented)
 function sanitizeAnalyticsReferrer(value: string): string | undefined;
 
 // @public (undocumented)
 function sanitizeAnalyticsUrl(url: URL): string;
-
-// @public (undocumented)
-function sendPlausibleEvent(payload: PlausibleEventPayload, fetcher?: PlausibleFetch, timeoutMs?: number): Promise<boolean>;
 
 // @public
 function startVitals(input: StartVitalsOptions): () => void;
