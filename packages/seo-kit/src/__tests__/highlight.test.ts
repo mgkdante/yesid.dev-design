@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { highlight } from '../highlight.js';
 
-const text = (html: string) =>
-	html.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-
 describe('highlight', () => {
 	it('marks SQL with syntax classes and keeps the exact source text', async () => {
-		const code = "SELECT a, count(*) FROM t -- c\nWHERE x = 'a<b' AND y > 1";
-		const html = await highlight(code, 'sql');
-		expect(text(html)).toBe(code);
+		const html = await highlight("SELECT a, count(*) FROM t -- c\nWHERE x = 'a<b' AND y > 1", 'sql');
+		expect(html.split(/<span class="syn-[a-z]+">|<\/span>/).join('')).toBe(
+			"SELECT a, count(*) FROM t -- c\nWHERE x = 'a&lt;b' AND y &gt; 1",
+		);
 		expect(new Set(html.match(/syn-[a-z]+/g))).toEqual(
 			new Set(['syn-keyword', 'syn-function', 'syn-punctuation', 'syn-comment', 'syn-string', 'syn-number']),
 		);
