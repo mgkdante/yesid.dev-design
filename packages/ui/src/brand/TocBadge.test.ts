@@ -11,14 +11,16 @@ import TocBadge from './TocBadge.svelte';
 
 describe('TocBadge', () => {
 	it('renders a zero-padded number badge for a number spec', () => {
-		const { container } = render(TocBadge, { props: { badge: { kind: 'number', value: 3 } } });
+		const { container } = render(TocBadge, { props: { badge: { kind: 'number', value: 7 } } });
 		const badge = container.querySelector('[data-slot="badge"]');
-		expect(badge?.textContent?.trim()).toBe('03');
+		expect(badge?.textContent?.trim()).toBe('07');
+		expect(badge?.getAttribute('aria-hidden')).toBe('true');
 	});
 
 	it('renders the matching SectionIcon for an icon spec', () => {
-		const { container } = render(TocBadge, { props: { badge: { kind: 'icon', name: 'chart' } } });
+		const { container } = render(TocBadge, { props: { badge: { kind: 'icon', name: 'chart' }, iconClass: 'consumer-icon' } });
 		expect(container.querySelector('[data-testid="section-chart-icon"]')).toBeTruthy();
+		expect(container.querySelector('svg')?.getAttribute('class')).toContain('consumer-icon');
 	});
 
 	it('renders nothing when no badge spec is given', () => {

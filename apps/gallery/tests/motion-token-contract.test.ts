@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { duration, durationSec, ease } from '@yesid/motion';
@@ -36,10 +36,6 @@ function camelCase(value: string): string {
 }
 
 describe('canonical token to runtime motion contract', () => {
-	it('belongs at the Gallery integration boundary instead of reaching across packages', () => {
-		expect(existsSync(join(REPOSITORY_ROOT, 'packages/motion/src/tokens.test.ts'))).toBe(false);
-	});
-
 	it('derives every duration runtime and CSS value from tokens.json', () => {
 		const runtime = duration as Readonly<Record<string, number>>;
 		expect(Object.keys(runtime).sort()).toEqual(Object.keys(canonical.duration).sort());

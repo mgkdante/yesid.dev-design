@@ -3,6 +3,11 @@ import { describe, expect, it } from 'vitest';
 import StopLabel from './StopLabel.svelte';
 
 describe('StopLabel', () => {
+	it('renders an app-owned localized prefix', () => {
+		const { container } = render(StopLabel, { props: { stop: '03', label: 'STACK', prefix: 'STOP' } });
+		expect(container.querySelector('[data-slot="stop-label"]')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('STOP 03 · STACK');
+	});
+
 	it('renders "ARRÊT {stop} · {label}" with a name (the index plate form)', () => {
 		render(StopLabel, { props: { stop: '52001', label: 'Berri' } });
 		const plate = screen.getByText(/ARR[ÊE]T/).closest('[data-slot="stop-label"]');
