@@ -63,7 +63,3 @@ export const GALLERY_COVERAGE = {
 	states: ['disabled', 'error', 'loading', 'overflow', 'localized-copy'],
 	environments: ['dark', 'light', 'reduced-motion', 'desktop', 'mobile'],
 } as const;
-
-type PrimitiveFamily = (typeof GALLERY_COVERAGE.primitives)[number];
-type BrandFamily = (typeof GALLERY_COVERAGE.brand)[number];
-type MotionFamily = (typeof GALLERY_COVERAGE.motion)[number];
