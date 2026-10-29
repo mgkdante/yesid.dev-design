@@ -54,6 +54,21 @@ describe('CodeBlock', () => {
 		expect(screen.getByRole('status').textContent).toBe('Copy failed');
 	});
 
+	it('empties the status before a repeated copy so it is announced again', async () => {
+		render(CodeBlock, { props: { code, title: 'Query', copy } });
+		const button = screen.getByRole('button', { name: 'Copy code' });
+		const status = screen.getByRole('status');
+		await fireEvent.click(button);
+		await vi.waitFor(() => expect(status.textContent).toBe('Copied'));
+		let finish!: () => void;
+		writeText.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)));
+		await fireEvent.click(button);
+		await vi.waitFor(() => expect(status.textContent).toBe(''));
+		finish();
+		await vi.waitFor(() => expect(status.textContent).toBe('Copied'));
+		expect(screen.getByRole('button', { name: 'Copy code' })).toBe(button);
+	});
+
 	it('replaces the plain code with highlighted children', () => {
 		render(CodeBlock, { props: {
 			code, title: 'Query',

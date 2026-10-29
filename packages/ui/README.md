@@ -556,8 +556,7 @@ relies on `'unsafe-inline'` must not add the hash, because any hash switches `'u
 `@yesid/ui/base.css` is the base layer both products share: resets, the dark variant, selection,
 focus ring, text links (a link without a class is underlined in `--accent-text`; components
 style their own), scrollbar, circuit grid, shared keyframes, label styles, `.glass-chrome`, the
-`TerminalPanel` and `CodeBlock` classes (`.terminal-*` and the `syn-*` syntax classes, in the
-components layer), the
+`TerminalPanel` and `CodeBlock` classes (`.terminal-*` and `.syn-*`, in the components layer), the
 `SiteHeader` geometry (`--nav-top`, `--nav-padding-y`, `--nav-clearance`) and the
 View Transitions route crossfade (off under reduced motion; pair it with `onNavigate(viewTransition)`
 from `@yesid/motion/utils/viewTransition`). It imports

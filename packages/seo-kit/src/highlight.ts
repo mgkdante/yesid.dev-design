@@ -18,12 +18,12 @@ const aliases: Record<string, string> = { js: 'javascript', md: 'markdown', sh: 
 
 // TextMate scopes per syntax class. `plain` wins over a broader parent scope and renders as bare text.
 const scopes: Record<string, string[]> = {
-	plain: ['variable', 'variable.other', 'variable.parameter', 'source.sql'],
-	keyword: ['keyword', 'storage', 'storage.type', 'keyword.control', 'entity.name.tag', 'punctuation.definition.tag'],
-	string: ['string', 'string.quoted', 'string.regexp', 'entity.name.type', 'support.type', 'entity.name.class', 'meta.decorator', 'punctuation.decorator'],
+	plain: ['variable', 'source.sql'],
+	keyword: ['keyword', 'storage', 'entity.name.tag', 'punctuation.definition.tag'],
+	string: ['string', 'entity.name.type', 'support.type', 'entity.name.class', 'meta.decorator', 'punctuation.decorator'],
 	comment: ['comment', 'punctuation.definition.comment'],
 	function: ['entity.name.function', 'support.function', 'meta.function-call', 'entity.other.attribute-name'],
-	number: ['constant', 'constant.numeric', 'constant.language'],
+	number: ['constant'],
 	punctuation: ['keyword.operator', 'punctuation'],
 };
 const kinds = Object.keys(scopes);
@@ -31,7 +31,6 @@ const kinds = Object.keys(scopes);
 const theme = {
 	name: 'yesid-syntax',
 	fg: '#000000',
-	bg: '#000000',
 	settings: kinds.map((kind, i) => ({ scope: scopes[kind], settings: { foreground: `#00000${i}` } })),
 };
 
@@ -65,8 +64,7 @@ export async function highlight(code: string, lang: string): Promise<string> {
 		highlighter ??= createHighlighterCore({ themes: [theme], langs: [], engine: createJavaScriptRegexEngine() });
 		const core = await highlighter;
 		if (!core.getLoadedLanguages().includes(name)) await core.loadLanguage(grammar);
-		// Shiki's default 500 ms line budget includes compiling a cold grammar, so a busy machine
-		// would leave the first line partly plain.
+		// No line budget: Shiki's default counts compiling a cold grammar, which cut lines short under load.
 		const { tokens } = core.codeToTokens(code, { lang: name, theme: theme.name, tokenizeTimeLimit: 0 });
 		return tokens.map(renderLine).join('\n');
 	} catch {

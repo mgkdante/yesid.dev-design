@@ -28,6 +28,7 @@
 </script>
 
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { cn } from '../cn/index.js';
 	import TerminalPanel from './TerminalPanel.svelte';
 
@@ -38,13 +39,16 @@
 	const status = $derived(copyState === 'copied' ? copy?.copied : copyState === 'failed' ? copy?.failed : '');
 
 	async function copyCode() {
+		// Empty the status first so a repeated copy is announced again.
+		clearTimeout(resetTimer);
+		copyState = 'idle';
+		await tick();
 		try {
 			await navigator.clipboard.writeText(code);
 			copyState = 'copied';
 		} catch {
 			copyState = 'failed';
 		}
-		clearTimeout(resetTimer);
 		resetTimer = setTimeout(() => (copyState = 'idle'), 2000);
 	}
 
