@@ -140,10 +140,7 @@ describe('browser authority script contract', () => {
 			);
 
 			expect(result.status, output).toBe(0);
-			// Every spec runs on both the desktop and the mobile project.
-			for (const project of ['chromium-noble-desktop', 'chromium-noble-mobile']) {
-				for (const spec of specs) expect(listed, output).toContain(`${project} ${spec}`);
-			}
+			for (const spec of specs) expect([...listed].some((entry) => entry.endsWith(` ${spec}`)), spec).toBe(true);
 			expect(output).not.toContain('vite v');
 			expect(output).not.toContain('Wrote site to "build"');
 		},

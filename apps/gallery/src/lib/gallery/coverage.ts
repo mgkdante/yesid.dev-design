@@ -61,5 +61,4 @@ export const GALLERY_COVERAGE = {
 		'scrollChain',
 	],
 	states: ['disabled', 'error', 'loading', 'overflow', 'localized-copy'],
-	environments: ['dark', 'light', 'reduced-motion', 'desktop', 'mobile'],
 } as const;

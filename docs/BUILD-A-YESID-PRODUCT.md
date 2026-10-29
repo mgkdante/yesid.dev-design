@@ -212,14 +212,13 @@ Opt in to the Layer 1 `.tap-press` and `.tap-feedback` utilities directly:
 
 The stylesheet remains copyable from `@yesid/motion/tap-feedback.css` when the product must control Tailwind layer order or adapt the utilities for Tailwind v3/plain CSS. The motion package does not import application CSS automatically.
 
-## 6. Wire the brand gates into Vitest and CI
+## 6. Run the brand gates as a lint script
 
 Keep product policy in the product. Copy its real brand hexes, forbidden
-patterns, contrast pairs, and identities into `src/gates/policy.ts`; do not
-invent replacements or copy another app's table. Add a contract test there so
-policy changes are deliberate.
+patterns, contrast pairs, and identities into `tools/design-gates.ts`; do not
+invent replacements or copy another app's table.
 
-Create `src/brand-gates.test.ts`:
+Create `tools/lint-design.ts` and run it as `"lint:design": "bun tools/lint-design.ts"`:
 
 ```ts
 import { join } from 'node:path';
@@ -236,39 +235,44 @@ import {
   PRODUCT_BRAND_HEXES,
   PRODUCT_FORBIDDEN,
   PRODUCT_IDENTITIES,
-} from './gates/policy.js';
-import { describe, expect, it } from 'vitest';
+} from './design-gates.js';
 
-const srcRoot = fileURLToPath(new URL('.', import.meta.url));
+const srcRoot = fileURLToPath(new URL('../src/', import.meta.url));
 const generated = new Set([
   join(srcRoot, 'app.css'),
-  join(srcRoot, 'gates/policy.ts'),
+  join(srcRoot, '../tools/design-gates.ts'),
 ]);
+const failures: string[] = [];
 
-describe('brand gates', () => {
-  it('uses tokens instead of raw brand hex values', () => {
-    const result = brandHexViolations({
-      root: srcRoot,
-      hexes: PRODUCT_BRAND_HEXES,
-      allowlist: generated,
-    });
-    expect(result.fileCount).toBeGreaterThan(0);
-    expect(result.violations).toEqual([]);
-  });
-
-  it('avoids forbidden style patterns', () => {
-    const failures = styleRegressionViolations({
-      root: srcRoot,
-      forbidden: PRODUCT_FORBIDDEN,
-    }).filter(({ hits }) => hits.length > 0);
-    expect(failures).toEqual([]);
-  });
-
-  it('keeps the product contrast pairs and identities', () => {
-    expect(runContrastPairs(tokens, PRODUCT_AA_PAIRS).filter(({ pass }) => !pass)).toEqual([]);
-    expect(runIdentities(tokens, PRODUCT_IDENTITIES).filter(({ pass }) => !pass)).toEqual([]);
-  });
+const brand = brandHexViolations({
+  root: srcRoot,
+  hexes: PRODUCT_BRAND_HEXES,
+  allowlist: generated,
 });
+if (brand.fileCount === 0) failures.push(`No source files scanned: ${srcRoot}`);
+for (const violation of brand.violations) failures.push(`Raw brand hex: ${violation}`);
+
+for (const { reason, hits } of styleRegressionViolations({
+  root: srcRoot,
+  forbidden: PRODUCT_FORBIDDEN,
+})) {
+  if (hits.length > 0) failures.push(`${reason}: ${hits.join(', ')}`);
+}
+
+runContrastPairs(tokens, PRODUCT_AA_PAIRS).forEach(({ label, pass }, index) => {
+  if (!pass) {
+    const [, fg, bg] = PRODUCT_AA_PAIRS[index]!;
+    failures.push(`${label}: color.${fg[0]}.${fg[1]}, color.${bg[0]}.${bg[1]}`);
+  }
+});
+runIdentities(tokens, PRODUCT_IDENTITIES).forEach(({ label, pass }, index) => {
+  if (!pass) {
+    const [, a, b] = PRODUCT_IDENTITIES[index]!;
+    failures.push(`${label}: color.${a[0]}.${a[1]}, color.${b[0]}.${b[1]}`);
+  }
+});
+
+if (failures.length > 0) { console.error(failures.join('\n')); process.exit(1); }
 ```
 
 `@yesid/gates` exports engines and neutral defaults from its root only. A
@@ -279,18 +283,61 @@ of relying on the neutral default.
 Run these commands in CI:
 
 ```sh
+bun run lint:design
 bun x vitest run
 bun run check
 bun run build
 ```
 
-## 7. Keep localization authority and copy in the product
+## 7. Test accessibility with the standard projects
+
+`@yesid/config/playwright` gives every product the same Playwright projects and one axe check. Install
+`@playwright/test` and `@axe-core/playwright` next to `@yesid/config`, in the workspace root of a monorepo; they are
+optional peer dependencies.
+
+```ts
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+import { yesidProjects } from '@yesid/config/playwright';
+
+const baseURL = 'http://127.0.0.1:4173';
+
+export default defineConfig({ use: { baseURL }, projects: yesidProjects(baseURL) });
+```
+
+```ts
+// e2e/a11y.spec.ts
+import { test } from '@playwright/test';
+import { expectAccessible } from '@yesid/config/playwright';
+import { routes } from '../src/lib/routes';
+
+test.describe('accessibility', { tag: '@theme' }, () => {
+  for (const route of routes) {
+    test(route, async ({ page }) => {
+      await page.goto(route);
+      await expectAccessible(page);
+    });
+  }
+});
+```
+
+Untagged tests run at phone (390×844), tablet (768×1024) and desktop (1440×900). Tag a test `@theme` to run it
+once in each theme, or `@motion` to run it once with reduced motion. `expectAccessible` fails on any serious or
+critical violation of WCAG 2.2 AA or axe best practice; the contrast rule skips blueprint art (`.blueprint-bg`).
+
+The standard covers what the packages render: component roles, names, states, focus, keyboard paths and tap sizes
+are tested in `@yesid/ui` and its Gallery, and token contrast pairs in `@yesid/tokens`. The product owns what it puts
+on the page: alt text, CMS and copy text, heading order, landmarks and route structure, and anything the packages
+don't draw, such as Transit's map. Its a11y spec loops over its own routes and the states it opens: menus, dialogs
+and form errors.
+
+## 8. Keep localization authority and copy in the product
 
 `@yesid/i18n-core` does not discover product locale authority or ship product copy. Consumers inject their concrete locale values, routing policy, framework adapters, and runtime flag values. Bind the locale plumbing once in the product's i18n module: `createLocaleRouting`, `createIntl` with the product's Intl tags, `createCopy` for typed copy dictionaries, and `createLocaleContext` from `@yesid/ui/state`, provided from the root layout, which also passes `lang` to `SiteRoot`. Format through `intl` rather than `toLocaleString` or a new `Intl.*` at the call site. Other packages continue to receive translated labels, placeholders, clear labels, empty states, option labels, and `StopLabel` prefixes from the product. See the [Combobox contract](../packages/ui/README.md#combobox) and the [localized StopLabel prefix](../packages/ui/README.md#stoplabel). The same durable package guide ships at `node_modules/@yesid/ui/README.md`.
 
 Do not add product-specific locale checks, copy policy, or framework virtual-module imports to a package. If a third product needs a new copy seam, add a generic prop upstream with a default that preserves current consumers.
 
-## 8. Measure
+## 9. Measure
 
 `@yesid/analytics` stays off until the product starts it. Start it once in the root layout:
 
@@ -312,7 +359,7 @@ environment only; unset means off. The client sends only from that host or its s
 the variable unset for local, preview and fork deployments to keep them silent. Add
 `https://plausible.io` to `connect-src` (see the CSP in section 4).
 
-## 9. Bump the brand pin deliberately
+## 10. Bump the brand pin deliberately
 
 A brand change follows one direction:
 
@@ -327,7 +374,7 @@ Never use `^`, `~`, a branch, or a floating tag, and never
 patch files under `node_modules/@yesid`. Upstream the change, release it, and let each consumer
 choose when to take the bump.
 
-## 10. Roll back
+## 11. Roll back
 
 A rollback is the same edit pointing every `@yesid` URL at an earlier release this product already
 accepted, in its own pull request, followed by the full product checks. If that release has a

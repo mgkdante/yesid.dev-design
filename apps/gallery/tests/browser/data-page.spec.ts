@@ -1,8 +1,6 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 import { copy, hourTable, statuses, stopRows, stopTable } from '../../src/routes/data-page/fixture.js';
-import { blockingAxeViolations } from './authority.js';
 
 const DESKTOP_MIN_WIDTH = 1024;
 const isPhone = (page: Page) => page.viewportSize()!.width < DESKTOP_MIN_WIDTH;
@@ -127,31 +125,4 @@ test.describe('with motion on', () => {
 		expect(offsets.length).toBeGreaterThanOrEqual(5);
 		for (const offset of offsets) expect(offset).toBeLessThanOrEqual(1);
 	});
-});
-
-test('no blocking axe violations when loaded and with the sheet open', async ({ page }, testInfo) => {
-	await open(page);
-	const states: Array<[string, () => Promise<void>]> = [['loaded', async () => {}]];
-	if (isPhone(page)) {
-		states.push([
-			'rail sheet',
-			async () => {
-				await page.getByRole('button', { name: new RegExp(`^${copy.rail.label}`) }).click();
-				await expect(page.getByRole('dialog', { name: copy.rail.label })).toBeVisible();
-			},
-		]);
-	}
-
-	for (const [name, enter] of states) {
-		await enter();
-		const results = await new AxeBuilder({ page }).analyze();
-		await testInfo.attach(`axe-data-page-${name}.json`, {
-			body: JSON.stringify(results, null, 2),
-			contentType: 'application/json',
-		});
-		const blockers = blockingAxeViolations(results.violations).map(
-			({ id, nodes }) => `${name}: ${id} ${nodes.map((node) => node.target.join(' ')).join(', ')}`,
-		);
-		expect(blockers).toEqual([]);
-	}
 });

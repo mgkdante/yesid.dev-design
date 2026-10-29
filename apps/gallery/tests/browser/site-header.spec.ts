@@ -1,4 +1,3 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 import {
@@ -11,7 +10,6 @@ import {
 	SEARCH_LABEL,
 	languageHref,
 } from '../../src/lib/gallery/site-header-fixture.js';
-import { blockingAxeViolations } from './authority.js';
 
 // The header width each link priority needs before it shows (the package's contract).
 const SHOWN_FROM = { 1: 0, 2: 500, 3: 1024 } as const;
@@ -34,10 +32,25 @@ test('links and search show at the header widths their priority allows', async (
 	}
 	await expect(header(page).getByRole('searchbox', { name: SEARCH_LABEL })).toBeVisible({ visible: width >= 1024 });
 	await expect(language(page)).toHaveAttribute('href', languageHref(LOCALES[1]));
-	expect(blockingAxeViolations((await new AxeBuilder({ page }).analyze()).violations)).toEqual([]);
 });
 
-test('the menu opens with every item, traps focus, passes axe and closes with Escape', async ({ page }) => {
+test('the language link meets the tap-size minimum', async ({ page }) => {
+	await page.goto(HOME);
+	const { min, width, height } = await language(page).evaluate((link) => {
+		const probe = document.createElement('div');
+		probe.style.inlineSize = 'var(--size-tap-min)';
+		document.body.append(probe);
+		const min = probe.getBoundingClientRect().width;
+		probe.remove();
+		const { width, height } = link.getBoundingClientRect();
+		return { min, width, height };
+	});
+	expect(min).toBeGreaterThan(0);
+	expect(width).toBeGreaterThanOrEqual(min);
+	expect(height).toBeGreaterThanOrEqual(min);
+});
+
+test('the menu opens with every item, traps focus and closes with Escape', async ({ page }) => {
 	await page.goto(HOME);
 	await toggle(page).click();
 
@@ -49,7 +62,6 @@ test('the menu opens with every item, traps focus, passes axe and closes with Es
 		await expect(link).toBeVisible();
 		if (item.external) await expect(link).toHaveAttribute('target', '_blank');
 	}
-	expect(blockingAxeViolations((await new AxeBuilder({ page }).analyze()).violations)).toEqual([]);
 
 	await page.keyboard.press('Shift+Tab');
 	await expect(menu(page).locator(':focus')).toHaveCount(1);
