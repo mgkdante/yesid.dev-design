@@ -29,7 +29,7 @@ Svelte styles they need postcss-global-data and postcss-custom-media in the prod
 | `./parse`, `./generators/design-md` | token parsing and the `DESIGN.md` generator |
 
 The exact interface is in
-[`api-reports/tokens.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/api-reports/tokens.api.md).
+[`api-reports/tokens.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.29.0/api-reports/tokens.api.md).
 
 ## Rules
 
