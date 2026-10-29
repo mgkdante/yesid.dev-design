@@ -395,7 +395,8 @@ and `controls` snippets. `watermark`, `edgeLeft`, `edgeRight` and the `decoratio
 decorative chrome; `--article-deco-opacity` sets how strongly it reads. The subtitle and the meta
 row share one mono type, `--article-meta-size`. A `ManifestoCanvas` fills the header; a `canvas`
 snippet replaces it (an empty one leaves the header plain) and receives the header element once
-bound (undefined before and during SSR).
+bound (undefined before and during SSR). Its circuit grid holds still with the viewport while the
+header scrolls, fixed and clipped to the header, so it lines up with a fixed page grid.
 Like `ListingFrame`, it expects the page to pad its top by `--chrome-offset` and pulls itself under
 the chrome. The back link sits midway between the chrome and the next line; an app whose
 `--chrome-offset` leaves a gap under its chrome sets `--chrome-gap` to that gap. The title uses
