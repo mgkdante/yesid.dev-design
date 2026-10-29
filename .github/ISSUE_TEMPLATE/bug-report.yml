@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Reduce the failure to the upstream boundary. Do not patch `vendor/design`.
+        Reduce the failure to the upstream boundary. Do not patch the installed packages.
         Security reports belong in private vulnerability reporting, not this form.
   - type: dropdown
     id: surface
