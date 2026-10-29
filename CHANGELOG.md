@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.25.3
+
+<!-- release-fragment: p4-manifesto-strength -->
+- `@yesid/ui` (patch): Quiet Manifesto circuit backgrounds uniformly through one shared strength default, including static nodes, pointer traces, warm glow and ripple ink. Preserve foreground and listing blueprint ink.
+
 ## 0.25.2
 
 <!-- release-fragment: p3-header-copy-contrast -->
