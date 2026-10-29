@@ -48,9 +48,9 @@ export default {
 ## Turborepo
 
 `@yesid/config/turbo/base.json` is the canonical three-repository task core. Root
-`turbo.json` files cannot extend an external config, so consumer adoption composes this
-base with an explicit repository-owned overlay and verifies the result for drift. Deploy
-outputs, environment variables, app-only tasks, and credentials never belong in the base.
+`turbo.json` files cannot extend an external config, so each consumer commits its own
+`turbo.json` that starts from this base. Deploy outputs, environment variables, app-only
+tasks, and credentials never belong in the base.
 
 ESLint, Prettier, Vitest, deploy bindings, and product path literals remain consumer-owned
 until they independently satisfy the third-consumer rule.
@@ -58,6 +58,4 @@ until they independently satisfy the third-consumer rule.
 ## Release implications
 
 Config changes add a `.changes` fragment naming `@yesid/config` and ship with the next coordinated
-release ([`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/RELEASING.md)).
-Shared-action ownership stays in
-[`docs/SHARED-TOOLING-CI.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/docs/SHARED-TOOLING-CI.md).
+release ([`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/RELEASING.md)).

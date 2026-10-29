@@ -1,6 +1,4 @@
-# Public-repository CI. Pull requests run the full package and token gates.
-# Shape ported from yesid.dev web.yml @ 2bdb611d: PR-only (Actions budget),
-# composite setup action, token drift gate, explicit package suites.
+# Public-repository CI. Every pull request runs every job; the final `ci` job is the required check.
 name: ci
 
 on:
@@ -10,67 +8,13 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  classify:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      classification: ${{ steps.classify.outputs.classification }}
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: mgkdante/yesid.dev-design/.github/actions/shared-tooling-drift@a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25
-        with:
-          manifest: .github/shared-tooling.json
-      - uses: mgkdante/yesid.dev-design/.github/actions/classify-paths@a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25
-        id: classify
-        with:
-          github-token: ${{ github.token }}
-          rules-json: >-
-            {
-              "schema": 1,
-              "always": {
-                "paths": [".bun-version", ".github/shared-tooling.json", "bun.lock", "package.json", "turbo.json"],
-                "prefixes": [".github/actions/", ".github/workflows/", "packages/config/"]
-              },
-              "jobs": {
-                "ci-work": {
-                  "paths": ["DESIGN.md", "tsconfig.repository-tests.json", "tsconfig.tools.json", "vitest.repository.config.ts"],
-                  "prefixes": [".changes/", "api-reports/", "apps/", "packages/", "tests/", "tools/"]
-                },
-                "browser-authority-work": {
-                  "paths": ["apps/gallery/package.json", "apps/gallery/playwright.config.ts", "apps/gallery/svelte.config.js", "apps/gallery/tsconfig.json", "apps/gallery/vite.config.ts", "packages/analytics/package.json", "packages/motion/package.json", "packages/motion/tsconfig.json", "packages/tokens/fonts.css", "packages/tokens/package.json", "packages/tokens/theme.css", "packages/tokens/tokens.css", "packages/tokens/tokens.json", "packages/tokens/tsconfig.json", "packages/seo-kit/package.json", "packages/ui/base.css", "packages/ui/package.json", "packages/ui/svelte.config.js", "packages/ui/tsconfig.json"],
-                  "prefixes": ["apps/gallery/src/", "apps/gallery/tests/browser/", "packages/analytics/src/", "packages/motion/src/", "packages/seo-kit/src/", "packages/tokens/fonts/", "packages/tokens/src/", "packages/ui/src/"]
-                },
-                "token-outputs-windows-work": {
-                  "paths": ["DESIGN.md", "packages/tokens/theme.css", "tools/api-authority.ts", "tools/build-tokens.ts", "tools/release-core.ts", "vitest.repository.config.ts"],
-                  "prefixes": ["api-reports/", "packages/analytics/", "packages/gates/", "packages/i18n-core/", "packages/motion/", "packages/seo-kit/", "packages/tokens/", "packages/ui/"]
-                },
-                "token-byte-parity-work": {
-                  "paths": ["DESIGN.md", "packages/tokens/theme.css", "packages/motion/src/tokens.ts", "packages/tokens/package.json", "packages/tokens/tokens.css", "packages/tokens/tokens.json", "packages/tokens/tsconfig.json", "tools/build-tokens.ts"],
-                  "prefixes": ["packages/tokens/scripts/", "packages/tokens/src/"]
-                }
-              },
-              "ignore": {
-                "docs-only": {
-                  "paths": ["CODE_OF_CONDUCT.md", "CONTRIBUTING.md", "LICENSE", "README.md", "SECURITY.md"],
-                  "prefixes": ["docs/"]
-                },
-                "irrelevant": {
-                  "paths": [],
-                  "prefixes": [".idea/", ".vscode/"]
-                }
-              }
-            }
-
-  ci-work:
-    needs: [classify]
-    if: ${{ fromJSON(needs.classify.outputs.classification).relevant['ci-work'] }}
+  check:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -106,9 +50,7 @@ jobs:
       - name: build
         run: bun x turbo run build
 
-  browser-authority-work:
-    needs: [classify]
-    if: ${{ fromJSON(needs.classify.outputs.classification).relevant['browser-authority-work'] }}
+  browser-authority:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
@@ -135,9 +77,7 @@ jobs:
             apps/gallery/playwright-report/
             apps/gallery/test-results/
 
-  token-outputs-windows-work:
-    needs: [classify]
-    if: ${{ fromJSON(needs.classify.outputs.classification).relevant['token-outputs-windows-work'] }}
+  token-outputs-windows:
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
@@ -159,15 +99,8 @@ jobs:
             packages/motion/src/tokens.ts
             packages/tokens/tokens.css
 
-  token-byte-parity-work:
-    needs: [classify, ci-work, token-outputs-windows-work]
-    if: >-
-      ${{
-        !cancelled() &&
-        fromJSON(needs.classify.outputs.classification).relevant['token-byte-parity-work'] &&
-        needs['ci-work'].result == 'success' &&
-        needs['token-outputs-windows-work'].result == 'success'
-      }}
+  token-byte-parity:
+    needs: [check, token-outputs-windows]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -196,21 +129,12 @@ jobs:
             fi
           done
 
-  required-contexts:
-    needs: [classify, ci-work, browser-authority-work, token-outputs-windows-work, token-byte-parity-work]
+  ci:
     if: ${{ always() }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - context: ci
-          - context: browser-authority
-          - context: token-outputs-windows
-          - context: token-byte-parity
-    name: ${{ matrix.context }}
+    needs: [check, browser-authority, token-outputs-windows, token-byte-parity]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: mgkdante/yesid.dev-design/.github/actions/required-context@a4e9d0e3b42da8121b5e9f98de2e315ad48e8f25
-        with:
-          needs-json: ${{ toJSON(needs) }}
+      - name: Require every job to succeed
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
+        run: exit 1

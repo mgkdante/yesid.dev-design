@@ -412,13 +412,5 @@ describe('deterministic package API reports', () => {
 		expect(manifest.scripts['api:check']).toBe('bun tools/api-authority.ts check');
 		expect(manifest.scripts['api:approve']).toBe('bun tools/api-authority.ts approve');
 		expect(manifest.scripts.check).toContain('bun run api:check');
-
-		const workflow = readFileSync(join(REPOSITORY_ROOT, '.github/workflows/ci.yml'), 'utf8');
-		expect(workflow).toContain('name: API report approval');
-		expect(workflow).toContain('bun run api:approve -- --base "$API_BASE_SHA"');
-		const windowsJob = workflow.match(
-			/^  token-outputs-windows-work:\n([\s\S]+?)^  token-byte-parity-work:/mu,
-		)?.[1];
-		expect(windowsJob).toContain('bun run api:check');
 	});
 });

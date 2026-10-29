@@ -2,7 +2,7 @@
 
 yesid.dev-design shares reusable mechanics, not product decisions. Each product keeps policy, copy, runtime authority, data contracts, and behavior that cannot satisfy the [governance laws](README.md#governance-laws) without an app check. Similar code is evidence to inspect, not permission to promote it.
 
-This is an ownership index, not a replacement for the owning decisions and tests. [`CONSUMERS.md`](CONSUMERS.md) lists the consumers; each one pins an exact release through its package URLs and `bun.lock`. Root placement is a deliberate trade: full CI on a docs PR versus `docs/` docs-only classification.
+This is an ownership index, not a replacement for the owning decisions and tests. [`CONSUMERS.md`](CONSUMERS.md) lists the consumers; each one pins an exact release through its package URLs and `bun.lock`.
 
 ## Reference card
 

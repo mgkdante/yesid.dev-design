@@ -116,7 +116,7 @@ The first `cn` use, including a primitive's first class merge, locks the zero-co
 default. Products with custom vocabulary must initialize before any primitive renders. Use one
 shared initializer imported by both SvelteKit `hooks.client.ts` (`ClientInit`) and
 `hooks.server.ts` (`ServerInit`), not a root layout instance script. See the
-[`v0.13.3 product setup guide`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/docs/BUILD-A-YESID-PRODUCT.md#4-configure-ui-once-per-module-graph-at-boot)
+[`v0.13.3 product setup guide`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/docs/BUILD-A-YESID-PRODUCT.md#4-configure-ui-once-per-module-graph-at-boot)
 for the complete hook pattern.
 
 The state boundary is the loaded ESM module graph. Browser and SSR bundles, separately bundled
@@ -396,7 +396,8 @@ and `controls` snippets. `watermark`, `edgeLeft`, `edgeRight` and the `decoratio
 decorative chrome; `--article-deco-opacity` sets how strongly it reads. The subtitle and the meta
 row share one mono type, `--article-meta-size`. A `ManifestoCanvas` fills the header; a `canvas`
 snippet replaces it (an empty one leaves the header plain) and receives the header element once
-bound (undefined before and during SSR).
+bound (undefined before and during SSR). Its circuit grid holds still with the viewport while the
+header scrolls, fixed and clipped to the header, so it lines up with a fixed page grid.
 Like `ListingFrame`, it expects the page to pad its top by `--chrome-offset` and pulls itself under
 the chrome. The back link sits midway between the chrome and the next line; an app whose
 `--chrome-offset` leaves a gap under its chrome sets `--chrome-gap` to that gap. The title uses
@@ -598,5 +599,5 @@ a product-only visual or policy failure stays in that product. Do not cure one l
 its policy into another.
 
 Source, public-interface, compatibility-documentation, or README changes alter the coordinated
-release payload. Use [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.0/RELEASING.md), regenerate the API report only for
+release payload. Use [`RELEASING.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.28.1/RELEASING.md), regenerate the API report only for
 public-interface changes, and preserve consumer seams through separate adoption verification.

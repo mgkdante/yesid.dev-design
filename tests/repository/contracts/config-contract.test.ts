@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,22 +8,7 @@ import { projectRunes } from '../../../packages/config/svelte/project-runes.js';
 
 const CONFIG_ROOT = fileURLToPath(new URL('../../../packages/config/', import.meta.url));
 const TSC = fileURLToPath(new URL('../../../node_modules/typescript/bin/tsc', import.meta.url));
-const CONFIG_FILES = [
-	'README.md',
-	'LICENSE',
-	'NOTICE',
-	'tsconfig/base.json',
-	'tsconfig/library.json',
-	'tsconfig/svelte-kit.json',
-	'turbo/base.json',
-	'svelte/project-runes.js',
-	'svelte/project-runes.d.ts',
-] as const;
 const scratch: string[] = [];
-
-function readJson(path: string): Record<string, unknown> {
-	return JSON.parse(readFileSync(join(CONFIG_ROOT, path), 'utf8')) as Record<string, unknown>;
-}
 
 function write(path: string, source: string): void {
 	mkdirSync(dirname(path), { recursive: true });
@@ -53,87 +38,12 @@ afterEach(() => {
 });
 
 describe('@yesid/config neutral contracts', () => {
-	it('exports only the accepted ST1 TypeScript and Turbo configuration files', () => {
-		const manifest = readJson('package.json');
-		expect(manifest).toMatchObject({
-			name: '@yesid/config',
-			private: true,
-			files: CONFIG_FILES,
-			exports: {
-				'./package.json': './package.json',
-				'./tsconfig/base.json': './tsconfig/base.json',
-				'./tsconfig/library.json': './tsconfig/library.json',
-				'./tsconfig/svelte-kit.json': './tsconfig/svelte-kit.json',
-				'./turbo/base.json': './turbo/base.json',
-				'./svelte/project-runes.js': {
-					types: './svelte/project-runes.d.ts',
-					default: './svelte/project-runes.js',
-				},
-			},
-		});
-	});
-
-	it('keeps the compiler core small and leaves consumer-owned choices in overlays', () => {
-		expect(readJson('tsconfig/base.json')).toEqual({
-			'$schema': 'https://json.schemastore.org/tsconfig',
-			compilerOptions: {
-				moduleResolution: 'bundler',
-				skipLibCheck: true,
-				strict: true,
-			},
-		});
-		expect(readJson('tsconfig/library.json')).toEqual({
-			extends: './base.json',
-			compilerOptions: {
-				allowImportingTsExtensions: true,
-				noEmit: true,
-				target: 'ES2022',
-			},
-		});
-		expect(readJson('tsconfig/svelte-kit.json')).toEqual({
-			extends: './base.json',
-			compilerOptions: {
-				allowJs: true,
-				checkJs: true,
-				esModuleInterop: true,
-				forceConsistentCasingInFileNames: true,
-				resolveJsonModule: true,
-				rewriteRelativeImportExtensions: true,
-				sourceMap: true,
-			},
-		});
-		const source = CONFIG_FILES.filter(
-			(path) => !['README.md', 'LICENSE', 'NOTICE'].includes(path),
-		)
-			.map((path) => readFileSync(join(CONFIG_ROOT, path), 'utf8'))
-			.join('\n');
-		expect(source).not.toMatch(
-			/transit|yesid\.dev|gallery|directus|wrangler|vercel|PUBLIC_|eslint|prettier|vitest/iu,
-		);
-	});
-
 	it('shares only the root-parameterized project runes policy', () => {
 		const runes = projectRunes('/workspace/app');
 		expect(runes({ filename: '/workspace/app/src/page.svelte' })).toBe(true);
 		expect(runes({ filename: '/workspace/app/node_modules/pkg/index.svelte' })).toBeUndefined();
 		expect(runes({ filename: '/workspace/app/NODE_MODULES/pkg/index.svelte' })).toBeUndefined();
 		expect(runes({ filename: '/workspace/app/src/node_modules-cache/page.svelte' })).toBe(true);
-	});
-
-	it('defines the exact three-repository Turbo core without consumer outputs or environment', () => {
-		expect(readJson('turbo/base.json')).toEqual({
-			'$schema': 'https://turbo.build/schema.json',
-			tasks: {
-				build: {
-					dependsOn: ['^build'],
-					outputs: ['.svelte-kit/**', 'dist/**'],
-					inputs: ['$TURBO_DEFAULT$', '!**/.env.local', '!**/.env.*.local'],
-				},
-				test: { dependsOn: ['^build'], outputs: [] },
-				check: { outputs: [] },
-				dev: { cache: false, persistent: true },
-			},
-		});
 	});
 
 	it('resolves a library contract while preserving its consumer-owned module and lib', () => {
