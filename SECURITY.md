@@ -1,15 +1,12 @@
-# Security Policy
+# Security policy
 
-## Reporting a vulnerability
+Do not report suspected vulnerabilities through a public issue.
 
-Report vulnerabilities privately via GitHub's private vulnerability reporting: **Security tab → Report a vulnerability** on this repository. Do not open public issues for security reports.
+Use GitHub's
+[private vulnerability reporting](https://github.com/mgkdante/yesid.dev-design/security/advisories/new),
+or email `contact@yesid.dev` with the subject `[security]`. Include the affected package and
+release tag, reproduction steps, likely impact, and whether the details have been disclosed
+elsewhere.
 
-You can expect an acknowledgement within a few days. Please include reproduction steps and the affected package (`@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, `@yesid/seo-kit`, `@yesid/ui`, `@yesid/analytics`, `@yesid/i18n-core`, `@yesid/config`).
-
-## Supported versions
-
-Consumers pin tagged releases (`vX.Y.Z`). Security fixes ship as new tags; the latest tagged release is the supported one. Release tags are immutable — a published tag is never moved or reused.
-
-## Scope
-
-This repository distributes design-system packages. Secrets are never required to consume it; anything that looks like a credential in this repository is design-token vocabulary.
+Only the latest release is supported. Fixes ship in a new release; a published tag or release is
+never changed.
