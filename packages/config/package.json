@@ -3,7 +3,7 @@
 	"version": "0.28.1",
 	"private": true,
 	"type": "module",
-	"description": "Shared TypeScript, Svelte and Turborepo configuration for yesid repositories.",
+	"description": "Shared TypeScript, Svelte, Turborepo and Playwright configuration for yesid repositories.",
 	"files": [
 		"README.md",
 		"LICENSE",
@@ -13,7 +13,9 @@
 		"tsconfig/svelte-kit.json",
 		"turbo/base.json",
 		"svelte/project-runes.js",
-		"svelte/project-runes.d.ts"
+		"svelte/project-runes.d.ts",
+		"playwright/index.js",
+		"playwright/index.d.ts"
 	],
 	"exports": {
 		"./package.json": "./package.json",
@@ -24,6 +26,21 @@
 		"./svelte/project-runes.js": {
 			"types": "./svelte/project-runes.d.ts",
 			"default": "./svelte/project-runes.js"
+		},
+		"./playwright": {
+			"types": "./playwright/index.d.ts",
+			"default": "./playwright/index.js"
 		}
+	},
+	"peerDependencies": {
+		"@axe-core/playwright": ">=4.10.0 <5",
+		"@playwright/test": ">=1.50.0 <2"
+	},
+	"peerDependenciesMeta": {
+		"@axe-core/playwright": { "optional": true },
+		"@playwright/test": { "optional": true }
+	},
+	"devDependencies": {
+		"@axe-core/playwright": "4.12.1"
 	}
 }
