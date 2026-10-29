@@ -62,18 +62,27 @@ export async function expectTapTargets(page, { exclude = [] } = {}) {
 	const small = await page.evaluate(
 		({ controls, exclude }) => {
 			const probe = document.body.appendChild(document.createElement('div'));
-			probe.style.inlineSize = 'var(--size-tap-min)';
+			probe.style.inlineSize = 'var(--size-tap-min, 0px)';
 			const standalone = probe.getBoundingClientRect().width;
 			probe.remove();
 			if (!standalone) throw new Error('--size-tap-min is not defined');
+			const inline = (node) => getComputedStyle(node).display.startsWith('inline');
+			// A sentence is rendered text, outside any control, on the link's own lines.
 			const inSentence = (el) => {
 				if (el.localName !== 'a' || getComputedStyle(el).display !== 'inline' || el.closest('nav, [role="navigation"]')) return false;
 				let block = el.parentElement;
-				while (block && getComputedStyle(block).display.startsWith('inline')) block = block.parentElement;
+				while (block && inline(block)) block = block.parentElement;
 				if (!block) return false;
-				const prose = block.cloneNode(true);
-				for (const control of prose.querySelectorAll(controls)) control.remove();
-				return prose.textContent.trim() !== '';
+				const words = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, {
+					acceptNode: (text) => {
+						if (!text.data.trim() || !text.parentElement.checkVisibility()) return NodeFilter.FILTER_REJECT;
+						for (let node = text.parentElement; node !== block; node = node.parentElement) {
+							if (node.matches(controls) || !inline(node)) return NodeFilter.FILTER_REJECT;
+						}
+						return NodeFilter.FILTER_ACCEPT;
+					},
+				});
+				return words.nextNode() !== null;
 			};
 			const denseRow = (el) => {
 				const row = el.closest('li, tr, [role="listitem"], [role="row"]');

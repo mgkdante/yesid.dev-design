@@ -83,4 +83,8 @@ test('tap targets: sentence links are exempt, a lone row control needs 24px, oth
 	expect(await verdict('<nav><a href="#">Home</a> <a href="#">About</a></nav>')).toBe('fail');
 	expect(await verdict('<ul><li><button class="row">Edit</button><button class="row">Delete</button></li></ul>')).toBe('fail');
 	expect(await verdict('<ul><li><a class="row" href="#" style="height: 20px">Row</a></li></ul>')).toBe('fail');
+	expect(await verdict('<div><span hidden>Hidden text</span><a href="#">Go</a></div>')).toBe('fail');
+	expect(await verdict('<div><p>A separate paragraph.</p><a href="#">Go</a></div>')).toBe('fail');
+	await page.setContent('<button>Go</button>');
+	await expect(expectTapTargets(page)).rejects.toThrow('--size-tap-min is not defined');
 });

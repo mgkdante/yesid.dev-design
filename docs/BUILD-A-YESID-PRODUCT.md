@@ -370,7 +370,7 @@ the order holds and the footer stays outside `main`. A full-bleed page, such as 
 | `<html lang>` after client navigation | Alt text, copy and CMS text, heading order |
 | Reduced motion in the header, sheets and route transitions | Reduced motion in its own animations |
 | The skip link, the banner and the footer landmark | `<main id="main">` and its routes |
-| 44px targets in the header, footer and frames | 44px targets, or 24px rows, in what it draws |
+| Footer links 44px both ways, `Wordmark` 44px tall, breadcrumb links 24px tall | Every other target: header link widths, injected search, actions and rail controls |
 | Contrast of the token pairs, tested in `@yesid/tokens` | Colors it mixes from the tokens |
 
 Component roles, names, states, focus and keyboard paths are tested in `@yesid/ui` and its Gallery. The product's
