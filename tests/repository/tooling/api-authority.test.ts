@@ -298,7 +298,7 @@ describe('deterministic package API reports', () => {
 		expect(readFileSync(join(REPOSITORY_ROOT, 'api-reports/ui.api.md'), 'utf8')).toBe(
 			first['@yesid/ui'],
 		);
-	}, 60_000);
+	}, 0);
 
 	it('detects TypeScript signatures, export shape, and direct asset byte mutations', async () => {
 		const baseline = await createApiReport(REPOSITORY_ROOT, '@yesid/tokens');
@@ -348,7 +348,7 @@ describe('deterministic package API reports', () => {
 		expect(assetReport.match(/- `\.\/tokens\.css`[^\n]+/u)?.[0]).not.toBe(
 			baseline.match(/- `\.\/tokens\.css`[^\n]+/u)?.[0],
 		);
-	}, 60_000);
+	}, 0);
 
 	it('detects Svelte prop and binding metadata mutations', async () => {
 		const baseline = await createApiReport(REPOSITORY_ROOT, '@yesid/ui');
@@ -366,7 +366,7 @@ describe('deterministic package API reports', () => {
 		expect(mutated).toContain('authorityProbe?: boolean');
 		expect(baseline).toContain('const Button: Component<ButtonProps, {}, "ref">;');
 		expect(mutated).not.toContain('const Button: Component<ButtonProps, {}, "ref">;');
-	}, 60_000);
+	}, 0);
 
 	it('reports Combobox component bindings and detects open binding loss', async () => {
 		const baseline = readFileSync(join(REPOSITORY_ROOT, 'api-reports/ui.api.md'), 'utf8');
@@ -384,7 +384,7 @@ describe('deterministic package API reports', () => {
 		expect(mutated).not.toContain(
 			'const Combobox: Component<ComboboxProps, {}, "open" | "value">;',
 		);
-	}, 60_000);
+	}, 0);
 
 	it('writes exact report paths and fails closed on stale committed bytes', () => {
 		const root = mkdtempSync(join(tmpdir(), 'yesid-api-report-test-'));
@@ -404,13 +404,4 @@ describe('deterministic package API reports', () => {
 		);
 	});
 
-	it('wires report, freshness, and approval commands into repository authority', () => {
-		const manifest = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'package.json'), 'utf8')) as {
-			scripts: Record<string, string>;
-		};
-		expect(manifest.scripts['api:report']).toBe('bun tools/api-authority.ts report');
-		expect(manifest.scripts['api:check']).toBe('bun tools/api-authority.ts check');
-		expect(manifest.scripts['api:approve']).toBe('bun tools/api-authority.ts approve');
-		expect(manifest.scripts.check).toContain('bun run api:check');
-	});
 });

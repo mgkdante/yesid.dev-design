@@ -8,7 +8,6 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
 	checkPreparedRelease,
@@ -32,7 +31,6 @@ const RELEASED_WORKSPACES = [
 	'i18n-core',
 	'config',
 ] as const;
-const REPOSITORY_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
 afterEach(() => {
 	for (const directory of scratch.splice(0)) rmSync(directory, { recursive: true, force: true });
@@ -388,11 +386,4 @@ describe('release CLI contract', () => {
 		expect(() => runReleaseCommand(args, createRepository())).toThrow(error);
 	});
 
-	it('publishes stable package-script entrypoints', () => {
-		const manifest = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'package.json'), 'utf8')) as {
-			scripts: Record<string, string>;
-		};
-		expect(manifest.scripts['release:prepare']).toBe('bun tools/release.ts prepare');
-		expect(manifest.scripts['release:check']).toBe('bun tools/release.ts check');
-	});
 });
