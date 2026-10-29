@@ -42,6 +42,12 @@
 	const label = $derived(enabled ? copy.expand : copy.collapse);
 	const title = $derived(enabled ? copy.expandTitle : copy.collapseTitle);
 	const rememberLabel = $derived(remembered ? copy.forget : copy.remember);
+	// Until hydration a store-driven label renders both texts; html[data-quiet-mode], set by the boot
+	// script for a remembered quiet mode, picks one.
+	let hydrated = $state(false);
+	$effect(() => {
+		hydrated = true;
+	});
 </script>
 
 <div
@@ -67,7 +73,7 @@
 			<path class="q-wave q-wave--far" d="M18.3 5.7a8.9 8.9 0 0 1 0 12.6" />
 			<circle class="q-core" cx="12" cy="12" r="2.3" />
 		</svg>
-		<span>{label}</span>
+		{#if hydrated || enabledProp !== undefined}<span>{label}</span>{:else}<span class="label-off">{copy.collapse}</span><span class="label-on">{copy.expand}</span>{/if}
 	</button>
 
 	<button
@@ -81,7 +87,7 @@
 		<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
 			<path class="r-bookmark" d="M7 4.5h10a1 1 0 0 1 1 1V20l-6-3.9L6 20V5.5a1 1 0 0 1 1-1z" />
 		</svg>
-		<span>{rememberLabel}</span>
+		{#if hydrated || rememberedProp !== undefined}<span>{rememberLabel}</span>{:else}<span class="label-off">{copy.remember}</span><span class="label-on">{copy.forget}</span>{/if}
 	</button>
 </div>
 
@@ -152,6 +158,15 @@
 			fill var(--duration-normal) var(--ease-default),
 			stroke var(--duration-normal) var(--ease-default),
 			filter var(--duration-normal) var(--ease-default);
+	}
+
+	.label-on,
+	:global(html[data-quiet-mode]) .label-off {
+		display: none;
+	}
+
+	:global(html[data-quiet-mode]) .label-on {
+		display: inline;
 	}
 
 	.q-wave--far {

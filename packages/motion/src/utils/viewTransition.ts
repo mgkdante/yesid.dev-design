@@ -20,6 +20,6 @@ export function viewTransition(navigation: ViewTransitionNavigation): Promise<vo
 		document.startViewTransition(async () => {
 			resolve();
 			await navigation.complete;
-		});
+		}).ready.catch(() => {});
 	});
 }

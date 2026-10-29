@@ -103,6 +103,13 @@ describe('theme boot script', () => {
 		expect(document.documentElement.dataset.theme).toBe('dark');
 	});
 
+	it('swallows the rejection of a view transition a reload cuts short', async () => {
+		runBoot();
+		const ready = Promise.reject(new DOMException('Transition was skipped', 'AbortError'));
+		dispatchEvent(Object.assign(new Event('pagereveal'), { viewTransition: { ready } }));
+		await flush();
+	});
+
 	it.each(cases)('turns $name server markup into the state the stored choice renders', async ({ mount, toggle }) => {
 		const view = mount();
 		const server = view.container.innerHTML;
