@@ -17,10 +17,10 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
 | [`packages/ui`](packages/ui/README.md) | `@yesid/ui` — source-shipped Svelte primitives and promoted brand components. |
 | [`packages/analytics`](packages/analytics/README.md) | `@yesid/analytics` — host-guarded cookieless Plausible client and web-vitals collection. |
 | [`packages/i18n-core`](packages/i18n-core/README.md) | `@yesid/i18n-core` — pure consumer-configured locale routing, Intl formatting and copy typing. |
-| [`packages/config`](packages/config/README.md) | `@yesid/config` — independently released compiler/task configuration; outside coordinated lockstep. |
+| [`packages/config`](packages/config/README.md) | `@yesid/config` — shared TypeScript, Svelte and Turborepo configuration; released in lockstep with the other packages. |
 | [`apps/gallery`](apps/gallery/README.md) | Private rendered dogfood and browser authority; not consumer proof. |
 | [`tests/repository`](tests/repository/README.md) | Root-owned tooling and cross-package contract authority; separate from Gallery. |
-| `tools` | Repository adapters for tokens, API reports, releases, archives, config releases, and adoption; operational owners are linked from the Commands section. |
+| `tools` | Repository adapters for tokens, API reports and releases; operational owners are linked from the Commands section. |
 
 ## Versioning + the parity contract
 
@@ -31,11 +31,13 @@ anchor**, branch `feat/conversion-hardening-batch`, extracted 2026-07-02).
   scale; beautification-era changes go higher). The parity tag never moves.
 - **Lockstep started at `v0.7.0`.** The root manifest is canonical
   for `@yesid/tokens`, `@yesid/motion`, `@yesid/gates`, `@yesid/seo-kit`, `@yesid/ui`,
-  `@yesid/analytics`, and `@yesid/i18n-core`; all seven package versions move together. Historical
+  `@yesid/analytics`, and `@yesid/i18n-core`; all seven package versions move together.
+  `@yesid/config` joined the lockstep at `v0.28.0`. Historical
   package-version skew and annotated tags `v0.1.0` through `v0.6.0` remain
   immutable. The private `@yesid/gallery` app is excluded from lockstep.
 - **Consumers pin exact versions.** A cascade is a deliberate bump-PR in the
-  consumer (run `tools/adopt.ts` against the new exact tag, review the diff) —
+  consumer (point the package URLs at the new exact tag, run
+  `bun install`, review the diff) —
   never an implicit float.
 
 ## Governance laws
@@ -94,30 +96,17 @@ bun run setup:hooks             # enable .githooks (generated-files guard)
 
 ## Distribution
 
-Consumers vendor exact immutable GitHub Release assets. Run the complete
-[`tools/adopt.ts`](tools/adopt.ts) bundle (`tools/adopt.ts` plus `tools/adopt/`)
-with `--tag vX.Y.Z`, then commit the package snapshot, self-vendored adoption
-tool, legal files, and schema-2 `manifest.json`. From `v0.13.4` onward, the legal bundle is
-`LICENSE`, `NOTICE`, and `TRADEMARK.md`; earlier immutable tags retain their historical layout.
-`--check` verifies the tool, exclusion policy, legal files, and full payload offline. Source and destination
-paths are canonicalized from their nearest existing parents; symbolic-link components are refused,
-missing destination components are created individually, and path identities are rechecked before
-installation. Token-scoped recovery evidence binds transaction entry identities and the previous
-tree hash across process death. Portable Node cannot make rename and removal handle-relative, so
-the destination parent must not be concurrently writable during the final check-to-operation step.
-Git dependencies cannot select workspace subpackages,
-and npm publication remains an optional later layer. The full decision is in
-[`DECISIONS.md`](DECISIONS.md).
-
-Shared tooling uses the separate, independently versioned `@yesid/config`
-asset (`config-vX.Y.Z` / `yesid-config-vX.Y.Z.tgz`). It never enters the
-coordinated `vX.Y.Z` adoption archive.
-The [shared CI contract](docs/SHARED-TOOLING-CI.md) documents immutable-SHA
+Each `vX.Y.Z` GitHub Release carries one tarball per package (`yesid-<pkg>-X.Y.Z.tgz`). Apps list
+the ones they use by URL in `package.json`, and `bun install` pins each tarball's integrity in the
+lockfile. `@yesid/ui` and `@yesid/seo-kit` take their sibling packages as peer dependencies pinned
+to the same release, so an app lists every `@yesid` package it uses and holds one copy of each.
+[`RELEASING.md`](RELEASING.md) covers the release side and [`DECISIONS.md`](DECISIONS.md) the
+reasoning. The [shared CI contract](docs/SHARED-TOOLING-CI.md) documents the immutable-SHA
 classifier, reporter, and configuration/caller drift actions.
 
 For a new product, follow [`docs/BUILD-A-YESID-PRODUCT.md`](docs/BUILD-A-YESID-PRODUCT.md).
-It covers adoption, token generation, Tailwind, fonts, UI configuration, motion,
-gates, localization, and deliberate tag bumps.
+It covers installation, tokens, Tailwind, fonts, UI configuration, motion, gates, localization,
+analytics and bumps.
 
 ## Contributing
 

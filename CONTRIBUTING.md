@@ -10,7 +10,7 @@ Open a pull request for concrete engineering work:
 - accessibility fixes;
 - performance fixes;
 - stronger tests and drift gates;
-- safer build, adoption, or release tooling;
+- safer build or release tooling;
 - documentation corrections that match the current code.
 
 Show the failure or risk first. Keep the change narrow. Do not bundle a cleanup campaign into a focused fix.

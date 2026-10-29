@@ -3,19 +3,12 @@
 ## Reproducible software defects
 
 Use the repository's [bug report form](https://github.com/mgkdante/yesid.dev-design/issues/new?template=bug-report.yml)
-for defects in an exact released tag of the adoption tool, tokens, motion,
-gates, SEO kit, UI, analytics, i18n core, or Gallery documentation. Include the exact tag, acquisition mode,
-minimal reproduction, and the output of:
-
-```sh
-bun vendor/design/tools/adopt.ts --check --dest vendor/design
-```
-
-If adoption did not complete, attach the bootstrap tool's full output and the
-exit code instead. Remove secrets and private product data from evidence.
+for defects in an exact released tag of tokens, motion,
+gates, SEO kit, UI, analytics, i18n core, or Gallery documentation. Include the exact tag from your
+package URLs and a minimal reproduction. Remove secrets and private product data from evidence.
 
 Supported reports identify an upstream package contract that can be reproduced
-without patching a consumer's vendored snapshot. A consumer defect should first
+without patching the installed package. A consumer defect should first
 be reduced at the boundary that appears to own it; see
 [`CONTRIBUTING.md`](CONTRIBUTING.md#escaped-consumer-defects).
 
@@ -39,7 +32,6 @@ flow. Include affected tags, impact, reproduction, and any known mitigation.
 ## Release support window
 
 Only immutable published releases can be production support targets. Branches,
-moving references, local `--source` snapshots, and `--archive` development
-adoptions are useful for diagnosis but do not claim published Release
+moving references, and local builds are useful for diagnosis but do not claim published Release
 provenance. Consumers choose their own upgrade schedule; see
 [`DEPRECATION.md`](DEPRECATION.md) for compatibility and removal rules.

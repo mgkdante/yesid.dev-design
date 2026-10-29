@@ -26,9 +26,9 @@ config source -> independent config archive -> exact-tag tooling consumers
 | `@yesid/analytics` | `@plausible-analytics/tracker`; consumer domain and event vocabulary | host-guarded cookieless pageviews and events, URL reduction, and web-vitals collection |
 | `@yesid/i18n-core` | consumer locale values, Intl tags and route rules | pure locale routing, cached Intl formatting with relative time, and copy typing |
 | `@yesid/ui` | `@yesid/motion` and `@yesid/seo-kit`; caller-owned state, copy, and actions | source-shipped Svelte primitives, rule-of-three brand components, the page head, and shared state (theme, quiet mode, clock, locale context) |
-| `@yesid/config` | no coordinated-package dependency | independently versioned compiler and task configuration |
+| `@yesid/config` | no coordinated-package dependency | compiler and task configuration, released in lockstep |
 | Gallery | `tokens`, `motion`, `gates`, and `ui` | private dogfood plus rendered, accessibility, motion, responsive, and visual authority |
-| Root tooling | release/config manifests plus explicit self-canaries | token generation, API reports, archives, adoption, governance, and CI selection |
+| Root tooling | release manifests plus explicit self-canaries | token generation, API reports, releases, governance, and CI selection |
 
 The graph has seven workspace edges: five runtime-or-dogfood edges and two root self-canary/tooling
 edges. Packages do not depend on Gallery or a consumer. Product policy remains in Transit and
@@ -41,8 +41,7 @@ yesid.dev. Gallery proves the repository surface, never a consumer adoption.
 | Public exports and declarations | seven committed API reports plus manifest export maps |
 | Token bytes and Linux/Windows parity | `tokens.json`, pure generators, committed outputs, and byte gates |
 | Rendered integration | Gallery SSR contracts and the pinned browser matrix |
-| Coordinated distribution | annotated `v*` tag, one canonical archive, embedded receipt, and adoption checks |
-| Config distribution | independent `config-v*` tag, npm-shaped archive, checksum, and config checks |
+| Coordinated distribution | annotated `v*` tag, eight package tarballs and their build-provenance attestation |
 | Legal and identity boundaries | `LICENSE`, `NOTICE`, and `TRADEMARK.md` without inferred legal conclusions |
 
 ## Second-pass measurement receipt
@@ -90,5 +89,4 @@ The style benchmark uses 400 16-KiB files and 30 patterns, with five timed sampl
 warm-up. Median time moved from 119.35 ms to 60.83 ms. The implementation preserves configured
 pattern/file result order and caller-owned RegExp state while reading each file once.
 
-The README and gate-engine bytes require coordinated `v0.13.3`; config README bytes require the
-independent `config-v0.2.1`. Consumer adoption remains a separate exact-tag task.
+The README and gate-engine bytes require coordinated `v0.13.3`.
