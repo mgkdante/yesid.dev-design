@@ -89,7 +89,7 @@
 		['comment', ' -- late runs'],
 	] as const;
 	const sql = sqlTokens.map(([, text]) => text).join('');
-	const copyLabels = { label: 'Copy', ariaLabel: 'Copy code', failed: 'Copy failed' };
+	const copyLabels = { label: 'Copy', ariaLabel: 'Copy code', copied: 'Copied', failed: 'Copy failed' };
 	const quietModeCopy = {
 		collapse: 'Collapse all',
 		expand: 'Expand all',
@@ -308,8 +308,7 @@
 					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 					<pre tabindex="0"><code
 							>{#each sqlTokens as [type, text], i (i)}<span
-									class:italic={type === 'comment'}
-									style:color="var(--syntax-{type})">{text}</span
+									class="syn-{type}">{text}</span
 								>{/each}</code
 						></pre>
 				</CodeBlock>

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import CodeBlock from './CodeBlock.svelte';
 
 const code = 'select 1';
-const copy = { label: 'Copy', ariaLabel: 'Copy code', failed: 'Copy failed' };
+const copy = { label: 'Copy', ariaLabel: 'Copy code', copied: 'Copied', failed: 'Copy failed' };
 const clipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
 const writeText = vi.fn();
 
@@ -37,9 +37,11 @@ describe('CodeBlock', () => {
 		await tick();
 		expect(writeText).toHaveBeenCalledExactlyOnceWith(code);
 		expect(button.textContent?.trim()).toBe('✓');
+		expect(screen.getByRole('status').textContent).toBe('Copied');
 		vi.advanceTimersByTime(2000);
 		await tick();
 		expect(button.textContent?.trim()).toBe('Copy');
+		expect(screen.getByRole('status').textContent).toBe('');
 	});
 
 	it('shows the supplied failure label when the clipboard rejects', async () => {
@@ -49,6 +51,7 @@ describe('CodeBlock', () => {
 		await fireEvent.click(button);
 		await tick();
 		expect(button.textContent?.trim()).toBe('Copy failed');
+		expect(screen.getByRole('status').textContent).toBe('Copy failed');
 	});
 
 	it('replaces the plain code with highlighted children', () => {

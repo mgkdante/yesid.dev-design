@@ -150,7 +150,7 @@
 
 ## Direct public assets
 
-- `./base.css` — direct asset `./base.css` (`default`), sha256 `b3765410b70bfef569705bdb7288b1116e268662f949865ca57e55c815437ca0`
+- `./base.css` — direct asset `./base.css` (`default`), sha256 `0a4e256f1a7d24266e177226aee1bd47fa182b15ec26c0e3ea893a48caa84956`
 - `./boot.json` — direct asset `./src/head/boot.json` (`default`), sha256 `9b0229a77f56656dfffbafab88b3e5d9c62c654aa37c6721284aad0ff5626577`
 
 ## Declaration namespaces
@@ -1107,6 +1107,7 @@ type CodeBlock = ReturnType<typeof CodeBlock>;
 interface CodeBlockCopyLabels {
     // (undocumented)
     ariaLabel: string;
+    copied?: string;
     failed: string;
     // (undocumented)
     label: string;
