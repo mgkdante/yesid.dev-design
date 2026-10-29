@@ -1,11 +1,9 @@
 <script lang="ts">
 	import { createRawSnippet } from 'svelte';
-	import { defineAnalyticsPreset } from '@yesid/analytics/config';
-	import { createAnalyticsConsentStore } from '@yesid/analytics/consent';
 	import { Badge } from '@yesid/ui/badge';
 	import { CornerMeta, SegmentedChoice, ToggleChip } from '@yesid/ui/brand';
 	import * as Card from '@yesid/ui/card';
-	import { AnalyticsConsent, StateNotice } from '@yesid/ui/feedback';
+	import { StateNotice } from '@yesid/ui/feedback';
 	import {
 		Breadcrumb,
 		ControlsRail,
@@ -22,28 +20,6 @@
 		id: string;
 		counts: number[];
 	}
-
-	const preset = defineAnalyticsPreset({
-		domain: 'gallery.example',
-		events: [],
-		storageKeys: { consent: 'consent', preferencesOpen: 'open', denialSafety: 'safety', storageProbe: 'probe' },
-	});
-	const memory = new Map<string, string>();
-	const consent = createAnalyticsConsentStore(preset, {
-		hostname: () => preset.domain,
-		probeDurableStorage: () => {},
-		read: () => memory.get('consent') ?? null,
-		write: (value) => void memory.set('consent', value),
-		remove: () => void memory.delete('consent'),
-		readPreferencesMarker: () => memory.get('open') ?? null,
-		writePreferencesMarker: (value) => void memory.set('open', value),
-		removePreferencesMarker: () => void memory.delete('open'),
-		readSafetyMarker: () => memory.get('safety') ?? null,
-		writeSafetyMarker: () => void memory.set('safety', '1'),
-		removeSafetyMarker: () => void memory.delete('safety'),
-		reload: () => {},
-		listen: () => () => {},
-	});
 
 	const grains = [
 		{ key: 'day', label: 'Day' },
@@ -169,16 +145,6 @@
 				frame="card"
 				headerBand="terminal"
 			/>
-
-			<button
-				type="button"
-				class="justify-self-start text-small underline"
-				onclick={() => consent.openPreferences()}
-			>
-				{copy.consent.settings}
-			</button>
 		</div>
 	</DetailFrame>
 </Surface>
-
-<AnalyticsConsent store={consent} copy={copy.consent} privacyHref="#privacy" id="analytics-consent" />

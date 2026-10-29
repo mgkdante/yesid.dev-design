@@ -186,8 +186,6 @@
 ```ts
 
 import { AlertDialogRootPropsWithoutHTML } from 'bits-ui';
-import type { AnalyticsConsentStore } from '@yesid/analytics/consent';
-import type { AnalyticsControlsInput } from '@yesid/analytics/policy';
 import { ClassValue } from 'clsx';
 import { Collapsible as Collapsible_2 } from 'bits-ui';
 import { Combobox as Combobox_2 } from 'bits-ui';
@@ -604,42 +602,6 @@ class __sveltets_Render_2<T> {
     props(): ReturnType<typeof $$render_2<T>>['props'];
     // (undocumented)
     slots(): ReturnType<typeof $$render_2<T>>['slots'];
-}
-
-// @public (undocumented)
-const AnalyticsConsent: Component<AnalyticsConsentProps, {}, "">;
-
-// @public (undocumented)
-type AnalyticsConsent = ReturnType<typeof AnalyticsConsent>;
-
-// @public (undocumented)
-interface AnalyticsConsentCopy {
-    // (undocumented)
-    accept: string;
-    // (undocumented)
-    decline: string;
-    // (undocumented)
-    description: string;
-    // (undocumented)
-    privacy: string;
-    settings: string;
-    // (undocumented)
-    title: string;
-}
-
-// @public (undocumented)
-interface AnalyticsConsentProps {
-    canShow?: boolean;
-    // (undocumented)
-    controls?: AnalyticsControlsInput;
-    // (undocumented)
-    copy: AnalyticsConsentCopy;
-    // (undocumented)
-    id?: string;
-    // (undocumented)
-    privacyHref: string;
-    // (undocumented)
-    store: AnalyticsConsentStore;
 }
 
 // @public (undocumented)
@@ -1817,10 +1779,7 @@ declare namespace Feedback {
         StateNotice,
         StateNoticePresentation,
         StateNoticeProps,
-        StateNoticeTone,
-        AnalyticsConsent,
-        AnalyticsConsentCopy,
-        AnalyticsConsentProps
+        StateNoticeTone
     }
 }
 

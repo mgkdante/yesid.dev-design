@@ -31,7 +31,7 @@ describe('Footer leaf contracts', () => {
 
 		expect(button.tagName).toBe('BUTTON');
 		expect(button.getAttribute('type')).toBe('submit');
-		expect(button.getAttribute('aria-controls')).toBe('analytics-consent');
+		expect(button.getAttribute('aria-controls')).toBe('footer-preferences');
 		expect(button.getAttribute('aria-expanded')).toBe('false');
 		expect(button.getAttribute('data-slot')).toBe('custom-footer-link');
 		expect(nullableButton.tagName).toBe('BUTTON');

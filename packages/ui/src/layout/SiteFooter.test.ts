@@ -18,7 +18,7 @@ const groups: SiteFooterProps['groups'] = [
 		label: 'Legal',
 		testId: 'footer-legal',
 		links: [{ href: '/privacy', label: 'Privacy' }],
-		after: html('<button type="button" data-testid="analytics-preferences">Analytics preferences</button>'),
+		after: html('<button type="button" data-testid="footer-preferences">Preferences</button>'),
 	},
 	{
 		label: 'Connect',
@@ -111,10 +111,10 @@ describe('groups', () => {
 	it('renders after inside its own group, following the links', () => {
 		const view = footer();
 		const legal = view.getByTestId('footer-legal');
-		const button = view.getByTestId('analytics-preferences');
+		const button = view.getByTestId('footer-preferences');
 		expect(legal.contains(button)).toBe(true);
 		expect(precedes(legal.querySelector('a')!, button)).toBe(true);
-		expect(view.getAllByTestId('analytics-preferences')).toHaveLength(1);
+		expect(view.getAllByTestId('footer-preferences')).toHaveLength(1);
 	});
 });
 

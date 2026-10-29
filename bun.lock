@@ -22,7 +22,6 @@
       "version": "0.1.0",
       "dependencies": {
         "@lucide/svelte": "^1.18.0",
-        "@yesid/analytics": "workspace:*",
         "@yesid/motion": "workspace:*",
         "@yesid/tokens": "workspace:*",
         "@yesid/ui": "workspace:*",
@@ -47,14 +46,13 @@
     "packages/analytics": {
       "name": "@yesid/analytics",
       "version": "0.26.0",
+      "dependencies": {
+        "@plausible-analytics/tracker": "^0.4.7",
+      },
       "devDependencies": {
         "@types/node": "^22.0.0",
-        "svelte": "^5.54.0",
         "typescript": "^5.5.0",
         "vitest": "^4.1.0",
-      },
-      "peerDependencies": {
-        "svelte": "^5.0.0",
       },
     },
     "packages/config": {
@@ -127,7 +125,6 @@
       "version": "0.26.0",
       "dependencies": {
         "@lucide/svelte": "^1.18.0",
-        "@yesid/analytics": "workspace:*",
         "@yesid/motion": "workspace:*",
         "@yesid/seo-kit": "workspace:*",
         "@yesid/tokens": "workspace:*",
@@ -260,6 +257,8 @@
     "@microsoft/tsdoc": ["@microsoft/tsdoc@0.16.0", "", {}, "sha512-xgAyonlVVS+q7Vc7qLW0UrJU7rSFcETRWsqdXZtjzRU8dF+6CkozTK4V4y1LwOX7j8r/vHphjDeMeGI4tNGeGA=="],
 
     "@microsoft/tsdoc-config": ["@microsoft/tsdoc-config@0.18.1", "", { "dependencies": { "@microsoft/tsdoc": "0.16.0", "ajv": "~8.18.0", "jju": "~1.4.0", "resolve": "~1.22.2" } }, "sha512-9brPoVdfN9k9g0dcWkFeA7IH9bbcttzDJlXvkf8b2OBzd5MueR1V2wkKBL0abn0otvmkHJC6aapBOTJDDeMCZg=="],
+
+    "@plausible-analytics/tracker": ["@plausible-analytics/tracker@0.4.7", "", {}, "sha512-majmq1uion4uLo88Tr0eMCMfi7TY00okp3I0Vql9egFaAz6DYCW4bJaV3t5LB3BfcvW5exJpmqzROU0a1b6nAA=="],
 
     "@playwright/test": ["@playwright/test@1.61.1", "", { "dependencies": { "playwright": "1.61.1" }, "bin": { "playwright": "cli.js" } }, "sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig=="],
 
