@@ -265,8 +265,9 @@ over the next 25vh of scrolling, reversing proportionally on return. There is no
 timeout, stagger or delay. Bind `progress` to unfold the caller-owned background below the marker;
 keeping the marker before the changing height avoids scroll feedback. Reduced motion switches
 instantly and SSR without JavaScript remains plain and visible. No fetch, parser or HTML injection.
-`layout="spread"` distributes artwork evenly; `layout="around-fixture"` balances mobile side
-clusters around a separate light. `floodlight` includes an unlit fixture in the moving group.
+`layout="spread"` distributes artwork evenly; `layout="around-fixture"` spaces mobile artwork
+evenly in one row around a centred 40px gap for a separate light. `floodlight` includes an unlit
+fixture in the moving group.
 Omit `revealAt` for always-visible artwork. Stationary lit fixtures remain outside the group.
 Spread layout honors `--construction-end-inset` for a caller's stationary fixture/wordmark area.
 

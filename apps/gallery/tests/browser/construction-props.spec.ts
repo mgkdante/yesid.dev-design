@@ -45,3 +45,18 @@ test('construction artwork stays available without JavaScript',async({browser,ba
 		for(const art of await floor.locator('[data-construction-prop] > svg').all())await expect(art).toBeVisible();
 	}finally{await context.close();}
 });
+
+test('around-fixture spaces phone artwork evenly around a centred fixture gap',async({page})=>{
+	test.skip(page.viewportSize()!.width>=768,'phone layout');
+	await openGallery(page);
+	const floor=page.locator('[data-gallery-family="brand:ConstructionProps"] [data-slot="construction-props"]');
+	const frame=await floor.evaluate(el=>el.parentElement!.getBoundingClientRect().toJSON());
+	const row=await floor.locator('[data-construction-prop]').evaluateAll(els=>els.map(el=>({name:(el as HTMLElement).dataset.constructionProp,...el.getBoundingClientRect().toJSON()})).sort((a,b)=>a.left-b.left));
+	expect(row.map(box=>box.name)).toEqual(['balise','sign','helmet','barricade']);
+	const [outer,middle,end]=row.slice(1).map((box,i)=>box.left-row[i].right);
+	expect(outer).toBeGreaterThan(1);
+	expect(Math.abs(outer-end)).toBeLessThanOrEqual(1);
+	expect(Math.abs(middle-(2*outer+40))).toBeLessThanOrEqual(1);
+	expect(Math.abs((row[1].right+row[2].left)/2-(frame.left+frame.right)/2)).toBeLessThanOrEqual(1);
+	for(const box of row)expect(box.left>=frame.left-1&&box.right<=frame.right+1).toBe(true);
+});

@@ -326,7 +326,7 @@
 				<Card.Description>Montréal construction artwork: plain or lit, with a replayable bottom reveal.</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<div class="relative h-64"><ConstructionProps lighting revealAt={constructionEnd} /></div>
+				<div class="relative -mx-4 h-64"><ConstructionProps lighting layout="around-fixture" revealAt={constructionEnd} /></div>
 				<div bind:this={constructionEnd} data-construction-end aria-hidden="true"></div>
 			</Card.Content>
 		</Card.Root>
