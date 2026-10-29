@@ -36,7 +36,7 @@ jobs:
               "schema": 1,
               "always": {
                 "paths": [".bun-version", ".github/shared-tooling.json", "bun.lock", "package.json", "turbo.json"],
-                "prefixes": [".github/actions/", ".github/workflows/", "packages/config/", "patches/"]
+                "prefixes": [".github/actions/", ".github/workflows/", "packages/config/"]
               },
               "jobs": {
                 "ci-work": {
