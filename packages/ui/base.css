@@ -99,6 +99,14 @@ pre, code, table {
 	}
 }
 
+/* Forced colors drop box-shadow focus rings, so every focus gets an outline. */
+@media (forced-colors: active) {
+	:focus-visible {
+		outline: 2px solid CanvasText !important;
+		outline-offset: 2px;
+	}
+}
+
 * {
 	scrollbar-width: thin;
 	scrollbar-color: color-mix(in srgb, var(--primary) 40%, transparent) transparent;

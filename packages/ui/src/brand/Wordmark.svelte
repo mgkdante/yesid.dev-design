@@ -53,6 +53,7 @@
 
 <style>
 	.wordmark {
+		min-block-size: var(--size-tap-min);
 		white-space: nowrap;
 		flex-shrink: 0;
 		border-radius: var(--radius-sm);

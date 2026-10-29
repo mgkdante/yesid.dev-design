@@ -77,6 +77,8 @@
 		opacity: 0.6;
 	}
 	.breadcrumb-link {
+		min-block-size: 24px;
+		align-content: center;
 		min-width: 0;
 		overflow: hidden;
 		color: var(--muted-foreground);

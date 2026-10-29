@@ -1,9 +1,6 @@
 <!--
 	@component
-	FooterLink preserves yesid.dev's underline-draw recipe and selects an anchor
-	when href is supplied or a button otherwise. Transit adds position: relative,
-	a ::after tap overlay, and reduced-motion transition removal; the shared leaf
-	keeps yesid as the underline source and uses the frozen literal tap floor.
+	FooterLink: an anchor with `href`, a button without, underlined on hover and focus.
 -->
 <script lang="ts" module>
 	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
@@ -44,7 +41,7 @@
 		bind:this={ref}
 		data-slot={dataSlot}
 		class={cn(
-			'footer-link inline-flex min-h-[var(--size-tap-min,44px)] items-center self-start text-small text-[var(--secondary-foreground)] transition-colors hover:text-primary active:text-primary',
+			'footer-link inline-flex items-center self-start text-small text-[var(--secondary-foreground)] transition-colors hover:text-primary active:text-primary',
 			className,
 		)}
 		{href}
@@ -58,7 +55,7 @@
 		bind:this={ref}
 		data-slot={dataSlot}
 		class={cn(
-			'footer-link inline-flex min-h-[var(--size-tap-min,44px)] items-center self-start text-left text-small text-[var(--secondary-foreground)] transition-colors hover:text-primary active:text-primary',
+			'footer-link inline-flex items-center self-start text-left text-small text-[var(--secondary-foreground)] transition-colors hover:text-primary active:text-primary',
 			className,
 		)}
 		{type}
@@ -74,6 +71,7 @@
 		background-position: 0 100%;
 		background-size: 0% 1px;
 		min-height: var(--size-tap-min, 44px);
+		min-inline-size: var(--size-tap-min, 44px);
 		transition:
 			background-size var(--duration-fast) var(--ease-out),
 			color var(--duration-fast) var(--ease-default);
