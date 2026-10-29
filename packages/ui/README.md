@@ -254,6 +254,25 @@ clipboard refuses. Highlighting stays in the app: render the highlighter's `<pre
 can scroll it; give it `role="region"` and an `aria-label` if it needs a name. Without `children`
 the code shows as a plain, focusable `<pre>`.
 
+### ConstructionProps
+
+The four original yesid.dev construction artworks: crossing sign, helmet, barricade and Montréal
+balise, with their original responsive ground positions. The caller owns the positioned scene
+above its footer. Optional `lighting` preserves the warm scene treatment. Pass a stable marker
+before the growing ground as `revealAt` and, for nested scrolling, its viewport as `revealRoot`.
+Reveal starts when that collapsed footer edge enters 5% of the active viewport and completes
+over the next 25vh of scrolling, reversing proportionally on return. There is no timed transition,
+timeout, stagger or delay. Bind `progress` to unfold the caller-owned background below the marker;
+keeping the marker before the changing height avoids scroll feedback. Reduced motion switches
+instantly and SSR without JavaScript remains plain and visible. No fetch, parser or HTML injection.
+`layout="spread"` distributes artwork evenly; `layout="around-fixture"` balances mobile side
+clusters around a separate light. `floodlight` includes an unlit fixture in the moving group.
+Omit `revealAt` for always-visible artwork. Stationary lit fixtures remain outside the group.
+Spread layout honors `--construction-end-inset` for a caller's stationary fixture/wordmark area.
+
+`ConstructionFloodlight` is the original stationary fixture, unlit by default; `lit` enables its
+original lens and halo. The caller owns positioning and any beam. Keep it outside the moving props.
+
 ### ManifestoCanvas
 
 The circuit-node backdrop of brand headers. It fills `containerEl` (which must be positioned) and

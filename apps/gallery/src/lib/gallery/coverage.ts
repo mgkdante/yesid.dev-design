@@ -22,6 +22,8 @@ export const GALLERY_COVERAGE = {
 		'CollapsibleSection',
 		'CornerMarks',
 		'CornerMeta',
+		'ConstructionProps',
+		'ConstructionFloodlight',
 		'ErrorIllustration',
 		'FilterGroup',
 		'FilterSection',

@@ -1096,6 +1096,10 @@ declare namespace Brand {
         CornerMarksProps,
         CornerMeta,
         CornerMetaProps,
+        ConstructionFloodlight,
+        ConstructionFloodlightProps,
+        ConstructionProps,
+        ConstructionPropsProps,
         ErrorIllustration,
         ErrorIllustrationProps,
         FilterGroup,
@@ -1513,6 +1517,34 @@ function configureUi(configuration?: UiConfiguration): ConfigureUiResult;
 
 // @public (undocumented)
 type ConfigureUiResult = 'initialized' | 'unchanged';
+
+// @public (undocumented)
+const ConstructionFloodlight: Component<ConstructionFloodlightProps, {}, "">;
+
+// @public (undocumented)
+type ConstructionFloodlight = ReturnType<typeof ConstructionFloodlight>;
+
+// @public (undocumented)
+interface ConstructionFloodlightProps {
+    // (undocumented)
+    lit?: boolean;
+}
+
+// @public (undocumented)
+const ConstructionProps: Component<ConstructionPropsProps, {}, "progress">;
+
+// @public (undocumented)
+type ConstructionProps = ReturnType<typeof ConstructionProps>;
+
+// @public (undocumented)
+interface ConstructionPropsProps {
+    floodlight?: boolean;
+    layout?: 'original' | 'spread' | 'around-fixture';
+    lighting?: boolean;
+    progress?: number;
+    revealAt?: Element;
+    revealRoot?: Element;
+}
 
 // @public (undocumented)
 const ControlsRail: Component<ControlsRailProps, {}, "">;
@@ -1948,6 +1980,10 @@ declare namespace Index {
         CornerMarksProps,
         CornerMeta,
         CornerMetaProps,
+        ConstructionFloodlight,
+        ConstructionFloodlightProps,
+        ConstructionProps,
+        ConstructionPropsProps,
         ErrorIllustration,
         ErrorIllustrationProps,
         FilterGroup,
