@@ -6,7 +6,7 @@ import { readOgFonts } from '../og-files.js';
 const card = { eyebrow: 'Blog', wordmark: 'yesid', title: 'A share card', handle: 'example.com', location: 'Montréal' };
 
 describe('share card', () => {
-	it('hands the rasterizer an SVG at the declared size on the token background', async () => {
+	it('hands the rasterizer a token-backed card with the grid behind its foreground', async () => {
 		let svg = '';
 		const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
 		const result = await renderOgPng(card, readOgFonts(), (rendered) => {
@@ -17,6 +17,14 @@ describe('share card', () => {
 		expect(svg).toContain(`width="${OG_WIDTH}"`);
 		expect(svg).toContain(`height="${OG_HEIGHT}"`);
 		expect(svg.toLowerCase()).toContain(OG_PALETTE.background.toLowerCase());
+		const grid = [...svg.matchAll(/<rect\b[^>]*fill-opacity="0\.(?:04|07)"[^>]*\/>/gu)]
+			.map(([rectangle]) => rectangle);
+		expect(grid).toEqual(expect.arrayContaining([
+			expect.stringContaining(`width="1" height="${OG_HEIGHT}"`),
+			expect.stringContaining(`width="${OG_WIDTH}" height="1"`),
+		]));
+		expect(grid.every((rectangle) => rectangle.includes(`fill="${OG_PALETTE.accent}"`))).toBe(true);
+		expect(svg.indexOf(grid.at(-1)!)).toBeLessThan(svg.indexOf('<path'));
 	});
 
 	it('loads the same fonts for request-time and build-time rendering', () => {

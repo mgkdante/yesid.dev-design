@@ -46,10 +46,29 @@ const mono = {
 	textTransform: 'uppercase',
 };
 
+/** Centered 1px grid strips stay out of the content's flex layout. */
+function grid() {
+	const lines = [];
+	for (let x = 40; x < OG_WIDTH; x += 40) {
+		lines.push(el('div', {
+			position: 'absolute', left: x - 0.5, top: 0, width: 1, height: OG_HEIGHT,
+			backgroundColor: OG_PALETTE.accent, opacity: x % 200 === 0 ? 0.07 : 0.04,
+		}));
+	}
+	for (let y = 40; y < OG_HEIGHT; y += 40) {
+		lines.push(el('div', {
+			position: 'absolute', left: 0, top: y - 0.5, width: OG_WIDTH, height: 1,
+			backgroundColor: OG_PALETTE.accent, opacity: y % 200 === 0 ? 0.07 : 0.04,
+		}));
+	}
+	return lines;
+}
+
 function ogCard({ eyebrow, wordmark, title, handle, location }: OgCardInput) {
 	return el(
 		'div',
 		{
+			position: 'relative',
 			width: `${OG_WIDTH}px`,
 			height: `${OG_HEIGHT}px`,
 			display: 'flex',
@@ -61,6 +80,7 @@ function ogCard({ eyebrow, wordmark, title, handle, location }: OgCardInput) {
 			fontFamily: 'Inter',
 		},
 		[
+			...grid(),
 			el('div', { ...mono, color: OG_PALETTE.accent }, eyebrow),
 			el('div', { display: 'flex', flexDirection: 'column', gap: '24px' }, [
 				el(
