@@ -8,6 +8,9 @@ brings its own content and product logic; the look and the shared plumbing come 
 [DESIGN.md](DESIGN.md) describes the visual language. The
 [product guide](docs/BUILD-A-YESID-PRODUCT.md) sets up a new product step by step.
 
+[Documentation](https://app.notion.com/p/3923e86306908139bbe4e78931cb3dbc) is the Notion wiki for
+architecture, package contracts and operations. Public access is pending owner publication.
+
 ## Packages
 
 | Package | What it does |

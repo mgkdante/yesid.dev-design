@@ -11,6 +11,11 @@ a different palette or direction are declined.
 Every change follows the [principles](README.md#principles). If it serves one product only, it
 belongs in that product.
 
+For architecture, package ownership and operational context, see
+[Documentation](https://app.notion.com/p/3923e86306908139bbe4e78931cb3dbc), the Notion wiki.
+Public access is pending owner publication. The commands and change requirements below apply to
+this repository.
+
 ## Set up
 
 Use Bun from [`.bun-version`](.bun-version) and Node from [`.nvmrc`](.nvmrc), then run what CI runs:
