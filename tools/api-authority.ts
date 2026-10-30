@@ -186,19 +186,24 @@ function formatDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
 		.join('\n');
 }
 
-function emitTypeScriptDeclarations(
-	sourcePackage: string,
-	packageOutput: string,
-	targets: readonly string[],
-): void {
+function readCompilerOptions(sourcePackage: string): ts.CompilerOptions {
 	const configPath = join(sourcePackage, 'tsconfig.json');
 	const config = ts.readConfigFile(configPath, ts.sys.readFile);
 	if (config.error) throw new Error(formatDiagnostics([config.error]));
 	const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, sourcePackage);
 	if (parsed.errors.length > 0) throw new Error(formatDiagnostics(parsed.errors));
+	return parsed.options;
+}
+
+function emitTypeScriptDeclarations(
+	sourcePackage: string,
+	packageOutput: string,
+	targets: readonly string[],
+	compilerOptions: ts.CompilerOptions,
+): void {
 	const rootNames = targets.map((target) => resolve(sourcePackage, target));
 	const program = ts.createProgram(rootNames, {
-		...parsed.options,
+		...compilerOptions,
 		declaration: true,
 		declarationMap: false,
 		declarationDir: packageOutput,
@@ -220,6 +225,7 @@ async function emitPackageDeclarations(
 	targets: readonly string[],
 ): Promise<void> {
 	const sourcePackage = join(repositoryRoot, 'packages', config.directory);
+	const compilerOptions = readCompilerOptions(sourcePackage);
 	if (config.name === '@yesid/ui') {
 		await emitDts({
 			declarationDir: packageOutput,
@@ -234,7 +240,7 @@ async function emitPackageDeclarations(
 		});
 		return;
 	}
-	emitTypeScriptDeclarations(sourcePackage, packageOutput, targets);
+	emitTypeScriptDeclarations(sourcePackage, packageOutput, targets, compilerOptions);
 }
 
 function exportedSymbols(

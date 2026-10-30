@@ -307,17 +307,18 @@ describe('deterministic package API reports', () => {
 		);
 	}, 0);
 
-	it('rejects invalid TypeScript configuration before extracting declarations', async () => {
-		const root = createPackageScratch('tokens');
-		const configPath = join(root, 'packages/tokens/tsconfig.json');
-		const config = JSON.parse(readFileSync(configPath, 'utf8'));
-		config.extends = './missing-library-config.json';
-		writeFileSync(configPath, JSON.stringify(config));
+	it.each(['tokens', 'ui'] as const)(
+		'rejects invalid %s configuration before extracting declarations',
+		async (directory) => {
+			const root = createPackageScratch(directory);
+			const configPath = join(root, 'packages', directory, 'tsconfig.json');
+			const config = JSON.parse(readFileSync(configPath, 'utf8'));
+			config.extends = './missing-library-config.json';
+			writeFileSync(configPath, JSON.stringify(config));
 
-		await expect(createApiReport(root, '@yesid/tokens')).rejects.toThrow(
-			"Cannot read file",
-		);
-	});
+			await expect(createApiReport(root, `@yesid/${directory}`)).rejects.toThrow('Cannot read file');
+		},
+	);
 
 	it('detects TypeScript signatures, export shape, and direct asset byte mutations', async () => {
 		const baseline = await createApiReport(REPOSITORY_ROOT, '@yesid/tokens');
