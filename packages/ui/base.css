@@ -393,8 +393,11 @@ pre, code, table {
 	.syn-punctuation {
 		color: var(--syntax-punctuation);
 	}
+	/* A full tap target that spends the title bar's own padding, so the bar keeps its height. */
 	.terminal-code-copy {
 		min-width: 3.75rem;
+		min-block-size: var(--size-tap-min);
+		margin-block: -0.5rem;
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-sm);
 		background: var(--card);
