@@ -2,6 +2,7 @@ import {
 	cpSync,
 	mkdirSync,
 	mkdtempSync,
+	readdirSync,
 	readFileSync,
 	rmSync,
 	symlinkSync,
@@ -55,6 +56,12 @@ function createPackageScratch(directory: 'tokens' | 'ui'): string {
 	cpSync(join(REPOSITORY_ROOT, 'packages', directory), join(root, 'packages', directory), {
 		recursive: true,
 	});
+	// Windows resolves node_modules' relative workspace links (../../packages/<name>) against
+	// the scratch root, so the sibling packages must exist there too.
+	for (const sibling of readdirSync(join(REPOSITORY_ROOT, 'packages'))) {
+		if (sibling === directory) continue;
+		symlinkSync(join(REPOSITORY_ROOT, 'packages', sibling), join(root, 'packages', sibling), 'junction');
+	}
 	symlinkSync(join(REPOSITORY_ROOT, 'node_modules'), join(root, 'node_modules'), 'junction');
 	return root;
 }
@@ -299,6 +306,18 @@ describe('deterministic package API reports', () => {
 			first['@yesid/ui'],
 		);
 	}, 0);
+
+	it('rejects invalid TypeScript configuration before extracting declarations', async () => {
+		const root = createPackageScratch('tokens');
+		const configPath = join(root, 'packages/tokens/tsconfig.json');
+		const config = JSON.parse(readFileSync(configPath, 'utf8'));
+		config.extends = './missing-library-config.json';
+		writeFileSync(configPath, JSON.stringify(config));
+
+		await expect(createApiReport(root, '@yesid/tokens')).rejects.toThrow(
+			"Cannot read file",
+		);
+	});
 
 	it('detects TypeScript signatures, export shape, and direct asset byte mutations', async () => {
 		const baseline = await createApiReport(REPOSITORY_ROOT, '@yesid/tokens');

@@ -17,7 +17,8 @@ shows the `lint:design` script setup. The exact interface is in
 - Engines take the product's configuration and return deterministic findings. They don't depend
   on Vitest or any other runner.
 - Style-regression scans read each file once, keep the configured pattern and file order, and
-  restore the caller's RegExp state after matching.
+  restore the caller's RegExp state after matching. Hit paths use `src/` plus the path relative to
+  the scan root, with `/` separators on every OS, including when the root has a trailing separator.
 - Comment stripping reads at most 1,048,576 UTF-16 code units, keeps every newline, and leaves
   incomplete delimiters visible so they can't hide later source.
 - Filesystem walks reject symbolic links and non-regular entries, stay inside the canonical root,

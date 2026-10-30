@@ -195,6 +195,7 @@ function emitTypeScriptDeclarations(
 	const config = ts.readConfigFile(configPath, ts.sys.readFile);
 	if (config.error) throw new Error(formatDiagnostics([config.error]));
 	const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, sourcePackage);
+	if (parsed.errors.length > 0) throw new Error(formatDiagnostics(parsed.errors));
 	const rootNames = targets.map((target) => resolve(sourcePackage, target));
 	const program = ts.createProgram(rootNames, {
 		...parsed.options,

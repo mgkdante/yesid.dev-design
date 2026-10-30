@@ -58,6 +58,10 @@ What changed for consumers, and how to migrate.
 CI accepts a changed API report only with a fragment added in the same pull request. Removing or
 breaking a public contract follows [DEPRECATION.md](DEPRECATION.md).
 
+API extraction stops on TypeScript configuration errors, including an unresolved `extends`.
+Restore the referenced workspace config or fix the package's `tsconfig.json` before regenerating
+reports; a report produced with fallback compiler options is not an approval baseline.
+
 ## Defects found in a product
 
 Reproduce the defect in the product, then fix it here with a regression test in the package that
