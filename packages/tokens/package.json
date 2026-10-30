@@ -1,6 +1,6 @@
 {
   "name": "@yesid/tokens",
-  "version": "0.30.0",
+  "version": "0.30.1",
   "private": true,
   "type": "module",
   "description": "DTCG design tokens for yesid products, with generated CSS, the Tailwind theme and bundled fonts. Source of truth: tokens.json.",
