@@ -11,11 +11,6 @@ a different palette or direction are declined.
 Every change follows the [principles](README.md#principles). If it serves one product only, it
 belongs in that product.
 
-For architecture, package ownership and operational context, see
-[Documentation](https://app.notion.com/p/3923e86306908139bbe4e78931cb3dbc), the Notion wiki.
-Public access is pending owner publication. The commands and change requirements below apply to
-this repository.
-
 ## Set up
 
 Use Bun from [`.bun-version`](.bun-version) and Node from [`.nvmrc`](.nvmrc), then run what CI runs:
@@ -62,10 +57,6 @@ What changed for consumers, and how to migrate.
 
 CI accepts a changed API report only with a fragment added in the same pull request. Removing or
 breaking a public contract follows [DEPRECATION.md](DEPRECATION.md).
-
-API extraction stops on TypeScript configuration errors, including an unresolved `extends`.
-Restore the referenced workspace config or fix the package's `tsconfig.json` before regenerating
-reports; a report produced with fallback compiler options is not an approval baseline.
 
 ## Defects found in a product
 
