@@ -63,14 +63,14 @@
 		bind:ref
 		data-slot="sheet-content"
 		style="z-index: calc(var(--z-index-sheet) + 1);"
-		class={cn(sheetVariants({ side }), className)}
+		class={cn(sheetVariants({ side }), showCloseButton && '[&_[data-slot=sheet-header]]:pr-12', className)}
 		{...restProps}
 	>
 		{@render children?.()}
 
 		{#if showCloseButton}
 			<SheetPrimitive.Close
-				class="ring-offset-background focus-visible:ring-ring text-muted-foreground hover:text-foreground absolute top-0.5 right-0.5 inline-flex size-11 items-center justify-center rounded-sm opacity-80 transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+				class="ring-offset-background focus-visible:ring-ring text-muted-foreground hover:text-foreground absolute top-0.5 right-0.5 inline-flex size-11 items-center justify-center rounded-sm opacity-80 transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-none disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
 			>
 				<XIcon aria-hidden="true" />
 				<span class="sr-only">{closeLabel}</span>

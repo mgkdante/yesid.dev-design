@@ -80,6 +80,34 @@ test('the resizable handle is valid server markup before hydration', async ({ pa
 	await expectAccessible(page, { include: '[data-gallery-family="primitive:resizable"]' });
 });
 
+// Catalogue families drawn at their default, standalone size; the rest show deliberate size variants.
+const FULL_SIZE_FAMILIES = ['brand:CodeBlock', 'brand:TocNav'];
+
+test('catalogue families at their default size keep full-size tap targets', async ({ page }) => {
+	await openGallery(page);
+	const others = FULL_SIZE_FAMILIES.map((family) => `:not([data-gallery-family="${family}"])`).join('');
+	await expectTapTargets(page, { exclude: [`[data-gallery-family]${others}`] });
+});
+
+type Box = { x: number; y: number; width: number; height: number };
+const overlaps = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+test('at 320 px the grown tap targets keep clear of their neighbours', async ({ page }, { project }) => {
+	test.skip(project.name !== 'phone', 'one width is enough');
+	await page.setViewportSize({ width: 320, height: 640 });
+	await openGallery(page);
+	const code = page.locator('[data-gallery-family="brand:CodeBlock"]');
+	const copy = (await code.getByRole('button', { name: 'Copy code' }).boundingBox())!;
+	for (const text of ['Long translated query title', 'sql']) {
+		expect(overlaps(copy, (await code.getByText(text, { exact: true }).first().boundingBox())!), text).toBe(false);
+	}
+
+	await page.getByRole('button', { name: 'Open details' }).click();
+	const sheet = page.getByRole('dialog', { name: 'Operational detail' });
+	const close = (await sheet.getByRole('button', { name: 'Fermer le panneau' }).boundingBox())!;
+	expect(overlaps(close, (await sheet.getByRole('heading', { name: 'Operational detail' }).boundingBox())!)).toBe(false);
+});
+
 test('tap targets: sentence links are exempt, a lone row control needs 24px, other controls the token', async ({ page }) => {
 	const verdict = async (body: string) => {
 		await page.setContent(`<style>:root { --size-tap-min: 44px; } .row { display: block; height: 24px; }</style>${body}`);
