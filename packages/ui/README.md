@@ -1,9 +1,10 @@
 # @yesid/ui
 
 Source-shipped Svelte 5 primitives and promoted brand components. The package owns reusable
-rendering mechanics; consumers own product copy, policy, state, persistence, routing, and every
-recorded compatibility seam. Consumers import individual families so unused primitives stay out
-of their bundle.
+rendering mechanics and shared theme, quiet-mode and tab-scoped state in `@yesid/ui/state`.
+Consumers choose what to persist and own product copy, policy, data, routing and every recorded
+compatibility seam. Consumers import individual families so unused primitives stay out of their
+bundle.
 
 ```svelte
 <script lang="ts">
