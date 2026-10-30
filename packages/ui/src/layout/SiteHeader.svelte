@@ -254,7 +254,7 @@
 									<span data-priority={link.priority ?? 1} use:magnetic={{ strength: 6, radius: 50 }}>
 										<a
 											href={link.href}
-											class="nav-pill-link inline-flex min-h-11 items-center px-1 transition-all {link.current
+											class="nav-pill-link inline-flex min-h-11 min-w-11 items-center justify-center px-1 transition-all {link.current
 												? 'nav-link-active text-primary'
 												: 'text-secondary-foreground hover:text-primary active:text-primary'}"
 											aria-current={link.current ? 'page' : undefined}>{link.label}</a

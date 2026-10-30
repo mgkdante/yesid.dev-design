@@ -304,7 +304,7 @@
 				<Card.Description>Caller-highlighted source in the syntax tokens with a copy button, and plain source.</Card.Description>
 			</Card.Header>
 			<Card.Content class="grid gap-3">
-				<CodeBlock code={sql} title="query" language="sql" copy={copyLabels}>
+				<CodeBlock code={sql} title="Long translated query title" language="sql" copy={copyLabels}>
 					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 					<pre tabindex="0"><code
 							>{#each sqlTokens as [type, text], i (i)}<span

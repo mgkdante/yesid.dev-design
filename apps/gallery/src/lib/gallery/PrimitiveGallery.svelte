@@ -272,7 +272,7 @@
 							Content remains readable when translated text expands beyond its source length.
 						</div>
 						<Sheet.Footer class="mt-auto border-t border-border p-4">
-							<Sheet.Close class="rounded-md border border-border px-3 py-2">Done</Sheet.Close>
+							<Sheet.Close class="min-h-11 rounded-md border border-border px-3 py-2">Done</Sheet.Close>
 						</Sheet.Footer>
 					</Sheet.Content>
 				</Sheet.Root>

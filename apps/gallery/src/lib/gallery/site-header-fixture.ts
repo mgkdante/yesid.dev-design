@@ -7,7 +7,7 @@ export const LANGUAGE_LABEL = 'Language';
 export const SEARCH_LABEL = 'Search';
 export const LINKS: readonly SiteHeaderLink[] = [
 	{ href: HOME, label: 'Header', current: true },
-	{ href: '/listing-frame', label: 'Listing', priority: 2 },
+	{ href: '/listing-frame', label: 'List', priority: 2 },
 	{ href: '/detail-frame', label: 'Detail', priority: 3 },
 ];
 export const MENU_ITEMS: readonly SiteHeaderMenuItem[] = [
