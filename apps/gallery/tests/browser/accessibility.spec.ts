@@ -74,6 +74,12 @@ for (const route of routes) {
 	});
 }
 
+test('the resizable handle is valid server markup before hydration', async ({ page }) => {
+	await page.route('**/_app/**/*.js', (route) => route.abort());
+	await page.goto('/');
+	await expectAccessible(page, { include: '[data-gallery-family="primitive:resizable"]' });
+});
+
 test('tap targets: sentence links are exempt, a lone row control needs 24px, other controls the token', async ({ page }) => {
 	const verdict = async (body: string) => {
 		await page.setContent(`<style>:root { --size-tap-min: 44px; } .row { display: block; height: 24px; }</style>${body}`);
