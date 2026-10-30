@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { renderSatoriPng } from '../satori.js';
+import { readOgFonts } from '../og-files.js';
 
 describe('renderSatoriPng', () => {
 	it('passes Satori SVG bytes to the injected rasterizer unchanged', async () => {
@@ -30,5 +31,41 @@ describe('renderSatoriPng', () => {
 				},
 			),
 		).rejects.toThrow('rasterizer boom');
+	});
+
+	it('escapes crafted SVG attributes before passing output to the rasterizer', async () => {
+		let svg = '';
+		await renderSatoriPng(
+			{
+				type: 'div',
+				props: {
+					style: { color: 'red"/><path data-injected="true"/><text fill="red' },
+					children: 'Safe label',
+				},
+			},
+			{ width: 100, height: 100, fonts: readOgFonts(), embedFont: false },
+			(rendered) => {
+				svg = rendered;
+				return new Uint8Array();
+			},
+		);
+
+		expect(svg).not.toContain('<path data-injected="true"');
+		expect(svg).toContain('fill="red&quot;/&gt;&lt;path data-injected=&quot;true&quot;');
+	});
+
+	it('rejects caller-supplied internal SVG fields before rasterization', async () => {
+		let rasterized = false;
+		await expect(
+			renderSatoriPng(
+				{ type: 'div', props: { style: { _inheritedClipPathId: 'x)"/><path data-injected="true"' } } },
+				{ width: 1, height: 1, fonts: [] },
+				() => {
+					rasterized = true;
+					return new Uint8Array();
+				},
+			),
+		).rejects.toThrow('Invalid style property: "_inheritedClipPathId"');
+		expect(rasterized).toBe(false);
 	});
 });

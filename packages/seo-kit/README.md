@@ -48,6 +48,8 @@ bun run --cwd packages/seo-kit test
 bun run --cwd packages/seo-kit check
 ```
 
-`satori` is a peer dependency; `shiki` 4.x is an optional peer, needed only for `./highlight`.
+`satori` is a required peer at `>=0.33.5 <1`, excluding versions affected by SVG serialization
+injection ([GHSA-wx4j-mvgx-mqwp](https://github.com/advisories/GHSA-wx4j-mvgx-mqwp)). `shiki` 4.x is
+an optional peer, needed only for `./highlight`.
 Invalid dates are left out of the sitemap. Satori and rasterizer errors reject to the caller,
 which decides whether to fail the build or retry.
