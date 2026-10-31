@@ -42,10 +42,11 @@ or locale-scoped configuration is not allowed.
 ## D6: Token generation is pure upstream and path-owned downstream
 
 `packages/tokens/src/build.ts` is a pure content engine with no filesystem or consumer-checkout
-knowledge. `tools/build-tokens.ts` owns repository paths, public UI inventory discovery,
-sentinel replacement, and write-if-changed outputs. `packages/tokens/tokens.css` is the single
-package CSS artifact; motion TypeScript, the Gallery theme region, and `DESIGN.md` are committed
-downstream artifacts generated from the same token source.
+knowledge. `tools/build-tokens.ts` owns repository paths, public UI inventory discovery and
+write-if-changed outputs, and `--check` reports drift. From the same token source it writes four
+committed artifacts: `packages/tokens/tokens.css` (plain custom properties),
+`packages/tokens/theme.css` (the Tailwind `@theme` layer), `packages/motion/src/tokens.ts` and
+`DESIGN.md`.
 
 ## D7: Gate engines are policy-neutral
 
