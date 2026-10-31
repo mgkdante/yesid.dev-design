@@ -58,4 +58,4 @@ setup.
 `@yesid/config/playwright` exports `yesidProjects(baseURL)`, the standard projects, and three checks:
 `expectAccessible(page)` runs axe, `expectTapTargets(page)` measures tap targets and
 `expectNoHorizontalOverflow(page)` catches sideways scrolling. See
-[Test accessibility with the standard projects](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.2/docs/BUILD-A-YESID-PRODUCT.md#7-test-accessibility-with-the-standard-projects).
+[Test accessibility with the standard projects](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.3/docs/BUILD-A-YESID-PRODUCT.md#7-test-accessibility-with-the-standard-projects).
