@@ -6,7 +6,9 @@ SEO, analytics and locale mechanics, released as eight packages. A SvelteKit pro
 brings its own content and product logic; the look and the shared plumbing come from here.
 
 [DESIGN.md](DESIGN.md) describes the visual language. The
-[product guide](docs/BUILD-A-YESID-PRODUCT.md) sets up a new product step by step.
+[product guide](docs/BUILD-A-YESID-PRODUCT.md) sets up a new product step by step. The
+[architecture wiki](https://yesid-dev.notion.site/3923e86306908139bbe4e78931cb3dbc?v=4093e8630690805eb12d000c417f4660)
+documents components, ownership and the package and release contracts.
 
 ## Packages
 
