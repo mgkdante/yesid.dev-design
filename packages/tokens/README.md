@@ -46,7 +46,7 @@ copy: apply the reading roles to prose and code in the consumer, keeping compact
 | `./parse`, `./generators/design-md` | token parsing and the `DESIGN.md` generator |
 
 The exact interface is in
-[`api-reports/tokens.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.2/api-reports/tokens.api.md).
+[`api-reports/tokens.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.3/api-reports/tokens.api.md).
 
 ## Rules
 

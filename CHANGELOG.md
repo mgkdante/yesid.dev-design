@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.30.3
+
+<!-- release-fragment: ordinary-reading-roles -->
+- `@yesid/tokens` (patch), `@yesid/ui` (patch): Add explicit ordinary-reading size roles: prose 19/20px, block code 16/17px, inline code 0.95em, figure captions 16px, supporting prose 18px and section headings 20/22px, with desktop sizes starting at 1024px. Apply these roles with the documented line heights when adopting the package. The shared class merger recognizes them as font sizes, preserving text colours and replacing competing base sizes. Existing body, mono, caption, compact-density, control, data and artistic display sizes are unchanged. Gallery demonstrates the reading roles.
+
+<!-- release-fragment: portable-style-regression-paths -->
+- `@yesid/gates` (patch): Normalize style-regression hit paths to `src/` with forward slashes on every OS, including scan roots with a trailing separator. Windows callers receive the same finding paths as Linux callers.
+
+<!-- release-fragment: seo-kit-og-background-grid -->
+- `@yesid/seo-kit` (patch): Add the subtle blueprint grid to the default shared OG card: 40px minor lines and 200px major lines behind the existing content, using the token accent at 0.04/0.07 opacity. Card dimensions, typography, padding and public helper signatures are unchanged. Consumers receive the background after adopting the release; OG and Twitter reuse the same image asset.
+
+<!-- release-fragment: seo-kit-satori-security-floor -->
+- `@yesid/seo-kit` (patch): Require Satori >=0.33.5 and <1 to exclude versions affected by GHSA-wx4j-mvgx-mqwp. Consumers must upgrade their Satori peer before adopting this release. No rendering-helper signatures or injected-rasterizer call shapes changed.
+
 ## 0.30.2
 
 <!-- release-fragment: header-link-tap-width -->
