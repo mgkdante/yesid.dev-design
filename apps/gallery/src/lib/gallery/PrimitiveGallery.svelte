@@ -64,7 +64,7 @@
 
 <section class="mt-10" aria-labelledby="gallery-primitives">
 	<h2 id="gallery-primitives" class="font-heading text-title font-semibold">UI primitives</h2>
-	<p class="mt-1 text-small text-muted-foreground">
+	<p class="mt-1 text-reading-support leading-[1.7] text-muted-foreground">
 		Every public family rendered through its package subpath, including neutral operational
 		states.
 	</p>

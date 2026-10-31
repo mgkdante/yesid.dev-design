@@ -36,7 +36,7 @@
 	<h2 id="gallery-colors" class="font-heading text-title font-semibold">
 		Four-color infrastructure doctrine
 	</h2>
-	<p class="mt-1 text-small text-muted-foreground">
+	<p class="mt-1 text-reading-support leading-[1.7] text-muted-foreground">
 		Orange marks interaction, yellow marks wayfinding, white reflects, and black structures.
 	</p>
 	<div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -80,6 +80,22 @@
 
 <section class="mt-10" aria-labelledby="gallery-type-scale">
 	<h2 id="gallery-type-scale" class="font-heading text-title font-semibold">Type scale</h2>
+	<div class="mt-4 max-w-prose space-y-4">
+		<h3 class="font-heading text-reading-heading lg:text-reading-heading-desktop font-semibold">
+			Ordinary reading
+		</h3>
+		<p class="text-reading lg:text-reading-desktop leading-[1.7]">
+			Reading copy uses the same scale across products. Inline
+			<code class="font-mono text-reading-inline-code">data-density="compact"</code>
+			keeps controls and data compact without shrinking this prose.
+		</p>
+		<figure class="space-y-2">
+			<pre class="overflow-x-auto rounded-md bg-muted p-4 font-mono text-reading-code lg:text-reading-code-desktop leading-[1.6]"><code>bun run tokens:build</code></pre>
+			<figcaption class="text-reading-caption leading-[1.6] text-muted-foreground">
+				Generate the stylesheets from the token source.
+			</figcaption>
+		</figure>
+	</div>
 	<ul class="mt-3 space-y-1">
 		{#each textScale as token (token.name)}
 			<li class="flex min-w-0 items-baseline gap-3">
@@ -95,7 +111,7 @@
 
 <section class="mt-10" aria-labelledby="gallery-density">
 	<h2 id="gallery-density" class="font-heading text-title font-semibold">Density</h2>
-	<p class="mt-1 text-small text-muted-foreground">
+	<p class="mt-1 text-reading-support leading-[1.7] text-muted-foreground">
 		Setting data-density="compact" on any subtree tightens the type scale.
 	</p>
 	<div class="mt-3 grid gap-4 sm:grid-cols-2">

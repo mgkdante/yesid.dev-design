@@ -9,7 +9,7 @@ persisted state and art direction.
 The root and `./actions` exports provide the shared actions. Policy, generated tokens,
 reduced-motion state, device, ticker, GSAP, Lenis and ripple helpers each have their own subpath.
 The exact interface is in
-[`api-reports/motion.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.3/api-reports/motion.api.md).
+[`api-reports/motion.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.2/api-reports/motion.api.md).
 
 ## Rules
 
@@ -33,7 +33,7 @@ client navigations with the View Transitions API and skips same-path navigations
 without the API and reduced motion. The crossfade CSS lives in `@yesid/ui/base.css`.
 
 GSAP is third-party software under its own license, not this repository's MIT grant. See
-[`NOTICE`](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.3/NOTICE).
+[`NOTICE`](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.2/NOTICE).
 
 ## Blueprint scrub
 

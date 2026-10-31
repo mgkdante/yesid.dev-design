@@ -120,7 +120,7 @@
 	<h2 id="gallery-brand-components" class="font-heading text-title font-semibold">
 		Brand components
 	</h2>
-	<p class="mt-1 text-small text-muted-foreground">
+	<p class="mt-1 text-reading-support leading-[1.7] text-muted-foreground">
 		Package defaults beside neutral caller configuration, without product-owned policy.
 	</p>
 
@@ -304,7 +304,8 @@
 				<Card.Description>Caller-highlighted source in the syntax tokens with a copy button, and plain source.</Card.Description>
 			</Card.Header>
 			<Card.Content class="grid gap-3">
-				<CodeBlock code={sql} title="Long translated query title" language="sql" copy={copyLabels}>
+				<CodeBlock code={sql} title="Long translated query title" language="sql" copy={copyLabels}
+					class="[&_pre]:text-reading-code lg:[&_pre]:text-reading-code-desktop [&_pre]:leading-[1.6]">
 					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 					<pre tabindex="0"><code
 							>{#each sqlTokens as [type, text], i (i)}<span
@@ -315,6 +316,7 @@
 				<CodeBlock
 					code="bun run build --filter @yesid/ui && bun run test --filter @yesid/ui -- --reporter=verbose --coverage --coverage.reporter=text-summary"
 					title="shell"
+					class="[&_pre]:text-reading-code lg:[&_pre]:text-reading-code-desktop [&_pre]:leading-[1.6]"
 				/>
 			</Card.Content>
 		</Card.Root>
@@ -575,7 +577,7 @@
 
 <section class="mt-10" aria-labelledby="gallery-blueprints">
 	<h2 id="gallery-blueprints" class="font-heading text-title font-semibold">Blueprint drawings</h2>
-	<p class="mt-1 text-small text-muted-foreground">
+	<p class="mt-1 text-reading-support leading-[1.7] text-muted-foreground">
 		Every drawing in <code>@yesid/ui/blueprints</code>, drawn in <code>currentColor</code>.
 	</p>
 	<ul class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

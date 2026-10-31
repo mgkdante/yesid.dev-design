@@ -60,7 +60,7 @@
 			<section {id} class="mb-10">
 				<h2 class="mb-3 text-heading font-bold">{title}</h2>
 				{#each [1, 2, 3, 4, 5, 6] as n (n)}
-					<p class="mb-4 text-body">{filler}</p>
+					<p class="mb-4 text-reading lg:text-reading-desktop leading-[1.7]">{filler}</p>
 				{/each}
 			</section>
 		{/each}

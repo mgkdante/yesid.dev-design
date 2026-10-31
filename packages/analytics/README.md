@@ -9,7 +9,7 @@ product's events. The product supplies the domain, event names and privacy polic
 
 The root export and the `./config`, `./client` and `./vitals` subpaths are public. The exact
 interface is in
-[`api-reports/analytics.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.3/api-reports/analytics.api.md).
+[`api-reports/analytics.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.2/api-reports/analytics.api.md).
 
 ## Measurement
 

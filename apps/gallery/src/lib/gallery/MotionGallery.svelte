@@ -17,7 +17,7 @@
 
 <section class="mt-10" aria-labelledby="gallery-motion">
 	<h2 id="gallery-motion" class="font-heading text-title font-semibold">Motion vocabulary</h2>
-	<p class="mt-1 text-small text-muted-foreground">
+	<p class="mt-1 text-reading-support leading-[1.7] text-muted-foreground">
 		Durations {Object.entries(duration)
 			.map(([name, value]) => `${name} ${value}ms`)
 			.join(' · ')} · easings {Object.keys(ease).join(', ')}.

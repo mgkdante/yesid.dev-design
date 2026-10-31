@@ -1,6 +1,6 @@
 {
   "name": "@yesid/motion",
-  "version": "0.30.3",
+  "version": "0.30.2",
   "private": true,
   "type": "module",
   "description": "Svelte motion actions, reduced-motion policy, GSAP and Lenis helpers, and opt-in CSS for yesid products.",

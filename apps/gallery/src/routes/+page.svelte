@@ -10,7 +10,7 @@
 </svelte:head>
 
 <h1 class="font-heading text-display font-bold">Brand gallery</h1>
-<p class="mt-2 max-w-prose text-body text-muted-foreground">
+<p class="mt-2 max-w-prose text-reading lg:text-reading-desktop leading-[1.7] text-muted-foreground">
 	A live reference for the public token, component, and motion contracts. Every scenario uses
 	neutral caller-owned data and copy.
 </p>

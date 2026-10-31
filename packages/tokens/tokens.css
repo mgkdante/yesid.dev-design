@@ -31,6 +31,15 @@
   --text-heading: clamp(1.25rem, 3vw, 1.5rem);
   --text-subheading: 1.1875rem;
   --text-body: 1.0625rem;
+  --text-reading: 1.1875rem;
+  --text-reading-desktop: 1.25rem;
+  --text-reading-code: 1rem;
+  --text-reading-code-desktop: 1.0625rem;
+  --text-reading-inline-code: 0.95em;
+  --text-reading-caption: 1rem;
+  --text-reading-support: 1.125rem;
+  --text-reading-heading: 1.25rem;
+  --text-reading-heading-desktop: 1.375rem;
   --text-small: 0.9375rem;
   --text-mono: 0.875rem;
   --text-caption: 0.8125rem;
