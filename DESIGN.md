@@ -58,6 +58,24 @@ typography:
     fontSize: "1.1875rem"
   body:
     fontSize: "1.0625rem"
+  reading:
+    fontSize: "1.1875rem"
+  reading-desktop:
+    fontSize: "1.25rem"
+  reading-code:
+    fontSize: "1rem"
+  reading-code-desktop:
+    fontSize: "1.0625rem"
+  reading-inline-code:
+    fontSize: "0.95em"
+  reading-caption:
+    fontSize: "1rem"
+  reading-support:
+    fontSize: "1.125rem"
+  reading-heading:
+    fontSize: "1.25rem"
+  reading-heading-desktop:
+    fontSize: "1.375rem"
   small:
     fontSize: "0.9375rem"
   mono:

@@ -6,7 +6,8 @@
 // that made up the rest of that file stays app-side — it is the per-app taste
 // contract.
 import { readFileSync } from 'node:fs';
-import { walk } from './walk.js';
+import { resolve } from 'node:path';
+import { relativePathFromRoot, walk } from './walk.js';
 
 export interface ForbiddenPattern {
 	pattern: RegExp;
@@ -24,7 +25,7 @@ export interface StyleRegressionConfig {
 export interface ForbiddenHit {
 	pattern: RegExp;
 	reason: string;
-	/** File paths with the scan root replaced by 'src' (source-gate format). */
+	/** File paths under the scan root, prefixed `src/` with `/` separators on every OS. */
 	hits: string[];
 }
 
@@ -50,7 +51,7 @@ export function styleRegressionViolations(config: StyleRegressionConfig): Forbid
 
 	for (const file of files) {
 		const source = readFileSync(file, 'utf-8');
-		const relativePath = file.replace(config.root, 'src');
+		const relativePath = `src/${relativePathFromRoot(resolve(config.root), file)}`;
 		for (const result of results) {
 			if (matches(result.pattern, source)) result.hits.push(relativePath);
 		}

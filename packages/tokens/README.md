@@ -20,6 +20,23 @@ Compact density is opt-in: set `data-density="compact"` on `<html>` or on a subt
 `density.compact` overrides. `tokens.css` also declares the breakpoints as `@custom-media`; inside
 Svelte styles they need postcss-global-data and postcss-custom-media in the product's build.
 
+For ordinary reading, use these explicit roles. They retain their size inside compact-density
+subtrees. Existing `text-body`, `text-small`, `text-mono` and `text-caption` also serve controls,
+data and labels, so they keep their existing values. Display, hero and impact roles are separate.
+
+| Reading role | Tailwind size classes | Line height |
+| --- | --- | --- |
+| Prose | `text-reading lg:text-reading-desktop` (19/20px) | `leading-[1.7]` |
+| Block code or terminal prose | `font-mono text-reading-code lg:text-reading-code-desktop` (16/17px) | `leading-[1.6]` |
+| Inline code | `font-mono text-reading-inline-code` (0.95em) | inherit |
+| Figure caption | `text-reading-caption` (16px) | `leading-[1.6]` |
+| Supporting prose | `text-reading-support` (18px) | `leading-[1.7]` |
+| Section heading | `text-reading-heading lg:text-reading-heading-desktop` (20/22px) | preserve heading hierarchy |
+
+`lg` means 1024px in the default Tailwind theme, matching `--desktop-min`. Products with custom
+breakpoints must use that threshold explicitly. Adopting the package does not remap existing
+copy: apply the reading roles to prose and code in the consumer, keeping compact UI classes.
+
 | Export | Contents |
 | --- | --- |
 | `./tokens.json` | the token source |

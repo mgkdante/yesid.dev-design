@@ -3,7 +3,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 import { styleRegressionViolations } from '../engines/styleRegressions.js';
 import { brandHexViolations, buildBrandHexPattern } from '../engines/brandHex.js';
@@ -57,6 +57,9 @@ describe('styleRegressions engine', () => {
 		const results = styleRegressionViolations({ root, forbidden: FROZEN_FORBIDDEN });
 		expect(results).toHaveLength(1);
 		expect(results[0]?.hits).toEqual(['src/Bad.svelte']);
+
+		const slashRoot = styleRegressionViolations({ root: `${root}${sep}`, forbidden: FROZEN_FORBIDDEN });
+		expect(slashRoot[0]?.hits).toEqual(['src/Bad.svelte']);
 
 		const globalPattern = /legacy/gu;
 		globalPattern.lastIndex = 4;
