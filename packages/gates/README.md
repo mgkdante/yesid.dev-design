@@ -8,9 +8,9 @@ exclusions and what counts as a failure.
 
 The root export holds the filesystem walk and comment helpers and the style, brand-hex, color-mix,
 contrast, dataviz, Tailwind-variant and SEO-coverage engines. The
-[product guide](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.2/docs/BUILD-A-YESID-PRODUCT.md)
+[product guide](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.3/docs/BUILD-A-YESID-PRODUCT.md)
 shows the `lint:design` script setup. The exact interface is in
-[`api-reports/gates.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.2/api-reports/gates.api.md).
+[`api-reports/gates.api.md`](https://github.com/mgkdante/yesid.dev-design/blob/v0.30.3/api-reports/gates.api.md).
 
 ## Rules
 

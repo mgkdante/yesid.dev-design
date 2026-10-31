@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.30.3
+
+<!-- release-fragment: portable-style-regression-paths -->
+- `@yesid/gates` (patch): Normalize style-regression hit paths to `src/` with forward slashes on every OS, including scan roots with a trailing separator. Windows callers receive the same finding paths as Linux callers.
+
+<!-- release-fragment: seo-kit-og-background-grid -->
+- `@yesid/seo-kit` (patch): Add the subtle blueprint grid to the default shared OG card: 40px minor lines and 200px major lines behind the existing content, using the token accent at 0.04/0.07 opacity. Card dimensions, typography, padding and public helper signatures are unchanged. Consumers receive the background after adopting the release; OG and Twitter reuse the same image asset.
+
+<!-- release-fragment: seo-kit-satori-security-floor -->
+- `@yesid/seo-kit` (patch): Require Satori >=0.33.5 and <1 to exclude versions affected by GHSA-wx4j-mvgx-mqwp. Consumers must upgrade their Satori peer before adopting this release. No rendering-helper signatures or injected-rasterizer call shapes changed.
+
 ## 0.30.2
 
 <!-- release-fragment: header-link-tap-width -->
