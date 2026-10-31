@@ -1311,7 +1311,7 @@ function createTwMergeConfig(vocab?: {
 }): {
     readonly extend: {
         readonly theme: {
-            readonly text: readonly ["back-link", "body", "caption", "card-body", "card-meta", "card-title", "control", "detail-body-desktop", "detail-body-mobile", "detail-kicker", "detail-meta", "detail-subheading-desktop", "detail-subheading-mobile", "display", "heading", "hero", "hero-mobile", "menu-label-desktop", "menu-label-mobile", "menu-subtitle", "metric-value-default", "metric-value-desktop", "metric-value-mobile", "micro", "mono", "nav-brand-compact", "nav-brand-desktop", "nav-brand-mobile", "nav-link-compact", "nav-link-desktop", "nav-link-mobile", "small", "subheading", "tag", "title", ...string[]];
+            readonly text: readonly ["back-link", "body", "caption", "card-body", "card-meta", "card-title", "control", "detail-body-desktop", "detail-body-mobile", "detail-kicker", "detail-meta", "detail-subheading-desktop", "detail-subheading-mobile", "display", "heading", "hero", "hero-mobile", "menu-label-desktop", "menu-label-mobile", "menu-subtitle", "metric-value-default", "metric-value-desktop", "metric-value-mobile", "micro", "mono", "nav-brand-compact", "nav-brand-desktop", "nav-brand-mobile", "nav-link-compact", "nav-link-desktop", "nav-link-mobile", "reading", "reading-caption", "reading-code", "reading-code-desktop", "reading-desktop", "reading-heading", "reading-heading-desktop", "reading-inline-code", "reading-support", "small", "subheading", "tag", "title", ...string[]];
             readonly color: readonly ["signage-bg", "signage-text", "accent-text", "accent-hover", "primary-hover", "terminal", "manifesto", "success", "border-subtle", "border-strong", ...string[]];
         };
     };
@@ -3195,7 +3195,7 @@ const Trigger: Component<Dialog.TriggerProps, {}, "ref">;
 const twMergeConfig: {
     readonly extend: {
         readonly theme: {
-            readonly text: readonly ["back-link", "body", "caption", "card-body", "card-meta", "card-title", "control", "detail-body-desktop", "detail-body-mobile", "detail-kicker", "detail-meta", "detail-subheading-desktop", "detail-subheading-mobile", "display", "heading", "hero", "hero-mobile", "menu-label-desktop", "menu-label-mobile", "menu-subtitle", "metric-value-default", "metric-value-desktop", "metric-value-mobile", "micro", "mono", "nav-brand-compact", "nav-brand-desktop", "nav-brand-mobile", "nav-link-compact", "nav-link-desktop", "nav-link-mobile", "small", "subheading", "tag", "title", ...string[]];
+            readonly text: readonly ["back-link", "body", "caption", "card-body", "card-meta", "card-title", "control", "detail-body-desktop", "detail-body-mobile", "detail-kicker", "detail-meta", "detail-subheading-desktop", "detail-subheading-mobile", "display", "heading", "hero", "hero-mobile", "menu-label-desktop", "menu-label-mobile", "menu-subtitle", "metric-value-default", "metric-value-desktop", "metric-value-mobile", "micro", "mono", "nav-brand-compact", "nav-brand-desktop", "nav-brand-mobile", "nav-link-compact", "nav-link-desktop", "nav-link-mobile", "reading", "reading-caption", "reading-code", "reading-code-desktop", "reading-desktop", "reading-heading", "reading-heading-desktop", "reading-inline-code", "reading-support", "small", "subheading", "tag", "title", ...string[]];
             readonly color: readonly ["signage-bg", "signage-text", "accent-text", "accent-hover", "primary-hover", "terminal", "manifesto", "success", "border-subtle", "border-strong", ...string[]];
         };
     };

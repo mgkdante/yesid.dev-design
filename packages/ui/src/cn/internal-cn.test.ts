@@ -51,6 +51,12 @@ describe('configureUi', () => {
 		const { cn, configureUi } = await freshCnModule();
 
 		expect(cn('text-caption text-body')).toBe('text-body');
+		expect(cn('text-muted-foreground text-small text-reading-support')).toBe(
+			'text-muted-foreground text-reading-support',
+		);
+		expect(cn('text-body text-reading lg:text-reading-desktop')).toBe(
+			'text-reading lg:text-reading-desktop',
+		);
 		expect(configureUi()).toBe('unchanged');
 		expect(() => configureUi({ vocab: { text: ['late-token'] } })).toThrow(
 			`${CONFLICT_PREFIX}vocab.text${CONFLICT_SUFFIX}`,
